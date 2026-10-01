@@ -1,0 +1,19 @@
+# Render Blueprint (alternative to Cloud Run): Dashboard → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: han-tutor
+    runtime: docker
+    plan: starter            # a persistent disk requires a paid plan
+    region: singapore
+    healthCheckPath: /healthz
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # entered in the Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

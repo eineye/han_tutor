@@ -15,6 +15,11 @@ try {
 
 const PORT = Number(process.env.PORT || 8787);
 
+if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === 'admin1234')) {
+  console.error('ADMIN_PASSWORD must be set to a non-default value in production.');
+  process.exit(1);
+}
+
 store.load();
 
 const core = createCore({
@@ -33,6 +38,8 @@ const core = createCore({
 
 export const app = express();
 app.use(express.json({ limit: '15mb' }));
+
+app.get('/healthz', (_req, res) => res.send('ok'));
 
 // All API logic lives in core.js; this is a thin HTTP adapter.
 app.use('/api', async (req, res) => {

@@ -38,6 +38,8 @@ npm start                 # dist/ 정적 파일 + API를 8787 포트에서 함�
 
 데이터는 `data/db.json`에 저장됩니다 (`DATA_DIR`로 위치 변경 가능). 정기적으로 백업하세요.
 
+클라우드 배포(Google Cloud Run / Render): [docs/DEPLOY.md](docs/DEPLOY.md)
+
 ### 브라우저 지원
 
 | 기능 | Chrome / Edge | Safari | Firefox |

@@ -3,7 +3,7 @@
 // receive `null` and fall back to demo responses so the app stays usable.
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-export const hasKey = () => Boolean(process.env.GEMINI_API_KEY);
+export const hasKey = () => Boolean(process.env.GEMINI_API_KEY) && process.env.GEMINI_API_KEY !== 'none';
 
 /**
  * @param {object} opts
