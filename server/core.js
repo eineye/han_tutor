@@ -18,6 +18,7 @@ export function lessonSections(lesson) {
   if (lesson.grammar?.length) s.push('grammar');
   if (lesson.dialogue?.lines?.length) s.push('dialogue');
   if (lesson.pronunciation?.items?.length) s.push('pronunciation');
+  if (lesson.writing?.items?.length) s.push('writing');
   if (lesson.quiz?.length) s.push('quiz');
   return s;
 }

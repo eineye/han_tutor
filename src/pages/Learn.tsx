@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { ErrorBox, Loading } from '../components/ui';
 import type { Lesson, Progress, Unit } from '../types';
+import { lessonLabel } from '../lib/lessonLabel';
 
 type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null };
 
@@ -44,6 +45,7 @@ export default function Learn() {
                 return (
                   <Link key={l.id} to={`/lesson/${l.id}`} className={`lesson-card lesson-card--${status}`}>
                     <span className="lesson-card__status">{status === 'done' ? '✅' : status === 'started' ? '⏳' : '✨'}</span>
+                    {lessonLabel(l.id) && <small className="lesson-card__label">{lessonLabel(l.id)}</small>}
                     <h3 lang="ko">{l.title.ko}</h3>
                     <p>{l.title.en}</p>
                     {l.progress?.quizBest != null && <small className="muted">Quiz best: {l.progress.quizBest}%</small>}

@@ -7,15 +7,18 @@ import { ErrorBox, Loading, SpeakButton } from '../components/ui';
 import QuizRunner from '../components/QuizRunner';
 import PronunciationPractice from '../components/PronunciationPractice';
 import DialogueView from '../components/DialogueView';
+import WritingPractice from '../components/WritingPractice';
+import { lessonLabel } from '../lib/lessonLabel';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
 import { compose, visemesFor, VISEME_TIPS } from '../lib/hangul';
 
-type SectionKey = 'intro' | 'letters' | 'vocab' | 'grammar' | 'dialogue' | 'pronunciation' | 'quiz' | 'culture' | 'talk';
+type SectionKey = 'intro' | 'letters' | 'writing' | 'vocab' | 'grammar' | 'dialogue' | 'pronunciation' | 'quiz' | 'culture' | 'talk';
 
 const LABELS: Record<SectionKey, { icon: string; en: string; ko: string }> = {
   intro: { icon: '🌱', en: 'Warm-up', ko: '도입' },
   letters: { icon: '🔤', en: 'Letters', ko: '글자' },
+  writing: { icon: '✍️', en: 'Writing', ko: '쓰기' },
   vocab: { icon: '📝', en: 'Words', ko: '어휘' },
   grammar: { icon: '🧩', en: 'Grammar', ko: '문법' },
   dialogue: { icon: '💬', en: 'Dialogue', ko: '대화' },
@@ -25,7 +28,7 @@ const LABELS: Record<SectionKey, { icon: string; en: string; ko: string }> = {
   talk: { icon: '🤖', en: 'AI Talk', ko: 'AI 대화' },
 };
 
-const TRACKED: SectionKey[] = ['letters', 'vocab', 'grammar', 'dialogue', 'pronunciation', 'quiz'];
+const TRACKED: SectionKey[] = ['letters', 'writing', 'vocab', 'grammar', 'dialogue', 'pronunciation', 'quiz'];
 
 export default function LessonPage() {
   const { id = '' } = useParams();
@@ -51,6 +54,7 @@ export default function LessonPage() {
     if (!lesson) return [];
     const s: SectionKey[] = ['intro'];
     if (lesson.letters?.length) s.push('letters');
+    if (lesson.writing?.items?.length) s.push('writing');
     if (lesson.vocab?.length) s.push('vocab');
     if (lesson.grammar?.length) s.push('grammar');
     if (lesson.dialogue?.lines?.length) s.push('dialogue');
@@ -101,6 +105,7 @@ export default function LessonPage() {
           ← Lessons
         </Link>
         <h1>
+          {lessonLabel(lesson.id) && <span className="lesson-label">{lessonLabel(lesson.id)}</span>}
           <span lang="ko">{lesson.title.ko}</span> <small>{lesson.title.en}</small>
         </h1>
       </div>
@@ -135,6 +140,7 @@ export default function LessonPage() {
         )}
 
         {section === 'letters' && <LettersSection lesson={lesson} />}
+        {section === 'writing' && lesson.writing && <WritingPractice key={lesson.id} items={lesson.writing.items} tip={lesson.writing.tip_en} onDone={goNext} />}
         {section === 'vocab' && <VocabSection lesson={lesson} />}
 
         {section === 'grammar' && (
@@ -224,6 +230,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
             <span className="ko-mid" lang="ko">
               {w.ko}
             </span>
+            {w.pron && <span className="pron-note" lang="ko">{w.pron}</span>}
             <span className="roman">{w.roman}</span>
             <span className="en">{hideEn && !flip[i] ? 'tap to reveal' : w.en}</span>
             <SpeakButton text={w.ko.split('→').pop()!.trim()} className="vocab-card__speak" />

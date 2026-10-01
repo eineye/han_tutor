@@ -7,6 +7,8 @@ export interface Vocab {
   roman: string;
   en: string;
   emoji?: string;
+  /** Actual pronunciation in Hangul brackets, e.g. [한구거] */
+  pron?: string;
 }
 export interface Letter {
   char: string;
@@ -61,6 +63,7 @@ export interface Lesson {
   dialogue?: { setting_en: string; lines: Line[] };
   pronunciation?: { focus_en: string; items: PronItem[] };
   quiz: QuizItem[];
+  writing?: { tip_en?: string; items: { text: string; roman?: string; en?: string }[] };
   culture?: { title: string; body_en: string } | null;
   chat?: ChatScenario | null;
   updatedAt?: string;

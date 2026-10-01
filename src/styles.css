@@ -2212,3 +2212,52 @@ label.inline select {
     grid-template-columns: 1fr;
   }
 }
+
+/* ───────── Writing practice & textbook labels ───────── */
+.writing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.writing__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.writing__pad {
+  overflow-x: auto;
+}
+.writing__pad canvas {
+  display: block;
+  background: var(--surface);
+  border-radius: 12px;
+  touch-action: none;
+  cursor: crosshair;
+}
+.writing__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pron-note {
+  color: var(--ok);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.lesson-label {
+  display: inline-block;
+  font-size: 0.55em;
+  vertical-align: middle;
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-right: 8px;
+}
+.lesson-card__label {
+  display: block;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.78rem;
+}

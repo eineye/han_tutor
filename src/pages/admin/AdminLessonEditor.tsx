@@ -5,11 +5,12 @@ import { ErrorBox, Loading, SpeakButton } from '../../components/ui';
 import type { GrammarPoint, Lesson, Unit } from '../../types';
 import { JsonEditor, QuizEditor, RowsEditor } from './editors';
 
-type Tab = 'basic' | 'letters' | 'vocab' | 'grammar' | 'dialogue' | 'pron' | 'quiz' | 'extra' | 'json';
+type Tab = 'basic' | 'letters' | 'writing' | 'vocab' | 'grammar' | 'dialogue' | 'pron' | 'quiz' | 'extra' | 'json';
 
 const TABS: [Tab, string][] = [
   ['basic', '기본 정보'],
   ['letters', '글자 (한글)'],
+  ['writing', '쓰기'],
   ['vocab', '어휘'],
   ['grammar', '문법'],
   ['dialogue', '대화문'],
@@ -175,10 +176,31 @@ export default function AdminLessonEditor() {
             fields={[
               { key: 'emoji', label: '아이콘', width: '64px' },
               { key: 'ko', label: '한국어' },
+              { key: 'pron', label: '실제 발음 [ ]', placeholder: '[한구거]' },
               { key: 'roman', label: '로마자' },
               { key: 'en', label: '영어 뜻' },
             ]}
           />
+        )}
+
+        {tab === 'writing' && (
+          <>
+            <label>
+              쓰기 안내 (영어, 획순 팁 등)
+              <input value={lesson.writing?.tip_en || ''} onChange={(e) => up({ writing: { items: lesson.writing?.items || [], tip_en: e.target.value } })} />
+            </label>
+            <RowsEditor
+              rows={lesson.writing?.items || []}
+              onChange={(items) => up({ writing: { tip_en: lesson.writing?.tip_en || '', items } })}
+              newRow={() => ({ text: '', roman: '', en: '' })}
+              fields={[
+                { key: 'text', label: '따라 쓸 글자/단어' },
+                { key: 'roman', label: '로마자' },
+                { key: 'en', label: '뜻 (영어)' },
+              ]}
+            />
+            <p className="muted small">학생은 칸 안의 흐린 글자를 손가락·펜·마우스로 따라 씁니다. 한 글자 또는 짧은 단어를 권장합니다.</p>
+          </>
         )}
 
         {tab === 'grammar' && (
