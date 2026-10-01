@@ -16,6 +16,8 @@ const rid = (prefix = '') => {
   return prefix + [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 const nowIso = () => new Date().toISOString();
+// JSON copy instead of structuredClone (missing in some older mobile browsers)
+const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 // Demo-only PIN "hash" (FNV-1a). The real server uses scrypt.
 const demoHash = (pin: string) => {
   let h = 0x811c9dc5;
@@ -26,9 +28,9 @@ const demoHash = (pin: string) => {
 function freshDb(): any {
   const db: any = {
     settings: { classCodes: ['DEMO'], geminiModel: 'gemini-2.5-flash' },
-    units: structuredClone(seedUnits),
-    lessons: structuredClone(seedLessons),
-    videos: structuredClone(seedVideos),
+    units: clone(seedUnits),
+    lessons: clone(seedLessons),
+    videos: clone(seedVideos),
     students: [],
     sessions: [],
     progress: [],
@@ -99,9 +101,9 @@ const core = createCore({
   hashPin: demoHash,
   checkPin: (pin: string, stored: string) => demoHash(String(pin)) === stored,
   resetContent: () => {
-    db.units = structuredClone(seedUnits);
-    db.lessons = structuredClone(seedLessons);
-    db.videos = structuredClone(seedVideos);
+    db.units = clone(seedUnits);
+    db.lessons = clone(seedLessons);
+    db.videos = clone(seedVideos);
     persist();
   },
   hasKey: () => Boolean(getBrowserGeminiKey()),

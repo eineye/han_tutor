@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './auth';
 import { IS_DEMO } from './api';
 import './styles.css';
@@ -17,10 +18,12 @@ const Router = IS_DEMO ? MemoryRouter : BrowserRouter;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Router>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   </StrictMode>,
 );

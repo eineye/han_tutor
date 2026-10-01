@@ -2261,3 +2261,17 @@ label.inline select {
   font-weight: 700;
   font-size: 0.78rem;
 }
+
+/* ───────── Crash screen ───────── */
+.crash {
+  max-width: 560px;
+  margin: 40px auto;
+  padding-inline: 16px;
+}
+.crash pre {
+  white-space: pre-wrap;
+  color: var(--bad);
+  background: var(--bad-soft);
+  padding: 10px;
+  border-radius: 10px;
+}

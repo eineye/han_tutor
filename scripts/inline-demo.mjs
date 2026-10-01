@@ -22,6 +22,16 @@ const out = `<title>Han Tutor</title>
 fs.writeFileSync(path.join(dir, 'han-tutor-demo.html'), out);
 console.log(`dist-demo/han-tutor-demo.html  ${(out.length / 1024).toFixed(0)} KB`);
 
+// If the app has not rendered after a few seconds (old browser, blocked script, startup error),
+// show a readable message instead of a blank page.
+const BOOT_GUARD = `(function(){var errs=[];window.addEventListener('error',function(e){errs.push(e.message||'error')});
+setTimeout(function(){var r=document.getElementById('root');if(!r||r.firstChild)return;
+var d=document.createElement('div');d.style.cssText='font-family:sans-serif;padding:24px;max-width:560px;margin:40px auto;line-height:1.6;color:#2b2118;background:#fff8f1';
+var h=document.createElement('h2');h.textContent='앱을 시작하지 못했습니다 · The app could not start';d.appendChild(h);
+var p=document.createElement('p');p.textContent='최신 Chrome, Edge 또는 Safari(iOS 15 이상)에서 열어 주세요. 카카오톡·인스타그램 같은 앱 안에서 열었다면 메뉴의 “다른 브라우저로 열기”를 눌러 주세요. Please open this page in an up-to-date Chrome, Edge or Safari.';d.appendChild(p);
+var e=document.createElement('pre');e.style.cssText='white-space:pre-wrap;color:#a3202f;font-size:13px';e.textContent=(errs.join('\\n')||'(no error message)')+'\\n'+navigator.userAgent;d.appendChild(e);
+r.appendChild(d)},6000)})();`;
+
 // Full document for static hosting (GitHub Pages): dist-demo/site/index.html
 const site = path.join(dir, 'site');
 fs.mkdirSync(site, { recursive: true });
@@ -35,6 +45,8 @@ fs.writeFileSync(
 ${out.slice(0, out.indexOf('<div id="root">'))}</head>
 <body>
 <div id="root"></div>
+<noscript>Han Tutor needs JavaScript. JavaScript를 켜 주세요.</noscript>
+<script>${BOOT_GUARD}</script>
 <script type="module">${script}</script>
 </body>
 </html>
