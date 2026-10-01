@@ -3,8 +3,11 @@
 import { createCore } from '../../server/core.js';
 import { seedUnits, seedLessons } from '../../server/seed/curriculum.js';
 import { seedVideos } from '../../server/seed/videos.js';
+import { callGemini } from '../../server/geminiClient.js';
+import { getBrowserGeminiKey } from './browserKey';
 
 const KEY = 'hantutor.demo.db.v1';
+
 export const DEMO_ADMIN_PASSWORD = 'admin1234';
 
 const rid = (prefix = '') => {
@@ -101,8 +104,8 @@ const core = createCore({
     db.videos = structuredClone(seedVideos);
     persist();
   },
-  hasKey: () => false,
-  generate: async () => null,
+  hasKey: () => Boolean(getBrowserGeminiKey()),
+  generate: (opts: any) => callGemini({ ...opts, apiKey: getBrowserGeminiKey() }),
   adminPassword: () => DEMO_ADMIN_PASSWORD,
 });
 

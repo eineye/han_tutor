@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../api';
+import { api, IS_DEMO } from '../../api';
 import { ErrorBox, Loading, ProgressBar, ScoreBadge } from '../../components/ui';
 import type { Bilingual } from '../../types';
 
@@ -27,7 +27,8 @@ export default function AdminDashboard() {
       <h1>대시보드</h1>
       {!o.ai && (
         <div className="alert alert--warn">
-          ⚠️ GEMINI_API_KEY가 설정되지 않아 AI 기능이 <b>데모 모드</b>로 동작합니다. 서버의 <code>.env</code>에 키를 입력한 뒤 재시작하세요.
+          ⚠️ Gemini API 키가 없어 AI 기능이 <b>데모 모드</b>(예시 응답)로 동작합니다.{' '}
+          {IS_DEMO ? <>설정 메뉴에서 테스트용 키를 입력하면 실제 AI를 시험할 수 있습니다.</> : <>서버의 <code>.env</code>에 키를 입력한 뒤 재시작하세요.</>}
         </div>
       )}
       <div className="stat-grid">

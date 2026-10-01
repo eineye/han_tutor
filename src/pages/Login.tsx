@@ -122,8 +122,8 @@ function DemoNotice() {
       <b>Browser demo 브라우저 데모</b>
       <ul>
         <li>Data stays in this browser only. 데이터는 이 브라우저에만 저장됩니다.</li>
-        <li>AI replies are scripted samples (no Gemini key). AI 응답은 데모용 예시입니다.</li>
-        <li>Microphone and YouTube are blocked in this preview, so speaking practice can’t be scored here. Bori’s voice works.</li>
+        <li>AI replies are scripted samples unless a teacher adds a test Gemini key in 설정. AI 응답은 기본적으로 예시입니다.</li>
+        <li>Speaking practice needs microphone permission (Chrome/Edge/Safari recommended).</li>
       </ul>
       <button
         type="button"

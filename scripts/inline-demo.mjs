@@ -21,3 +21,23 @@ const out = `<title>Han Tutor</title>
 `;
 fs.writeFileSync(path.join(dir, 'han-tutor-demo.html'), out);
 console.log(`dist-demo/han-tutor-demo.html  ${(out.length / 1024).toFixed(0)} KB`);
+
+// Full document for static hosting (GitHub Pages): dist-demo/site/index.html
+const site = path.join(dir, 'site');
+fs.mkdirSync(site, { recursive: true });
+fs.writeFileSync(
+  path.join(site, 'index.html'),
+  `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+${out.slice(0, out.indexOf('<div id="root">'))}</head>
+<body>
+<div id="root"></div>
+<script type="module">${script}</script>
+</body>
+</html>
+`,
+);
+console.log('dist-demo/site/index.html');

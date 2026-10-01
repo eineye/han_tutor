@@ -188,7 +188,7 @@ export default function TalkPage() {
           <div ref={endRef} />
         </div>
 
-        {last?.demo && <div className="alert alert--info small">Demo mode: the server has no GEMINI_API_KEY, so Bori uses scripted replies.</div>}
+        {last?.demo && <div className="alert alert--info small">Demo mode: no Gemini API key is set, so Bori uses scripted replies. (Teacher › 설정 to add a test key.)</div>}
         {error && <div className="alert alert--error">{error}</div>}
 
         {(last?.suggestions_ko?.length || last?.hint_en) && (

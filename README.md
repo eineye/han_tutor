@@ -9,6 +9,9 @@
 
 설계 문서: [docs/DESIGN.md](docs/DESIGN.md)
 
+**🌐 바로 테스트하기 (GitHub Pages):** https://eineye.github.io/han_tutor/
+— 서버 없이 브라우저에서 동작하는 데모입니다. 데이터는 각자의 브라우저에만 저장되고, 교사 비밀번호는 `admin1234`입니다. 교사 › 설정에서 테스트용 Gemini 키를 넣으면 실제 AI도 시험할 수 있습니다. 이 브랜치에 push하면 자동으로 다시 배포됩니다 (`.github/workflows/pages.yml`).
+
 ## 빠른 시작
 
 ```bash

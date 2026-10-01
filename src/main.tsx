@@ -6,8 +6,8 @@ import { AuthProvider } from './auth';
 import { IS_DEMO } from './api';
 import './styles.css';
 
-if (IS_DEMO) {
-  // The demo runs inside a sandboxed frame where confirm()/alert() are unavailable.
+if (IS_DEMO && window.self !== window.top) {
+  // Embedded previews run in a sandboxed frame where confirm()/alert() are unavailable.
   window.confirm = () => true;
   window.alert = (msg?: unknown) => console.info(msg);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, download } from '../../api';
+import { api, download, IS_DEMO } from '../../api';
+import { getBrowserGeminiKey, setBrowserGeminiKey } from '../../demo/browserKey';
 import { ErrorBox, Loading } from '../../components/ui';
 
 interface Settings {
@@ -14,6 +15,7 @@ export default function AdminSettings() {
   const [model, setModel] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState<unknown>(null);
+  const [browserKey, setBrowserKey] = useState(() => (IS_DEMO ? getBrowserGeminiKey() : ''));
 
   useEffect(() => {
     api<Settings>('/admin/settings')
@@ -34,6 +36,7 @@ export default function AdminSettings() {
   };
 
   const save = async () => {
+    if (IS_DEMO) setBrowserGeminiKey(browserKey);
     const r = await api<Settings>('/admin/settings', { method: 'PUT', body: { classCodes: codes.split(',').map((c) => c.trim()), geminiModel: model } });
     setS(r);
     setCodes(r.classCodes.join(', '));
@@ -60,9 +63,17 @@ export default function AdminSettings() {
         <p className="muted small">학생은 가입할 때 반 코드를 입력해야 합니다. 여러 반은 쉼표로 구분하세요. (예: DEMO, LA-2026, SYDNEY-A)</p>
         <input value={codes} onChange={(e) => setCodes(e.target.value)} />
         <h3>Gemini AI</h3>
-        <p>
-          상태: {s.ai ? '✅ API 키 설정됨' : '⚪ 데모 모드 — 서버 .env 파일에 GEMINI_API_KEY 를 설정하세요'}
-        </p>
+        {IS_DEMO ? (
+          <label>
+            테스트용 Gemini API 키 (이 브라우저에만 저장)
+            <input type="password" value={browserKey} onChange={(e) => setBrowserKey(e.target.value)} placeholder="AIza…" autoComplete="off" />
+            <small className="muted">
+              입력하면 이 브라우저의 학생·교사 화면에서 실제 Gemini 대화·발음 피드백·리포트를 시험할 수 있습니다. 키는 서버로 보내지지 않고 브라우저에서 Google로 직접 전송됩니다. 공용 PC에서는 사용 후 지우세요. 실제 운영에서는 서버 배포 방식을 사용하세요.
+            </small>
+          </label>
+        ) : (
+          <p>상태: {s.ai ? '✅ API 키 설정됨' : '⚪ 데모 모드 — 서버 .env 파일에 GEMINI_API_KEY 를 설정하세요'}</p>
+        )}
         <label>
           사용 모델
           <input value={model} onChange={(e) => setModel(e.target.value)} list="gemini-models" />
