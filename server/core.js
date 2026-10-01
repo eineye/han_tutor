@@ -115,11 +115,11 @@ export function createCore(deps) {
   // auth
   route('POST', '/auth/student/register', 'public', async ({ body }) => {
     const { name, classCode, pin, nativeLang = 'English', country = '' } = body;
-    if (!name?.trim() || !/^\d{4}$/.test(String(pin || ''))) throw new HttpError(400, 'Name and a 4-digit PIN are required.');
+    if (!name?.trim() || !/^\d{4}$/.test(String(pin || ''))) throw new HttpError(400, 'Enter a name and a 4-digit PIN (numbers only). 이름과 숫자 4자리 PIN을 입력하세요.');
     const code = String(classCode || '').trim().toUpperCase();
-    if (!db().settings.classCodes.includes(code)) throw new HttpError(400, 'Unknown class code. Ask your teacher.');
+    if (!db().settings.classCodes.includes(code)) throw new HttpError(400, 'Unknown class code. Ask your teacher. 반 코드가 올바르지 않습니다. 선생님께 확인하세요.');
     if (db().students.some((s) => s.name.toLowerCase() === name.trim().toLowerCase() && s.classCode === code))
-      throw new HttpError(409, 'That name is already registered in this class. Try logging in.');
+      throw new HttpError(409, 'That name is already registered in this class. Use the Log in tab. 이미 가입된 이름입니다. Log in 탭에서 로그인하세요.');
     const student = {
       id: deps.id('s_'),
       name: name.trim(),
@@ -143,7 +143,7 @@ export function createCore(deps) {
   route('POST', '/auth/student/login', 'public', async ({ body }) => {
     const code = String(body.classCode || '').trim().toUpperCase();
     const s = db().students.find((x) => x.name.toLowerCase() === String(body.name || '').trim().toLowerCase() && x.classCode === code);
-    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) throw new HttpError(401, 'Name, class code or PIN is wrong.');
+    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) throw new HttpError(401, 'Name, class code or PIN is wrong. First time here? Use the Sign up tab. 이름·반 코드·PIN이 맞지 않습니다. 처음이라면 Sign up 탭에서 가입하세요.');
     return { token: newSession('student', s.id), student: publicStudent(s) };
   });
 

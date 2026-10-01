@@ -10,7 +10,14 @@ type Tab = 'login' | 'register' | 'teacher';
 export default function Login() {
   const auth = useAuth();
   const nav = useNavigate();
-  const [tab, setTab] = useState<Tab>('login');
+  // First visit on this device → start on Sign up; after an account exists → Log in
+  const [tab, setTab] = useState<Tab>(() => {
+    try {
+      return localStorage.getItem('hantutor.hasAccount') ? 'login' : 'register';
+    } catch {
+      return 'register';
+    }
+  });
   const [form, setForm] = useState({ name: '', classCode: 'DEMO', pin: '', nativeLang: 'English', country: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -33,6 +40,11 @@ export default function Login() {
       } else {
         const r = await api(tab === 'login' ? '/auth/student/login' : '/auth/student/register', { body: form });
         auth.login(r.token, 'student', r.student);
+        try {
+          localStorage.setItem('hantutor.hasAccount', '1');
+        } catch {
+          /* storage unavailable */
+        }
         nav('/home');
       }
     } catch (err) {
@@ -104,10 +116,22 @@ export default function Login() {
             )}
           </>
         )}
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && (
+          <div className="alert alert--error">
+            {error}
+            {tab === 'login' && (
+              <div>
+                <button type="button" className="btn btn--ghost btn--small" onClick={() => (setTab('register'), setError(''))}>
+                  Sign up instead · 가입하기
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <button className="btn btn--block" disabled={busy}>
           {busy ? '…' : tab === 'register' ? 'Create account 시작하기' : tab === 'teacher' ? '관리자 로그인' : 'Log in 로그인'}
         </button>
+        {tab === 'register' && <p className="muted small">First time? Choose any name and your own 4-digit PIN. 처음이면 아무 이름과 직접 정한 숫자 4자리 PIN으로 가입하세요.</p>}
         {tab !== 'teacher' && <p className="muted small">Demo class code: <b>DEMO</b></p>}
         {tab === 'teacher' && IS_DEMO && <p className="muted small">데모 비밀번호: <b>admin1234</b></p>}
         {IS_DEMO && <DemoNotice />}
@@ -121,7 +145,13 @@ function DemoNotice() {
     <div className="alert alert--info small demo-notice">
       <b>Browser demo 브라우저 데모</b>
       <ul>
-        <li>Data stays in this browser only. 데이터는 이 브라우저에만 저장됩니다.</li>
+        <li>
+          First visit: <b>Sign up</b> → any name, class code <b>DEMO</b>, your own 4-digit PIN. 처음이면 Sign up 탭에서 가입하세요.
+        </li>
+        <li>
+          Example student: <b>Emma (예시)</b> / DEMO / PIN <b>0000</b> · Teacher password: <b>admin1234</b>
+        </li>
+        <li>Data stays in this browser only — sign up again on another device. 데이터는 이 브라우저에만 저장되므로 기기를 바꾸면 다시 가입하세요.</li>
         <li>AI replies are scripted samples unless a teacher adds a test Gemini key in 설정. AI 응답은 기본적으로 예시입니다.</li>
         <li>Speaking practice needs microphone permission (Chrome/Edge/Safari recommended).</li>
       </ul>
