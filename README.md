@@ -21,6 +21,14 @@ npm run dev               # http://localhost:5173 (API: 8787)
 - 교사: 로그인 화면 → **교사 Teacher** 탭 → `.env`의 `ADMIN_PASSWORD` (기본값 `admin1234`, 배포 전 반드시 변경)
 - `GEMINI_API_KEY`가 없으면 AI 기능이 **데모 모드**(정해진 응답)로 동작합니다. 키는 https://aistudio.google.com/apikey 에서 발급합니다.
 
+### 브라우저 데모 (서버 없이 실행)
+
+```bash
+npm run build:demo        # dist-demo/han-tutor-demo.html (단일 HTML 파일)
+```
+
+서버와 같은 API 코어(`server/core.js`)를 브라우저에서 실행하고, 데이터는 그 브라우저의 localStorage에 저장합니다. 예시 학생 4명이 미리 들어 있고, AI는 데모 응답을 사용합니다. 교사 비밀번호는 `admin1234`입니다.
+
 ### 배포 (단일 서버)
 
 ```bash

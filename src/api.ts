@@ -22,8 +22,16 @@ export class ApiError extends Error {
   }
 }
 
+export const IS_DEMO = import.meta.env.VITE_DEMO === '1';
+
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = getToken();
+  if (IS_DEMO) {
+    const { mockFetch } = await import('./demo/mockServer');
+    const r = await mockFetch(opts.method || (opts.body ? 'POST' : 'GET'), path, token, opts.body);
+    if (r.status >= 400) throw new ApiError(r.status, (r.body as any)?.error || 'Error');
+    return r.body as T;
+  }
   const res = await fetch('/api' + path, {
     method: opts.method || (opts.body ? 'POST' : 'GET'),
     headers: {
@@ -40,8 +48,14 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 
 /** Download a file from an authenticated endpoint. */
 export async function download(path: string, filename: string) {
-  const res = await fetch('/api' + path, { headers: { Authorization: `Bearer ${getToken()}` } });
-  const blob = await res.blob();
+  let blob: Blob;
+  if (IS_DEMO) {
+    const data = await api(path);
+    blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)]);
+  } else {
+    const res = await fetch('/api' + path, { headers: { Authorization: `Bearer ${getToken()}` } });
+    blob = await res.blob();
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

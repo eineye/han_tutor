@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { api } from '../api';
+import { api, IS_DEMO } from '../api';
 import { useAuth } from '../auth';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
@@ -109,7 +109,29 @@ export default function Login() {
           {busy ? '…' : tab === 'register' ? 'Create account 시작하기' : tab === 'teacher' ? '관리자 로그인' : 'Log in 로그인'}
         </button>
         {tab !== 'teacher' && <p className="muted small">Demo class code: <b>DEMO</b></p>}
+        {tab === 'teacher' && IS_DEMO && <p className="muted small">데모 비밀번호: <b>admin1234</b></p>}
+        {IS_DEMO && <DemoNotice />}
       </form>
+    </div>
+  );
+}
+
+function DemoNotice() {
+  return (
+    <div className="alert alert--info small demo-notice">
+      <b>Browser demo 브라우저 데모</b>
+      <ul>
+        <li>Data stays in this browser only. 데이터는 이 브라우저에만 저장됩니다.</li>
+        <li>AI replies are scripted samples (no Gemini key). AI 응답은 데모용 예시입니다.</li>
+        <li>Microphone and YouTube are blocked in this preview, so speaking practice can’t be scored here. Bori’s voice works.</li>
+      </ul>
+      <button
+        type="button"
+        className="btn btn--ghost btn--small"
+        onClick={() => import('../demo/mockServer').then((m) => m.resetDemo())}
+      >
+        Reset demo data
+      </button>
     </div>
   );
 }

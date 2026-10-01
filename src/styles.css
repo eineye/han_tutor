@@ -22,7 +22,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #1d1814;
     --surface: #27211c;
     --surface-2: #322a23;
@@ -37,6 +37,20 @@
     color-scheme: dark;
   }
 }
+:root[data-theme='dark'] {
+    --bg: #1d1814;
+    --surface: #27211c;
+    --surface-2: #322a23;
+    --text: #f6ece2;
+    --muted: #b3a394;
+    --line: #3d332b;
+    --primary-soft: #4a2c22;
+    --good-soft: #17392a;
+    --ok-soft: #3d3215;
+    --bad-soft: #43202a;
+    --shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
 
 * {
   box-sizing: border-box;
@@ -332,6 +346,9 @@ label.inline select {
   border-radius: 12px;
   padding: 10px 14px;
   margin: 10px 0;
+}
+.demo-notice ul {
+  margin: 4px 0 8px;
 }
 .alert ul {
   margin: 6px 0 0;
