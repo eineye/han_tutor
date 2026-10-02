@@ -1,4 +1,6 @@
-# Han Tutor — 초기 설계서 (v0.1 시험판)
+# 한글온 (Hangeul On) — 초기 설계서 (v0.1 시험판)
+
+> 브랜드: 앱 아이콘 `src/assets/brand/한글온_icon_logo.png`, 글자 로고 `src/assets/brand/한글온_Name_logo.png` (화면 상단·로그인·교사 화면, 파비콘/홈 화면 아이콘 `public/icon-192.png`, `icon-512.png`). 다크 모드에서는 글자 로고에 흰 바탕을 깔아 남색 글자가 보이게 함
 
 ## 1. 목표와 대상
 

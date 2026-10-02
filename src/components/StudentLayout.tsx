@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { BrandIcon, BrandName } from './Brand';
 import { useAuth } from '../auth';
 import { LangSwitcher, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
@@ -21,10 +22,8 @@ export default function StudentLayout() {
     <div className="app">
       <header className="topbar">
         <NavLink to="/home" className="brand">
-          <span className="brand__logo">한</span>
-          <span>
-            Han Tutor <small>한글 튜터</small>
-          </span>
+          <BrandIcon />
+          <BrandName />
         </NavLink>
         <nav className="topnav">
           {NAV.map((n) => (

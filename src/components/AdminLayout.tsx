@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { BrandIcon, BrandName } from './Brand';
 import { useAuth } from '../auth';
 
 const NAV = [
@@ -17,9 +18,10 @@ export default function AdminLayout() {
     <div className="admin">
       <aside className="admin__side">
         <div className="brand brand--admin">
-          <span className="brand__logo">한</span>
+          <BrandIcon />
           <span>
-            Han Tutor <small>교사용 관리자</small>
+            <BrandName height={30} />
+            <small>교사용 관리자</small>
           </span>
         </div>
         <nav>

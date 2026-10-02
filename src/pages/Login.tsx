@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { BrandIcon, BrandName } from '../components/Brand';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { api, ApiError, IS_DEMO } from '../api';
 import { useAuth } from '../auth';
@@ -78,8 +79,9 @@ export default function Login() {
         <button className="login__mascot" onClick={() => mascot.say('안녕하세요! 저는 보리예요. 같이 한국어 공부해요!')} aria-label={t('login.sayHello')}>
           <Mascot viseme={mascot.viseme} talking={mascot.speaking} mood="happy" size={200} />
         </button>
-        <h1>
-          Han Tutor <span>한글 튜터</span>
+        <h1 className="login__brand">
+          <BrandIcon size={64} />
+          <BrandName height={64} />
         </h1>
         <p>{t('login.tagline')}</p>
         <p className="muted small">{t('login.tapBori')} 👋</p>

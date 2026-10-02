@@ -11,7 +11,10 @@ if (!js || !css) throw new Error('Could not find built JS/CSS in dist-demo/index
 const script = fs.readFileSync(path.join(dir, js), 'utf8').replace(/<\/script/gi, '<\\/script');
 const style = fs.readFileSync(path.join(dir, css), 'utf8').replace(/<\/style/gi, '<\\/style');
 
-const out = `<title>Han Tutor</title>
+const icon = `data:image/png;base64,${fs.readFileSync(path.resolve('public/icon-192.png')).toString('base64')}`;
+const out = `<title>한글온 · Hangeul On</title>
+<link rel="icon" href="${icon}" type="image/png">
+<link rel="apple-touch-icon" href="${icon}">
 <meta name="theme-color" content="#ff7a59">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
@@ -45,7 +48,7 @@ fs.writeFileSync(
 ${out.slice(0, out.indexOf('<div id="root">'))}</head>
 <body>
 <div id="root"></div>
-<noscript>Han Tutor needs JavaScript. JavaScript를 켜 주세요.</noscript>
+<noscript>한글온 (Hangeul On) needs JavaScript. JavaScript를 켜 주세요.</noscript>
 <script>${BOOT_GUARD}</script>
 <script type="module">${script}</script>
 </body>

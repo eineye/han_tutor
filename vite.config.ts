@@ -13,6 +13,6 @@ export default defineConfig({
   // Target slightly older browsers too (iPhone Safari 14+, in-app browsers)
   build: {
     target: ['es2020', 'chrome87', 'edge88', 'firefox78', 'safari14'],
-    ...(demo ? { outDir: 'dist-demo', rollupOptions: { output: { inlineDynamicImports: true } } } : {}),
+    ...(demo ? { outDir: 'dist-demo', assetsInlineLimit: 200_000, rollupOptions: { output: { inlineDynamicImports: true } } } : {}),
   },
 });

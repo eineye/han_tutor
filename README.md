@@ -1,4 +1,6 @@
-# Han Tutor · 한글 튜터
+# 한글온 (Hangeul On)
+
+<img src="src/assets/brand/한글온_icon_logo.png" alt="한글온 아이콘" height="80"> <img src="src/assets/brand/한글온_Name_logo.png" alt="한글온 HANGEUL ON" height="80">
 
 해외 거주 중·고등학생을 위한 한국어 학습 웹앱 (시험판 v0.1)
 

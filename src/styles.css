@@ -684,16 +684,32 @@ label.inline select {
   color: var(--muted);
   font-size: 0.75rem;
 }
-.brand__logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 900;
+.brand__icon {
+  display: block;
+  flex: none;
+  height: 40px;
+  width: auto;
+}
+.brand__name {
+  display: block;
+  height: 34px;
+  width: auto;
+}
+.brand--admin .brand__name {
+  height: 30px;
+}
+/* the word mark is navy: give it a light backing on dark backgrounds */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .brand__name {
+    background: #fff;
+    border-radius: 8px;
+    padding: 2px 6px;
+  }
+}
+:root[data-theme='dark'] .brand__name {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2px 6px;
 }
 .topnav {
   display: flex;
@@ -801,8 +817,15 @@ label.inline select {
   font-size: 2.4rem;
   margin-bottom: 0.2em;
 }
-.login__hero h1 span {
-  color: var(--primary);
+.login__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.login__brand .brand__icon,
+.login__brand .brand__name {
+  height: 76px;
 }
 .login__mascot,
 .hero__mascot {
