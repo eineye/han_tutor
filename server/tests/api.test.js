@@ -127,3 +127,33 @@ test('teacher translations: list, save, read publicly, delete', async () => {
   const noKey = await call('/admin/i18n/ai-translate', { token: admin, body: { lang: 'mn', texts: ['Hello'] } });
   assert.equal(noKey.status, 400, 'AI translation needs a Gemini key');
 });
+
+test('teacher recordings: upload, match by text, play, replace, delete', async () => {
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  // a tiny fake WAV payload
+  const data = Buffer.from('RIFF....WAVEfmt test audio').toString('base64');
+  assert.equal((await call('/admin/audio', { body: { text: '가', mime: 'audio/wav', data } })).status, 403, 'teachers only');
+  assert.equal((await call('/admin/audio', { token: admin, body: { text: ' ', mime: 'audio/wav', data } })).status, 400);
+  assert.equal((await call('/admin/audio', { token: admin, body: { text: '가', mime: 'text/plain', data } })).status, 400);
+  const big = Buffer.alloc(2 * 1024 * 1024 + 10).toString('base64');
+  assert.equal((await call('/admin/audio', { token: admin, body: { text: '가', mime: 'audio/wav', data: big } })).status, 400, 'size limit');
+
+  const up = await call('/admin/audio', { token: admin, body: { text: '가 카 까', mime: 'audio/mpeg', data } });
+  assert.equal(up.status, 200);
+  assert.equal(up.data.key, '가카까');
+  const index = (await call('/audio/index')).data;
+  assert.ok(index.some((r) => r.id === up.data.id && r.key === '가카까'), 'public index lists it');
+  const file = await call(`/audio/${up.data.id}`);
+  assert.equal(file.data.mime, 'audio/mpeg');
+  assert.equal(file.data.data, data);
+
+  // same text (different punctuation) replaces the file instead of adding a new one
+  const data2 = Buffer.from('second take').toString('base64');
+  const again = await call('/admin/audio', { token: admin, body: { text: '가, 카, 까.', mime: 'audio/wav', data: data2 } });
+  assert.equal(again.data.id, up.data.id);
+  assert.equal((await call(`/audio/${up.data.id}`)).data.data, data2);
+  assert.equal((await call('/audio/index')).data.filter((r) => r.key === '가카까').length, 1);
+
+  assert.equal((await call(`/admin/audio/${up.data.id}`, { token: admin, method: 'DELETE' })).status, 200);
+  assert.equal((await call(`/audio/${up.data.id}`)).status, 404);
+});

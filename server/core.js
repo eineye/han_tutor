@@ -4,6 +4,7 @@
 import { CHAT_SCHEMA, chatSystemPrompt, PRON_SCHEMA, pronunciationPrompt, REPORT_SCHEMA } from './prompts.js';
 import { demoChatReply, demoPronunciation, demoReport } from './demo.js';
 import { collectStudentStrings, TRANSLATION_LANGS } from './i18nStrings.js';
+import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
 export class HttpError extends Error {
   /** @param {string} [code] machine-readable reason, translated on the client */
@@ -39,6 +40,7 @@ export function lessonSections(lesson) {
  * @param {(opts: object) => Promise<any>} deps.generate
  * @param {() => string} deps.adminPassword
  * @param {() => string} [deps.defaultModel]
+ * @param {{put(id: string, base64: string): Promise<void>, get(id: string): Promise<string|null>, remove(id: string): Promise<void>}} [deps.audio]  recording file storage
  */
 export function createCore(deps) {
   const db = deps.db;
@@ -598,6 +600,53 @@ export function createCore(deps) {
     });
     const out = Array.isArray(result?.translations) ? result.translations : [];
     return { items: batch.map((en, i) => ({ en, text: typeof out[i] === 'string' ? out[i] : '' })) };
+  });
+
+  // ---- teacher recordings (native-speaker audio used instead of browser TTS) ----
+  const recordings = () => (db().recordings ||= []);
+  const audioStore = () => {
+    if (!deps.audio) throw new HttpError(501, '녹음 저장소가 설정되지 않았습니다');
+    return deps.audio;
+  };
+  const publicRecording = ({ id, key, text, mime, size, updatedAt }) => ({ id, key, text, mime, size, updatedAt });
+
+  route('GET', '/audio/index', 'public', () => recordings().map(publicRecording));
+
+  route('GET', '/audio/:id', 'public', async ({ params }) => {
+    const r = recordings().find((x) => x.id === params.id);
+    if (!r) throw new HttpError(404, '녹음을 찾을 수 없습니다');
+    const data = await audioStore().get(r.id);
+    if (!data) throw new HttpError(404, '녹음 파일이 없습니다');
+    return { mime: r.mime, data };
+  });
+
+  route('POST', '/admin/audio', 'admin', async ({ body }) => {
+    const text = String(body.text || '').trim();
+    const key = recordingKey(text);
+    if (!key) throw new HttpError(400, '녹음할 문장(글자)을 입력하세요');
+    if (text.length > MAX_RECORDING_TEXT) throw new HttpError(400, `문장은 ${MAX_RECORDING_TEXT}자 이하로 입력하세요`);
+    const mime = String(body.mime || '').toLowerCase().split(';')[0];
+    if (!RECORDING_TYPES.includes(mime)) throw new HttpError(400, '지원하지 않는 파일 형식입니다 (mp3, m4a, wav, ogg, webm)');
+    const data = String(body.data || '').replace(/^data:[^,]*,/, '');
+    if (!/^[A-Za-z0-9+/]+=*$/.test(data)) throw new HttpError(400, '파일 내용을 읽을 수 없습니다');
+    const size = base64Bytes(data);
+    if (size > MAX_RECORDING_BYTES) throw new HttpError(400, '파일이 너무 큽니다 (최대 2MB)');
+    const existing = recordings().find((x) => x.key === key);
+    const rec = existing || { id: deps.id('au_'), key };
+    await audioStore().put(rec.id, data);
+    Object.assign(rec, { text, mime, size, updatedAt: now() });
+    if (!existing) recordings().push(rec);
+    save();
+    return publicRecording(rec);
+  });
+
+  route('DELETE', '/admin/audio/:id', 'admin', async ({ params }) => {
+    const i = recordings().findIndex((x) => x.id === params.id);
+    if (i < 0) throw new HttpError(404, '녹음을 찾을 수 없습니다');
+    const [rec] = recordings().splice(i, 1);
+    await audioStore().remove(rec.id);
+    save();
+    return { ok: true };
   });
 
   route('GET', '/admin/settings', 'admin', () => ({ ...db().settings, ai: deps.hasKey() }));

@@ -4,19 +4,7 @@ import { useMascotSpeech } from '../components/useMascotSpeech';
 import { CHO, JONG, JUNG, compose, romanize, visemesFor } from '../lib/hangul';
 import { useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
-
-const VOWELS: { c: string; r: string }[] = [
-  ['ㅏ', 'a'], ['ㅑ', 'ya'], ['ㅓ', 'eo'], ['ㅕ', 'yeo'], ['ㅗ', 'o'], ['ㅛ', 'yo'], ['ㅜ', 'u'], ['ㅠ', 'yu'], ['ㅡ', 'eu'], ['ㅣ', 'i'],
-  ['ㅐ', 'ae'], ['ㅒ', 'yae'], ['ㅔ', 'e'], ['ㅖ', 'ye'], ['ㅘ', 'wa'], ['ㅙ', 'wae'], ['ㅚ', 'oe'], ['ㅝ', 'wo'], ['ㅞ', 'we'], ['ㅟ', 'wi'], ['ㅢ', 'ui'],
-].map(([c, r]) => ({ c, r }));
-
-// name = the letter's Korean name (기역, 니은 …)
-const CONSONANTS: { c: string; r: string; name: string; group: 'basic' | 'aspirated' | 'tense' }[] = [
-  ['ㄱ', 'g/k', '기역', 'basic'], ['ㄴ', 'n', '니은', 'basic'], ['ㄷ', 'd/t', '디귿', 'basic'], ['ㄹ', 'r/l', '리을', 'basic'], ['ㅁ', 'm', '미음', 'basic'],
-  ['ㅂ', 'b/p', '비읍', 'basic'], ['ㅅ', 's', '시옷', 'basic'], ['ㅇ', '–/ng', '이응', 'basic'], ['ㅈ', 'j', '지읒', 'basic'], ['ㅎ', 'h', '히읗', 'basic'],
-  ['ㅋ', 'k', '키읔', 'aspirated'], ['ㅌ', 't', '티읕', 'aspirated'], ['ㅍ', 'p', '피읖', 'aspirated'], ['ㅊ', 'ch', '치읓', 'aspirated'],
-  ['ㄲ', 'kk', '쌍기역', 'tense'], ['ㄸ', 'tt', '쌍디귿', 'tense'], ['ㅃ', 'pp', '쌍비읍', 'tense'], ['ㅆ', 'ss', '쌍시옷', 'tense'], ['ㅉ', 'jj', '쌍지읒', 'tense'],
-].map(([c, r, name, group]) => ({ c, r, name, group: group as 'basic' | 'aspirated' | 'tense' }));
+import { CONSONANTS, PAIRS, VOWELS } from '../lib/hangeulSets';
 
 type Tab = 'vowels' | 'consonants' | 'builder';
 
@@ -30,7 +18,8 @@ export default function HangeulLab() {
   const [jung, setJung] = useState('ㅏ');
   const [jong, setJong] = useState('ㄴ');
 
-  const say = (text: string, rate = 0.7) => mascot.say(text, { rate });
+  // recordingText: a teacher recording of just the syllable (e.g. 가) is preferred when there is one
+  const say = (text: string, rate = 0.7, recordingText?: string) => mascot.say(text, { rate, recordingText });
   const built = compose(cho, jung, jong);
   const focusViseme = /[ㅏ-ㅣ]/.test(focus) ? visemesFor(focus)[0] : null;
 
@@ -100,7 +89,7 @@ export default function HangeulLab() {
                           setFocus(c.c);
                           // A lone syllable gets its first consonant clipped by many voices, so it
                           // follows the letter name: "기역, 가." — the syllable is then heard clearly.
-                          say(`${c.name}, ${compose(c.c, 'ㅏ')}.`);
+                          say(`${c.name}, ${compose(c.c, 'ㅏ')}.`, 0.7, compose(c.c, 'ㅏ'));
                         }}
                       >
                         <span lang="ko">{c.c}</span>
@@ -113,7 +102,7 @@ export default function HangeulLab() {
               ))}
               <div className="minimal-pairs">
                 <h4>{t('lab.pairs')}{ko('비교')}</h4>
-                {['가 카 까', '다 타 따', '바 파 빠', '자 차 짜', '사 싸'].map((set) => (
+                {PAIRS.map((set) => (
                   <button key={set} className="chip" onClick={() => say(`${set.replace(/ /g, ', ')}.`, 0.6)}>
                     🔊 {set}
                   </button>

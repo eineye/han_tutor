@@ -27,6 +27,7 @@ const EMPTY = () => ({
   chatLogs: [], // {id, studentId, scenario, messages:[], updatedAt}
   evaluations: [], // {id, studentId, category, score, comment, at}
   assignments: [], // {id, studentId, lessonId|videoId, title, due, note, done, at}
+  recordings: [], // teacher audio {id, key, text, mime, size, updatedAt}; files in DATA_DIR/audio
 });
 
 let db;

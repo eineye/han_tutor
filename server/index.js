@@ -4,6 +4,7 @@ import express from 'express';
 import * as store from './db.js';
 import { generate, hasKey } from './gemini.js';
 import { createCore } from './core.js';
+import { fileAudioStore } from './audioStore.js';
 
 export { lessonSections } from './core.js';
 
@@ -34,6 +35,7 @@ const core = createCore({
   generate,
   adminPassword: () => process.env.ADMIN_PASSWORD || 'admin1234',
   defaultModel: () => process.env.GEMINI_MODEL,
+  audio: fileAudioStore,
 });
 
 export const app = express();

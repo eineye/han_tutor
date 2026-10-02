@@ -1,6 +1,6 @@
 # 클라우드 배포 가이드
 
-Han Tutor는 Docker 컨테이너 하나(웹 화면 + API)로 배포됩니다. 데이터는 `/data/db.json` 파일에 저장되므로 **영구 저장소를 연결**해야 합니다.
+Han Tutor는 Docker 컨테이너 하나(웹 화면 + API)로 배포됩니다. 데이터는 `/data/db.json` 파일과 `/data/audio/`(교사 녹음 파일) 폴더에 저장되므로 **영구 저장소를 연결**해야 합니다.
 
 | 방법 | 장점 | 비용(대략) |
 |---|---|---|
@@ -24,7 +24,7 @@ Han Tutor는 Docker 컨테이너 하나(웹 화면 + API)로 배포됩니다. �
 
 - 코드 수정 후 재배포: 같은 명령을 다시 실행
 - 비밀번호 변경: `printf '새비밀번호' | gcloud secrets versions add han-tutor-admin-password --data-file=-` 후 재배포
-- 백업: `gcloud storage cp gs://<프로젝트ID>-han-tutor-data/db.json ./backup.json`
+- 백업: `gcloud storage cp gs://<프로젝트ID>-han-tutor-data/db.json ./backup.json` (교사 녹음은 `gcloud storage cp -r gs://<프로젝트ID>-han-tutor-data/audio ./audio-backup`)
 
 ## B. Render
 

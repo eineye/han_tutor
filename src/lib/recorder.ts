@@ -12,6 +12,9 @@ export class MicRecorder {
   private recorder: MediaRecorder | null = null;
   private chunks: Blob[] = [];
 
+  /** sampleRate: 16 kHz for speech scoring; teachers' recordings use a higher rate. trimSilence cuts quiet edges. */
+  constructor(private opts: { sampleRate?: number; trimSilence?: boolean } = {}) {}
+
   static supported() {
     return Boolean(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function' && 'MediaRecorder' in window);
   }
@@ -32,7 +35,7 @@ export class MicRecorder {
         this.stream?.getTracks().forEach((t) => t.stop());
         try {
           const raw = new Blob(this.chunks, { type: rec.mimeType });
-          const wav = await toWav(raw);
+          const wav = await toWav(raw, this.opts.sampleRate, this.opts.trimSilence);
           resolve({ blob: wav, url: URL.createObjectURL(wav), base64: await blobToBase64(wav), mimeType: 'audio/wav' });
         } catch (e) {
           console.error(e);
@@ -53,7 +56,7 @@ export class MicRecorder {
   }
 }
 
-async function toWav(blob: Blob, sampleRate = 16000): Promise<Blob> {
+async function toWav(blob: Blob, sampleRate = 16000, trimSilence = false): Promise<Blob> {
   const buf = await blob.arrayBuffer();
   const ctx = new AudioContext();
   const decoded = await ctx.decodeAudioData(buf);
@@ -65,7 +68,8 @@ async function toWav(blob: Blob, sampleRate = 16000): Promise<Blob> {
   src.connect(offline.destination);
   src.start();
   const rendered = await offline.startRendering();
-  const data = rendered.getChannelData(0);
+  let data: Float32Array = rendered.getChannelData(0);
+  if (trimSilence) data = trim(data, sampleRate);
   const out = new DataView(new ArrayBuffer(44 + data.length * 2));
   const w = (o: number, s: string) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
   w(0, 'RIFF');
@@ -95,4 +99,17 @@ function blobToBase64(blob: Blob): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
+}
+
+/** Cut leading/trailing silence (keeping a short margin) so a recording starts right away. */
+function trim(data: Float32Array, sampleRate: number): Float32Array {
+  const peak = data.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+  if (peak < 0.01) return data;
+  const th = Math.max(0.01, peak * 0.06);
+  let a = 0;
+  let b = data.length - 1;
+  while (a < b && Math.abs(data[a]) < th) a++;
+  while (b > a && Math.abs(data[b]) < th) b--;
+  const margin = Math.round(sampleRate * 0.06);
+  return data.slice(Math.max(0, a - margin), Math.min(data.length, b + margin * 2));
 }

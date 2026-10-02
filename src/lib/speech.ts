@@ -1,3 +1,4 @@
+import { findRecording, recordingUrl } from './recordings';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -130,67 +131,136 @@ if (typeof window !== 'undefined') {
 export interface SpeakOptions {
   rate?: number;
   pitch?: number;
-  onStart?: () => void;
+  /** durationMs is known when a teacher recording plays (lets the mouth animation match it) */
+  onStart?: (info?: { durationMs?: number; text?: string }) => void;
   onBoundary?: (charIndex: number) => void;
   onEnd?: () => void;
+  /** Texts to look up a teacher recording for before `text` (e.g. "가" while TTS reads "기역, 가.") */
+  recordingText?: string | string[];
+  /** false = always use the browser voice (e.g. the teacher comparing with TTS) */
+  useRecording?: boolean;
 }
 
 let speakSeq = 0;
 let startTimer: number | null = null;
 let lastBusyCancel = -1e9; // when audio that was still playing got cancelled
 const GAP_MS = 90;
+let currentAudio: HTMLAudioElement | null = null;
 
 /** cancel() that remembers whether it cut off playing audio (see the gap in speak()) */
 function cancelSynth() {
+  if (!ttsSupported()) return;
   const synth = window.speechSynthesis;
   if (synth.speaking || synth.pending) lastBusyCancel = performance.now();
   synth.cancel();
 }
 
+function stopAudio() {
+  if (!currentAudio) return;
+  currentAudio.onended = currentAudio.onerror = currentAudio.onplaying = null;
+  currentAudio.pause();
+  currentAudio = null;
+}
+
+/**
+ * Says Korean text: plays the teacher's recording when one exists for it, otherwise uses the
+ * browser voice. Returns a function that stops it.
+ */
 export function speak(text: string, opts: SpeakOptions = {}): () => void {
-  if (!ttsSupported()) {
-    opts.onEnd?.();
-    return () => {};
-  }
   warmedUp = true;
   keepAudioAwake();
-  const synth = window.speechSynthesis;
-  // Starting right after cancel() makes Chrome clip or crackle the first sound,
-  // so leave a short gap whenever something was still playing.
+  stopAudio();
   cancelSynth();
-  const wait = GAP_MS - (performance.now() - lastBusyCancel);
   if (startTimer) window.clearTimeout(startTimer);
+  startTimer = null;
   const seq = ++speakSeq;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
-  const voice = koreanVoice();
-  if (voice) u.voice = voice;
-  u.rate = opts.rate ?? 0.9;
-  u.pitch = opts.pitch ?? 1.1;
+  const rate = opts.rate ?? 0.9;
   let ended = false;
+  let guard = 0;
   const finish = () => {
     if (ended || seq !== speakSeq) return;
     ended = true;
+    window.clearTimeout(guard);
     opts.onEnd?.();
   };
-  u.onstart = () => opts.onStart?.();
-  u.onboundary = (e) => opts.onBoundary?.(e.charIndex);
-  u.onend = finish;
-  u.onerror = finish;
-  const go = () => {
-    startTimer = null;
-    if (seq !== speakSeq) return;
-    synth.resume(); // Chrome can get stuck in a paused state
-    synth.speak(u);
-  };
-  if (wait > 0) startTimer = window.setTimeout(go, wait);
-  else go();
-  // Safety net: some browsers never fire onend
-  const guard = window.setTimeout(finish, 2500 + text.length * 450 / (u.rate || 1));
-  return () => {
+  const armGuard = (ms: number) => {
     window.clearTimeout(guard);
+    guard = window.setTimeout(finish, ms);
+  };
+
+  const tts = () => {
+    if (seq !== speakSeq) return;
+    if (!ttsSupported()) return finish();
+    const synth = window.speechSynthesis;
+    // Starting right after cancel() makes Chrome clip or crackle the first sound,
+    // so leave a short gap whenever something was still playing.
+    const wait = GAP_MS - (performance.now() - lastBusyCancel);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    const voice = koreanVoice();
+    if (voice) u.voice = voice;
+    u.rate = rate;
+    u.pitch = opts.pitch ?? 1.1;
+    u.onstart = () => opts.onStart?.();
+    u.onboundary = (e) => opts.onBoundary?.(e.charIndex);
+    u.onend = finish;
+    u.onerror = finish;
+    const go = () => {
+      startTimer = null;
+      if (seq !== speakSeq) return;
+      synth.resume(); // Chrome can get stuck in a paused state
+      synth.speak(u);
+    };
+    if (wait > 0) startTimer = window.setTimeout(go, wait);
+    else go();
+    // Safety net: some browsers never fire onend
+    armGuard(2500 + (text.length * 450) / (rate || 1));
+  };
+
+  const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
+  const rec = opts.useRecording === false ? null : findRecording(...extra, text);
+  if (!rec) {
+    tts();
+  } else {
+    armGuard(15000);
+    recordingUrl(rec)
+      .then((url) => {
+        if (seq !== speakSeq) return;
+        const a = new Audio(url);
+        currentAudio = a;
+        // Recordings play at natural speed; only the "Slow" buttons (rate ≈ 0.5) slow them down
+        // a little (the browser keeps the pitch)
+        a.playbackRate = rate < 0.6 ? Math.max(0.6, rate / 0.8) : 1;
+        let started = false;
+        a.onplaying = () => {
+          if (started) return;
+          started = true;
+          const durationMs = Number.isFinite(a.duration) ? (a.duration * 1000) / a.playbackRate : undefined;
+          armGuard((durationMs ?? 10000) + 3000);
+          opts.onStart?.({ durationMs, text: rec.text });
+        };
+        a.onended = () => {
+          if (currentAudio === a) currentAudio = null;
+          finish();
+        };
+        a.onerror = () => {
+          if (currentAudio !== a) return;
+          currentAudio = null;
+          tts();
+        };
+        a.play().catch(() => {
+          if (currentAudio !== a) return;
+          currentAudio = null;
+          tts();
+        });
+      })
+      .catch(() => tts());
+  }
+
+  return () => {
     if (seq === speakSeq) {
       if (startTimer) window.clearTimeout(startTimer);
+      stopAudio();
       cancelSynth();
     }
     finish();
@@ -201,7 +271,8 @@ export function stopSpeaking() {
   speakSeq++;
   if (startTimer) window.clearTimeout(startTimer);
   startTimer = null;
-  if (ttsSupported()) cancelSynth();
+  stopAudio();
+  cancelSynth();
 }
 
 // ---- Speech recognition (Chrome, Edge, Safari) ----

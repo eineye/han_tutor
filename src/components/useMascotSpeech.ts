@@ -27,12 +27,12 @@ export function useMascotSpeech() {
     setCharIndex(-1);
   }, []);
 
-  const say = useCallback((text: string, opts: { rate?: number; pitch?: number; onEnd?: () => void } = {}) => {
+  const say = useCallback((text: string, opts: { rate?: number; pitch?: number; onEnd?: () => void; recordingText?: string | string[] } = {}) => {
     clear();
-    const chars = [...text];
+    let chars = [...text];
     const rate = opts.rate ?? 0.9;
     // ~4.6 syllables per second at rate 1.0
-    const syllableMs = 1000 / (4.6 * rate);
+    let syllableMs = 1000 / (4.6 * rate);
     const stepMs = 60;
     let pos = 0; // fractional char position
     let started = false;
@@ -61,7 +61,17 @@ export function useMascotSpeech() {
     cancelRef.current = speak(text, {
       rate,
       pitch: opts.pitch,
-      onStart: startAnim,
+      recordingText: opts.recordingText,
+      onStart: (info) => {
+        // A teacher recording has a known length: spread the mouth movement over it
+        if (info?.durationMs) {
+          if (info.text) chars = [...info.text];
+          const units = chars.reduce((n, c) => n + (/\s/.test(c) ? 0.5 : 1), 0);
+          syllableMs = Math.max(120, info.durationMs / Math.max(1, units));
+          pos = 0;
+        }
+        startAnim();
+      },
       onBoundary: (ci) => {
         // Resync animation to real word boundaries when the browser reports them
         if (ci > pos) pos = ci;
