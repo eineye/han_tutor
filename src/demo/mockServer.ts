@@ -28,6 +28,7 @@ const demoHash = (pin: string) => {
 function freshDb(): any {
   const db: any = {
     settings: { classCodes: ['DEMO'], geminiModel: 'gemini-2.5-flash' },
+    translations: { mn: {}, ko: {} },
     units: clone(seedUnits),
     lessons: clone(seedLessons),
     videos: clone(seedVideos),

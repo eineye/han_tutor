@@ -8,6 +8,7 @@ import { UI, type UIKey } from './ui';
 import contentMn from './content.mn.json';
 import contentKo from './content.ko.json';
 import type { Lesson, Unit, Video, QuizItem } from '../types';
+import { api } from '../api';
 
 export type Lang = 'ko' | 'en' | 'mn';
 
@@ -20,7 +21,9 @@ export const LANGS: { code: Lang; label: string; flag: string }[] = [
 /** Name used when asking the AI to explain things in the student's language. */
 export const LANG_NAME: Record<Lang, string> = { ko: 'Korean', en: 'English', mn: 'Mongolian' };
 
-const CONTENT: Record<Lang, Record<string, string> | null> = { en: null, mn: contentMn, ko: contentKo };
+/** Built-in translations shipped with the app (English sentence → translation). */
+export const BUILTIN_CONTENT: Record<'mn' | 'ko', Record<string, string>> = { mn: contentMn, ko: contentKo };
+export type Overrides = Partial<Record<'mn' | 'ko', Record<string, string>>>;
 const STORAGE_KEY = 'hantutor.lang';
 
 function initialLang(): Lang {
@@ -45,6 +48,8 @@ interface I18n {
   t: TFunc;
   /** Translate an English content sentence (falls back to the English text) */
   tc: (english: string | undefined | null) => string;
+  /** Re-read teacher-entered translations (after saving them in the teacher screen) */
+  reloadOverrides: () => void;
 }
 
 const Ctx = createContext<I18n>(null as unknown as I18n);
@@ -58,16 +63,29 @@ export function makeT(lang: Lang): TFunc {
   };
 }
 
-export function makeTc(lang: Lang) {
-  const dict = CONTENT[lang];
+/** Teacher translations win over the built-in dictionary; missing → English. */
+export function makeTc(lang: Lang, overrides: Overrides = {}) {
+  if (lang === 'en') return (english: string | undefined | null) => english || '';
+  const custom = overrides[lang] || {};
+  const dict = BUILTIN_CONTENT[lang];
   return (english: string | undefined | null) => {
     if (!english) return '';
-    return (dict && dict[english]) || english;
+    return custom[english] || dict[english] || english;
   };
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
+  const [overrides, setOverrides] = useState<Overrides>({});
+
+  const reloadOverrides = useCallback(() => {
+    api<Overrides>('/i18n/overrides')
+      .then((o) => setOverrides(o || {}))
+      .catch(() => {
+        /* offline or older server: built-in translations only */
+      });
+  }, []);
+  useEffect(reloadOverrides, [reloadOverrides]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
@@ -82,7 +100,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  const value = useMemo(() => ({ lang, setLang, t: makeT(lang), tc: makeTc(lang) }), [lang, setLang]);
+  const value = useMemo(() => ({ lang, setLang, t: makeT(lang), tc: makeTc(lang, overrides), reloadOverrides }), [lang, setLang, overrides, reloadOverrides]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

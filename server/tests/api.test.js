@@ -101,3 +101,29 @@ test('seed curriculum is well-formed', async () => {
   const published = seedLessons.filter((l) => l.status !== 'draft').map((l) => l.id);
   assert.deepEqual(published, ['L00', 'L01', 'L02', 'R1', 'L03', 'L04', 'R2', 'L05', 'L06', 'R3', 'L07', 'L08', 'R4', 'L09', 'L10', 'R5', 'L11', 'L12']);
 });
+
+test('teacher translations: list, save, read publicly, delete', async () => {
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  const strings = (await call('/admin/i18n/strings', { token: admin })).data;
+  const row = strings.find((r) => r.en === 'Basic Vowels');
+  assert.ok(row && row.where.some((w) => w.id === 'L01'), 'sentence knows where it appears');
+
+  // a new English sentence written by a teacher shows up in the list
+  const l02 = (await call('/admin/lessons', { token: admin })).data.find((l) => l.id === 'L02');
+  await call('/admin/lessons/L02', { token: admin, method: 'PUT', body: { ...l02, objectives: [...l02.objectives, 'Say hello to a friend'] } });
+  const after = (await call('/admin/i18n/strings', { token: admin })).data;
+  assert.ok(after.some((r) => r.en === 'Say hello to a friend'));
+
+  assert.equal((await call('/admin/i18n/translations', { method: 'PUT', body: { lang: 'mn', items: { x: 'y' } } })).status, 403);
+  const saved = await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'mn', items: { 'Say hello to a friend': 'Найздаа сайн уу гэж хэлэх' } } });
+  assert.equal(saved.status, 200);
+  const pub = (await call('/i18n/overrides')).data;
+  assert.equal(pub.mn['Say hello to a friend'], 'Найздаа сайн уу гэж хэлэх');
+
+  await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'mn', items: { 'Say hello to a friend': '' } } });
+  assert.equal((await call('/i18n/overrides')).data.mn['Say hello to a friend'], undefined, 'empty text removes the override');
+
+  assert.equal((await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'fr', items: {} } })).status, 400);
+  const noKey = await call('/admin/i18n/ai-translate', { token: admin, body: { lang: 'mn', texts: ['Hello'] } });
+  assert.equal(noKey.status, 400, 'AI translation needs a Gemini key');
+});

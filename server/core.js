@@ -3,6 +3,7 @@
 // No Node-specific APIs here: storage, hashing and Gemini access are injected via `deps`.
 import { CHAT_SCHEMA, chatSystemPrompt, PRON_SCHEMA, pronunciationPrompt, REPORT_SCHEMA } from './prompts.js';
 import { demoChatReply, demoPronunciation, demoReport } from './demo.js';
+import { collectStudentStrings, TRANSLATION_LANGS } from './i18nStrings.js';
 
 export class HttpError extends Error {
   /** @param {string} [code] machine-readable reason, translated on the client */
@@ -98,6 +99,13 @@ export function createCore(deps) {
       openAssignments: db().assignments.filter((a) => a.studentId === s.id && !a.done).length,
     };
   }
+
+  const translations = () => {
+    const d = db();
+    d.translations ||= {};
+    for (const lang of TRANSLATION_LANGS) d.translations[lang] ||= {};
+    return d.translations;
+  };
 
   const findStudent = (id) => {
     const s = db().students.find((x) => x.id === id);
@@ -535,15 +543,61 @@ export function createCore(deps) {
 
   route('GET', '/admin/content/export', 'admin', () => {
     const { units, lessons, videos } = db();
-    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos } };
+    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos, translations: translations() } };
   });
 
   route('POST', '/admin/content/import', 'admin', ({ body }) => {
     const { units, lessons, videos } = body;
     if (!Array.isArray(units) || !Array.isArray(lessons) || !Array.isArray(videos)) throw new HttpError(400, 'units, lessons, videos 배열이 필요합니다.');
     Object.assign(db(), { units, lessons, videos });
+    if (body.translations && typeof body.translations === 'object') {
+      for (const lang of TRANSLATION_LANGS) Object.assign(translations()[lang], body.translations[lang] || {});
+    }
     save();
     return { ok: true };
+  });
+
+  // ---- teacher-entered translations (override the built-in dictionaries) ----
+  // Students read these too, so the GET is public.
+  route('GET', '/i18n/overrides', 'public', () => translations());
+
+  route('GET', '/admin/i18n/strings', 'admin', () => {
+    const map = collectStudentStrings(db());
+    return [...map.entries()].map(([en, where]) => ({ en, where }));
+  });
+
+  route('PUT', '/admin/i18n/translations', 'admin', ({ body }) => {
+    const { lang, items } = body;
+    if (!TRANSLATION_LANGS.includes(lang)) throw new HttpError(400, '지원하지 않는 언어입니다.');
+    if (!items || typeof items !== 'object') throw new HttpError(400, 'items가 필요합니다.');
+    const t = translations()[lang];
+    let changed = 0;
+    for (const [en, text] of Object.entries(items)) {
+      const v = String(text ?? '').trim();
+      if (v) t[en] = v.slice(0, 4000);
+      else delete t[en];
+      changed++;
+    }
+    save();
+    return { ok: true, changed, translations: translations() };
+  });
+
+  route('POST', '/admin/i18n/ai-translate', 'admin', async ({ body }) => {
+    const { lang, texts } = body;
+    if (!TRANSLATION_LANGS.includes(lang)) throw new HttpError(400, '지원하지 않는 언어입니다.');
+    if (!Array.isArray(texts) || !texts.length) throw new HttpError(400, '번역할 문장이 없습니다.');
+    if (!deps.hasKey()) throw new HttpError(400, 'Gemini API 키가 없어 AI 번역을 쓸 수 없습니다. (설정에서 키를 입력하세요)');
+    const batch = texts.slice(0, 40).map((s) => String(s).slice(0, 2000));
+    const target = lang === 'mn' ? 'Mongolian (Cyrillic script, natural and friendly for teenagers)' : 'Korean (easy, friendly 해요체 for teenage learners)';
+    const result = await deps.generate({
+      model: model(),
+      temperature: 0.2,
+      schema: { type: 'OBJECT', properties: { translations: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['translations'] },
+      system: `You translate short texts from a Korean-language course for teenagers. Translate each English item into ${target}. Keep Korean (Hangul) words, letters like ㄱ/ㅏ, brackets such as [한구거], emoji and numbers exactly as they are. Return one translation per item, in the same order.`,
+      contents: [{ role: 'user', parts: [{ text: JSON.stringify(batch) }] }],
+    });
+    const out = Array.isArray(result?.translations) ? result.translations : [];
+    return { items: batch.map((en, i) => ({ en, text: typeof out[i] === 'string' ? out[i] : '' })) };
   });
 
   route('GET', '/admin/settings', 'admin', () => ({ ...db().settings, ai: deps.hasKey() }));

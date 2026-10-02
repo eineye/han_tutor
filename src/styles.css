@@ -2318,3 +2318,42 @@ label.inline select {
     display: none;
   }
 }
+
+/* ───────── Teacher translation screen ───────── */
+.stat--btn {
+  border: 2px solid transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.stat--btn.is-active {
+  border-color: var(--primary);
+}
+.text-bad {
+  color: var(--bad);
+}
+.tr-table td {
+  vertical-align: top;
+}
+.tr-en {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.tr-where {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.tr-where .badge {
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+.tr-table tr.is-dirty td {
+  background: var(--ok-soft);
+}
+.tr-reset {
+  display: block;
+  margin-top: 6px;
+}

@@ -41,7 +41,7 @@ export default function AdminVideoEditor() {
     try {
       setV(await api(`/admin/videos/${v.id}`, { method: 'PUT', body: v }));
       setDirty(false);
-      setMsg('저장되었습니다 ✓');
+      setMsg('저장되었습니다 ✓ 새로 쓴 영어 문장은 「번역 관리」에서 번역을 넣어 주세요.');
       setTimeout(() => setMsg(''), 2500);
     } catch (e) {
       setMsg((e as Error).message);
