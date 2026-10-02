@@ -15,7 +15,7 @@ interface Props {
 /**
  * "Bori (보리)" — the app's original tiger tutor, drawn in SVG.
  * Inspired by the Joseon folk painting "Magpie and Tiger" (까치호랑이, public domain):
- * big round goggly eyes, bold wavy stripes, a wide friendly grin and a magpie friend on the ear.
+ * big goggly eyes, bold wavy stripes and a wide friendly grin.
  * The big mouth is parametric and glides smoothly from vowel to vowel.
  */
 
@@ -119,8 +119,6 @@ export default function Mascot({ viseme = 'rest', mood = 'neutral', size = 160, 
         {/* nose */}
         <path d="M88 106 Q100 99 112 106 Q108 116 100 118 Q92 116 88 106 Z" fill="#c4545c" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
         <ellipse cx="96" cy="106" rx="4" ry="2" fill="#fff" opacity=".45" />
-
-        <Magpie />
       </g>
     </svg>
   );
@@ -139,8 +137,8 @@ function Eyes({ mood }: { mood: Mood }) {
       <g>
         {brows}
         <g stroke={INK} strokeWidth="5.5" fill="none" strokeLinecap="round">
-          <path d="M56 94 Q69 78 82 94" />
-          <path d="M118 94 Q131 78 144 94" />
+          <path d="M56 95 Q69 82 82 95" />
+          <path d="M118 95 Q131 82 144 95" />
         </g>
       </g>
     );
@@ -150,8 +148,8 @@ function Eyes({ mood }: { mood: Mood }) {
       <g>
         {brows}
         <g stroke={INK} strokeWidth="5" fill="none" strokeLinecap="round">
-          <path d="M60 84 L78 96 M60 96 L78 84" />
-          <path d="M122 84 L140 96 M122 96 L140 84" />
+          <path d="M60 86 L78 96 M60 96 L78 86" />
+          <path d="M122 86 L140 96 M122 96 L140 86" />
         </g>
       </g>
     );
@@ -163,10 +161,10 @@ function Eyes({ mood }: { mood: Mood }) {
       <g className="mascot__eyes">
         {[69, 131].map((cx) => (
           <g key={cx}>
-            <circle cx={cx} cy="91" r="15" fill="#fffaf0" stroke={INK} strokeWidth="3.5" />
-            <circle cx={cx + look} cy={91 + look / 2} r="9" fill="#f2b821" stroke="#b9791c" strokeWidth="1.5" />
-            <circle cx={cx + look} cy={91 + look / 2} r="5" fill="#24160e" />
-            <circle cx={cx + 3 + look} cy={87 + look / 2} r="2.4" fill="#fff" />
+            <ellipse cx={cx} cy="92" rx="15" ry="11.5" fill="#fffaf0" stroke={INK} strokeWidth="3.5" />
+            <ellipse cx={cx + look} cy={92 + look / 2} rx="9" ry="7.5" fill="#f2b821" stroke="#b9791c" strokeWidth="1.5" />
+            <ellipse cx={cx + look} cy={92 + look / 2} rx="5" ry="4.3" fill="#24160e" />
+            <circle cx={cx + 3 + look} cy={89 + look / 2} r="2.2" fill="#fff" />
           </g>
         ))}
       </g>
@@ -223,31 +221,6 @@ function BigMouth({ s, uid }: { s: Shape; uid: string }) {
           ))}
       </g>
       <path d={mouth} fill="none" stroke={INK} strokeWidth={f(3.2 + s.press * 1.3)} strokeLinejoin="round" strokeLinecap="round" />
-    </g>
-  );
-}
-
-/** A small magpie (까치) friend perched on Bori's ear — the tiger's companion in the folk painting. */
-function Magpie() {
-  return (
-    <g transform="translate(150 22)">
-      <g className="mascot__magpie">
-      {/* tail */}
-      <path d="M-14 12 L-34 20 L-31 14 L-36 10 L-16 6 Z" fill="#1f2f5c" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-      {/* body */}
-      <ellipse cx="0" cy="8" rx="16" ry="12" fill="#1c1c24" stroke={INK} strokeWidth="2" />
-      <path d="M-2 8 C4 18 14 18 16 8 C12 12 4 12 -2 8 Z" fill="#ffffff" />
-      {/* wing with a blue sheen */}
-      <path d="M-10 4 C-4 -2 6 0 8 6 C2 10 -6 10 -10 4 Z" fill="#2f4f9e" />
-      <path d="M-6 6 C-2 4 2 4 5 6" stroke="#fff" strokeWidth="1.5" fill="none" />
-      {/* head */}
-      <circle cx="12" cy="-4" r="8" fill="#1c1c24" stroke={INK} strokeWidth="2" />
-      <circle cx="14" cy="-5" r="2.2" fill="#fff" />
-      <circle cx="14.6" cy="-5" r="1.1" fill="#111" />
-      <path d="M19 -4 L27 -2 L19 0 Z" fill="#f2b821" stroke={INK} strokeWidth="1" strokeLinejoin="round" />
-      {/* feet */}
-      <path d="M-3 19 v5 M5 19 v5" stroke={INK} strokeWidth="2" strokeLinecap="round" />
-      </g>
     </g>
   );
 }
