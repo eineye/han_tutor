@@ -2,25 +2,111 @@
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
 
+/**
+ * 'fast'    — prefer a voice installed on the device (starts instantly, works offline)
+ * 'quality' — prefer an online voice (e.g. "Google 한국어"): nicer, but the first play can lag
+ */
+export type VoiceMode = 'fast' | 'quality';
+const VOICE_KEY = 'hantutor.ttsVoice';
+
+export function getVoiceMode(): VoiceMode {
+  try {
+    return localStorage.getItem(VOICE_KEY) === 'quality' ? 'quality' : 'fast';
+  } catch {
+    return 'fast';
+  }
+}
+
+export function setVoiceMode(mode: VoiceMode) {
+  try {
+    localStorage.setItem(VOICE_KEY, mode);
+  } catch {
+    /* storage may be blocked */
+  }
+  cachedVoice = null;
+  warmedUp = false;
+  warmUp();
+}
+
+const koreanVoices = () =>
+  'speechSynthesis' in window ? window.speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().replace('_', '-').startsWith('ko')) : [];
+
+/** Which kinds of Korean voices this device offers (to decide whether to show a choice). */
+export function voiceKinds() {
+  const voices = koreanVoices();
+  return { local: voices.some((v) => v.localService), online: voices.some((v) => !v.localService) };
+}
+
 function koreanVoice(): SpeechSynthesisVoice | null {
-  if (!('speechSynthesis' in window)) return null;
   if (cachedVoice) return cachedVoice;
-  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().startsWith('ko'));
-  // Prefer higher-quality network/neural voices when present
-  cachedVoice =
-    voices.find((v) => /google|natural|neural|online/i.test(v.name)) || voices.find((v) => /yuna|heami|sora/i.test(v.name)) || voices[0] || null;
+  const voices = koreanVoices();
+  if (!voices.length) return null;
+  const good = (v: SpeechSynthesisVoice) => /google|natural|neural|online|yuna|heami|sora|premium|enhanced/i.test(v.name);
+  const local = voices.filter((v) => v.localService);
+  const online = voices.filter((v) => !v.localService);
+  const [first, second] = getVoiceMode() === 'quality' ? [online, local] : [local, online];
+  cachedVoice = first.find(good) || first[0] || second.find(good) || second[0] || null;
   return cachedVoice;
 }
 
 if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
+  window.speechSynthesis.addEventListener?.('voiceschanged', () => {
     cachedVoice = null;
     koreanVoice();
-  };
+  });
+  window.speechSynthesis.getVoices(); // starts loading the voice list early
 }
 
 export const ttsSupported = () => 'speechSynthesis' in window;
 export const hasKoreanVoice = () => Boolean(koreanVoice());
+
+/**
+ * Prepares the speech engine and audio output on the first tap/click, so the first real
+ * "Listen" starts quickly and without a crackle. Speaks a silent "." (nothing audible even
+ * on browsers that ignore volume) and plays a short silent buffer to wake the speakers.
+ */
+let warmedUp = false;
+export function warmUp() {
+  if (warmedUp || !ttsSupported()) return;
+  warmedUp = true;
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth.speaking && !synth.pending) {
+      const u = new SpeechSynthesisUtterance('.');
+      u.lang = 'ko-KR';
+      const voice = koreanVoice();
+      if (voice) u.voice = voice;
+      u.volume = 0;
+      u.rate = 2;
+      synth.speak(u);
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (Ctx) {
+      const ctx = new Ctx();
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.25), ctx.sampleRate);
+      src.connect(ctx.destination);
+      src.onended = () => ctx.close().catch(() => {});
+      src.start();
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+if (typeof window !== 'undefined') {
+  const once = () => {
+    warmUp();
+    window.removeEventListener('pointerdown', once, true);
+    window.removeEventListener('keydown', once, true);
+  };
+  window.addEventListener('pointerdown', once, true);
+  window.addEventListener('keydown', once, true);
+}
 
 export interface SpeakOptions {
   rate?: number;
@@ -31,14 +117,29 @@ export interface SpeakOptions {
 }
 
 let speakSeq = 0;
+let startTimer: number | null = null;
+let lastBusyCancel = -1e9; // when audio that was still playing got cancelled
+const GAP_MS = 90;
+
+/** cancel() that remembers whether it cut off playing audio (see the gap in speak()) */
+function cancelSynth() {
+  const synth = window.speechSynthesis;
+  if (synth.speaking || synth.pending) lastBusyCancel = performance.now();
+  synth.cancel();
+}
 
 export function speak(text: string, opts: SpeakOptions = {}): () => void {
   if (!ttsSupported()) {
     opts.onEnd?.();
     return () => {};
   }
+  warmedUp = true;
   const synth = window.speechSynthesis;
-  synth.cancel();
+  // Starting right after cancel() makes Chrome clip or crackle the first sound,
+  // so leave a short gap whenever something was still playing.
+  cancelSynth();
+  const wait = GAP_MS - (performance.now() - lastBusyCancel);
+  if (startTimer) window.clearTimeout(startTimer);
   const seq = ++speakSeq;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'ko-KR';
@@ -56,19 +157,31 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
   u.onboundary = (e) => opts.onBoundary?.(e.charIndex);
   u.onend = finish;
   u.onerror = finish;
-  synth.speak(u);
+  const go = () => {
+    startTimer = null;
+    if (seq !== speakSeq) return;
+    synth.resume(); // Chrome can get stuck in a paused state
+    synth.speak(u);
+  };
+  if (wait > 0) startTimer = window.setTimeout(go, wait);
+  else go();
   // Safety net: some browsers never fire onend
-  const guard = window.setTimeout(finish, 1500 + text.length * 450 / (u.rate || 1));
+  const guard = window.setTimeout(finish, 2500 + text.length * 450 / (u.rate || 1));
   return () => {
     window.clearTimeout(guard);
-    if (seq === speakSeq) synth.cancel();
+    if (seq === speakSeq) {
+      if (startTimer) window.clearTimeout(startTimer);
+      cancelSynth();
+    }
     finish();
   };
 }
 
 export function stopSpeaking() {
   speakSeq++;
-  if (ttsSupported()) window.speechSynthesis.cancel();
+  if (startTimer) window.clearTimeout(startTimer);
+  startTimer = null;
+  if (ttsSupported()) cancelSynth();
 }
 
 // ---- Speech recognition (Chrome, Edge, Safari) ----

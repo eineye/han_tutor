@@ -212,6 +212,9 @@ export const UI = {
 
   // speak page
   'speak.title': e('Pronunciation Coach', '발음 코치', 'Дуудлагын дасгалжуулагч'),
+  'speak.voice': e('Voice', '음성', 'Дуу хоолой'),
+  'speak.voice.fast': e('Fast (device voice)', '빠른 반응 (기기 음성)', 'Хурдан (төхөөрөмжийн дуу)'),
+  'speak.voice.quality': e('High quality (online voice, may lag at first)', '고품질 (온라인 음성, 처음엔 조금 늦을 수 있음)', 'Өндөр чанар (онлайн дуу, эхэндээ удаашралтай байж магадгүй)'),
   'speak.intro': e('Listen, watch the lips and tongue (front and side views), then speak. Syllables turn green when I hear them correctly!', '소리를 듣고 입술과 혀의 모양(앞모습·옆모습)을 본 다음 말해 보세요. 정확하게 들리면 글자가 초록색으로 바뀌어요!', 'Сонсоод, уруул ба хэлний хэлбэрийг (урдаас, хажуугаас) хараад хэлээрэй. Зөв сонсогдвол үе ногоон болно!'),
   'speak.set': e('Practice set', '연습 세트', 'Дасгалын багц'),
   'speak.mySentence': e('My sentence', '내 문장', 'Миний өгүүлбэр'),

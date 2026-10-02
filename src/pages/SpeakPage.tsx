@@ -5,6 +5,7 @@ import { Loading } from '../components/ui';
 import { localizeLesson, subtitle, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
 import type { Lesson, PronItem } from '../types';
+import { getVoiceMode, setVoiceMode, voiceKinds, type VoiceMode } from '../lib/speech';
 
 type Item = { text: string; roman: string; tip: UIKey };
 const FREE_SETS: { key: string; title: UIKey; items: Item[] }[] = [
@@ -52,6 +53,17 @@ export default function SpeakPage() {
   const [setKey, setSetKey] = useState('tricky-vowels');
   const [custom, setCustom] = useState('');
   const [customItems, setCustomItems] = useState<PronItem[] | null>(null);
+  const [voiceMode, setMode] = useState<VoiceMode>(getVoiceMode);
+  const [kinds, setKinds] = useState(voiceKinds);
+
+  useEffect(() => {
+    // the voice list loads asynchronously in most browsers
+    if (!('speechSynthesis' in window)) return;
+    const update = () => setKinds(voiceKinds());
+    window.speechSynthesis.addEventListener?.('voiceschanged', update);
+    update();
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', update);
+  }, []);
 
   useEffect(() => {
     // load pronunciation items from all lessons
@@ -101,6 +113,22 @@ export default function SpeakPage() {
             {customItems && <option value="custom">{t('speak.mySentence')}</option>}
           </select>
         </label>
+        {kinds.local && kinds.online && (
+          <label>
+            {t('speak.voice')}
+            <select
+              value={voiceMode}
+              onChange={(e) => {
+                const m = e.target.value as VoiceMode;
+                setVoiceMode(m);
+                setMode(m);
+              }}
+            >
+              <option value="fast">{t('speak.voice.fast')}</option>
+              <option value="quality">{t('speak.voice.quality')}</option>
+            </select>
+          </label>
+        )}
         <form
           className="speak__custom"
           onSubmit={(e) => {
