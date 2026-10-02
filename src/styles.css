@@ -2357,3 +2357,101 @@ label.inline select {
   display: block;
   margin-top: 6px;
 }
+
+/* ───────── Pronunciation: detailed lips view (발음 코치) ───────── */
+.pron--lips {
+  grid-template-columns: 320px 1fr;
+}
+.lips {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lips__frontwrap,
+.lips__sidewrap {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--line);
+}
+.lips__front {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.lips__side {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface-2);
+}
+.lips__cue {
+  stroke: var(--accent);
+}
+.lips__peak {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.lips__letter {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  min-width: 40px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #2b2118;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+}
+.lips__label {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #5a4a3e;
+}
+.lips__row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.lips__tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.lips__tags li {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 5px 8px;
+}
+.lips--compact .lips__row {
+  grid-template-columns: 110px 1fr;
+}
+.is-speaking .lips__frontwrap {
+  border-color: var(--primary);
+}
+@media (max-width: 760px) {
+  .pron--lips {
+    grid-template-columns: 1fr;
+  }
+  .lips {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}

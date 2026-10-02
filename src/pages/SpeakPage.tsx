@@ -117,7 +117,7 @@ export default function SpeakPage() {
       </div>
       {lessons === null && <Loading text={t('speak.loadingSets')} />}
       <div className="card">
-        <PronunciationPractice key={current.key + (customItems?.[0]?.text || '')} items={current.items} lessonId={'lessonId' in current ? (current as { lessonId?: string }).lessonId : undefined} />
+        <PronunciationPractice key={current.key + (customItems?.[0]?.text || '')} items={current.items} lessonId={'lessonId' in current ? (current as { lessonId?: string }).lessonId : undefined} visual="lips" />
       </div>
     </div>
   );

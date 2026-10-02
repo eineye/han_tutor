@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Mascot, { type Mood } from './Mascot';
+import LipsView from './LipsView';
 import { useMascotSpeech } from './useMascotSpeech';
 import type { PronItem } from '../types';
 import { pronunciationScore, romanize, syllableDiff, visemesFor, type Viseme } from '../lib/hangul';
@@ -25,6 +26,8 @@ interface Props {
   lessonId?: string;
   compact?: boolean;
   onAllDone?: () => void;
+  /** 'lips' shows a detailed mouth animation instead of Bori */
+  visual?: 'mascot' | 'lips';
 }
 
 /**
@@ -33,7 +36,7 @@ interface Props {
  * 2. Student records → browser speech recognition gives an instant score + syllable diff
  * 3. Optional: "Ask AI coach" sends the recording to Gemini for detailed feedback
  */
-export default function PronunciationPractice({ items, lessonId, compact, onAllDone }: Props) {
+export default function PronunciationPractice({ items, lessonId, compact, onAllDone, visual = 'mascot' }: Props) {
   const { t, lang } = useI18n();
   const [idx, setIdx] = useState(0);
   const item = items[idx];
@@ -176,10 +179,14 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         : item.tip_en || t('pron.hint');
 
   return (
-    <div className={`pron ${compact ? 'pron--compact' : ''}`}>
+    <div className={`pron ${compact ? 'pron--compact' : ''} ${visual === 'lips' ? 'pron--lips' : ''}`}>
       <div className="pron__stage">
         <div className="speech-bubble">{bubble}</div>
-        <Mascot viseme={viseme} mood={mascot.speaking || guide ? 'neutral' : mood} talking={mascot.speaking} size={compact ? 130 : 180} />
+        {visual === 'lips' ? (
+          <LipsView viseme={viseme} speaking={mascot.speaking} compact={compact} />
+        ) : (
+          <Mascot viseme={viseme} mood={mascot.speaking || guide ? 'neutral' : mood} talking={mascot.speaking} size={compact ? 130 : 180} />
+        )}
       </div>
 
       <div className="pron__panel">
@@ -220,7 +227,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         <div className="pron__roman">{item.roman || romanize(target)}</div>
         {item.tip_en && <div className="pron__tip">💡 {item.tip_en}</div>}
 
-        <div className="mouth-guide" aria-label={t('pron.hoverMouth')}>
+        <div className="mouth-guide" aria-label={t(visual === 'lips' ? 'pron.hoverLips' : 'pron.hoverMouth')}>
           {chars
             .filter(isLetter)
             .map((c, i) => {
@@ -232,7 +239,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
                 </button>
               );
             })}
-          <span className="muted small">← {t('pron.hoverMouth')}</span>
+          <span className="muted small">← {t(visual === 'lips' ? 'pron.hoverLips' : 'pron.hoverMouth')}</span>
         </div>
 
         <div className="pron__controls">
