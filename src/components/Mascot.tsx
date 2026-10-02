@@ -162,7 +162,7 @@ function Eyes({ mood }: { mood: Mood }) {
         {[69, 131].map((cx) => (
           <g key={cx}>
             <ellipse cx={cx} cy="92" rx="15" ry="11.5" fill="#fffaf0" stroke={INK} strokeWidth="3.5" />
-            <ellipse cx={cx + look} cy={92 + look / 2} rx="9" ry="7.5" fill="#f2b821" stroke="#b9791c" strokeWidth="1.5" />
+            <ellipse cx={cx + look} cy={92 + look / 2} rx="9" ry="7.5" fill="#8e959c" stroke="#5f666d" strokeWidth="1.5" />
             <ellipse cx={cx + look} cy={92 + look / 2} rx="5" ry="4.3" fill="#24160e" />
             <circle cx={cx + 3 + look} cy={89 + look / 2} r="2.2" fill="#fff" />
           </g>
