@@ -5,9 +5,11 @@ import { CHAT_SCHEMA, chatSystemPrompt, PRON_SCHEMA, pronunciationPrompt, REPORT
 import { demoChatReply, demoPronunciation, demoReport } from './demo.js';
 
 export class HttpError extends Error {
-  constructor(status, message) {
+  /** @param {string} [code] machine-readable reason, translated on the client */
+  constructor(status, message, code) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -115,11 +117,11 @@ export function createCore(deps) {
   // auth
   route('POST', '/auth/student/register', 'public', async ({ body }) => {
     const { name, classCode, pin, nativeLang = 'English', country = '' } = body;
-    if (!name?.trim() || !/^\d{4}$/.test(String(pin || ''))) throw new HttpError(400, 'Enter a name and a 4-digit PIN (numbers only). 이름과 숫자 4자리 PIN을 입력하세요.');
+    if (!name?.trim() || !/^\d{4}$/.test(String(pin || ''))) throw new HttpError(400, 'Enter a name and a 4-digit PIN (numbers only). 이름과 숫자 4자리 PIN을 입력하세요.', 'need_name_pin');
     const code = String(classCode || '').trim().toUpperCase();
-    if (!db().settings.classCodes.includes(code)) throw new HttpError(400, 'Unknown class code. Ask your teacher. 반 코드가 올바르지 않습니다. 선생님께 확인하세요.');
+    if (!db().settings.classCodes.includes(code)) throw new HttpError(400, 'Unknown class code. Ask your teacher. 반 코드가 올바르지 않습니다. 선생님께 확인하세요.', 'bad_class');
     if (db().students.some((s) => s.name.toLowerCase() === name.trim().toLowerCase() && s.classCode === code))
-      throw new HttpError(409, 'That name is already registered in this class. Use the Log in tab. 이미 가입된 이름입니다. Log in 탭에서 로그인하세요.');
+      throw new HttpError(409, 'That name is already registered in this class. Use the Log in tab. 이미 가입된 이름입니다. Log in 탭에서 로그인하세요.', 'name_taken');
     const student = {
       id: deps.id('s_'),
       name: name.trim(),
@@ -143,7 +145,7 @@ export function createCore(deps) {
   route('POST', '/auth/student/login', 'public', async ({ body }) => {
     const code = String(body.classCode || '').trim().toUpperCase();
     const s = db().students.find((x) => x.name.toLowerCase() === String(body.name || '').trim().toLowerCase() && x.classCode === code);
-    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) throw new HttpError(401, 'Name, class code or PIN is wrong. First time here? Use the Sign up tab. 이름·반 코드·PIN이 맞지 않습니다. 처음이라면 Sign up 탭에서 가입하세요.');
+    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) throw new HttpError(401, 'Name, class code or PIN is wrong. First time here? Use the Sign up tab. 이름·반 코드·PIN이 맞지 않습니다. 처음이라면 Sign up 탭에서 가입하세요.', 'login_failed');
     return { token: newSession('student', s.id), student: publicStudent(s) };
   });
 
@@ -285,20 +287,20 @@ export function createCore(deps) {
   });
 
   route('POST', '/ai/pronunciation', 'student', async ({ body }) => {
-    const { target, roman, audioBase64, mimeType = 'audio/wav' } = body;
+    const { target, roman, audioBase64, mimeType = 'audio/wav', lang } = body;
     if (!target || !audioBase64) throw new HttpError(400, 'target and audio required');
-    if (!deps.hasKey()) return { demo: true, ...demoPronunciation(target) };
+    if (!deps.hasKey()) return { demo: true, ...demoPronunciation(target, lang) };
     return deps.generate({
       model: model(),
       temperature: 0.2,
       schema: PRON_SCHEMA,
-      contents: [{ role: 'user', parts: [{ text: pronunciationPrompt(target, roman) }, { inlineData: { mimeType, data: audioBase64 } }] }],
+      contents: [{ role: 'user', parts: [{ text: pronunciationPrompt(target, roman, lang) }, { inlineData: { mimeType, data: audioBase64 } }] }],
     });
   });
 
   // AI conversation
   route('POST', '/ai/chat', 'student', async ({ body, student }) => {
-    const { scenarioKey, scenario, vocab, messages = [] } = body;
+    const { scenarioKey, scenario, vocab, messages = [], lang } = body;
     const history = messages.slice(-20).map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: String(m.text || '').slice(0, 800) }],
@@ -306,7 +308,7 @@ export function createCore(deps) {
     if (!history.length || history[0].role !== 'user') history.unshift({ role: 'user', parts: [{ text: '안녕하세요!' }] });
 
     const reply = !deps.hasKey()
-      ? { demo: true, ...demoChatReply(messages) }
+      ? { demo: true, ...demoChatReply(messages, lang) }
       : await deps.generate({
           model: model(),
           system: chatSystemPrompt({
@@ -315,6 +317,7 @@ export function createCore(deps) {
             studentName: student.name,
             nativeLang: student.nativeLang,
             vocab: Array.isArray(vocab) ? vocab.slice(0, 20) : [],
+            lang,
           }),
           contents: history,
           schema: CHAT_SCHEMA,
@@ -591,7 +594,7 @@ export function createCore(deps) {
       }
       return { status: 404, body: { error: 'Not found' } };
     } catch (e) {
-      if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };
+      if (e instanceof HttpError) return { status: e.status, body: e.code ? { error: e.message, code: e.code } : { error: e.message } };
       console.error(e);
       return { status: 500, body: { error: e?.message || 'Server error' } };
     }

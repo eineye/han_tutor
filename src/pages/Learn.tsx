@@ -4,10 +4,12 @@ import { api } from '../api';
 import { ErrorBox, Loading } from '../components/ui';
 import type { Lesson, Progress, Unit } from '../types';
 import { lessonLabel } from '../lib/lessonLabel';
+import { localizeUnit, subtitle, useI18n } from '../i18n';
 
 type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null };
 
 export default function Learn() {
+  const { t, tc, lang } = useI18n();
   const [data, setData] = useState<{ units: Unit[]; lessons: LessonSummary[] } | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -20,8 +22,9 @@ export default function Learn() {
 
   return (
     <div className="learn">
-      <h1>Lessons 레슨</h1>
-      {data.units.map((u) => {
+      <h1>{t('learn.title')}</h1>
+      {data.units.map((raw) => {
+        const u = localizeUnit(raw, tc);
         const lessons = data.lessons.filter((l) => l.unitId === u.id);
         if (!lessons.length) return null;
         const done = lessons.filter((l) => l.progress?.completedAt).length;
@@ -31,7 +34,7 @@ export default function Learn() {
               <span className="unit__emoji">{u.emoji}</span>
               <div>
                 <h2>
-                  <span lang="ko">{u.title.ko}</span> <small>{u.title.en}</small>
+                  <span lang="ko">{u.title.ko}</span> <small>{subtitle(u.title, lang)}</small>
                 </h2>
                 <p className="muted">{u.description_en}</p>
               </div>
@@ -47,8 +50,8 @@ export default function Learn() {
                     <span className="lesson-card__status">{status === 'done' ? '✅' : status === 'started' ? '⏳' : '✨'}</span>
                     {lessonLabel(l.id) && <small className="lesson-card__label">{lessonLabel(l.id)}</small>}
                     <h3 lang="ko">{l.title.ko}</h3>
-                    <p>{l.title.en}</p>
-                    {l.progress?.quizBest != null && <small className="muted">Quiz best: {l.progress.quizBest}%</small>}
+                    <p>{subtitle({ ko: l.title.ko, en: tc(l.title.en) }, lang)}</p>
+                    {l.progress?.quizBest != null && <small className="muted">{t('learn.quizBest', { n: l.progress.quizBest })}</small>}
                   </Link>
                 );
               })}

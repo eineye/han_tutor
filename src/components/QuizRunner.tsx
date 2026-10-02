@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { QuizItem } from '../types';
 import { speak } from '../lib/speech';
 import Mascot from './Mascot';
+import { useI18n } from '../i18n';
 
 interface Props {
   items: QuizItem[];
@@ -18,6 +19,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function QuizRunner({ items, onFinish }: Props) {
+  const { t } = useI18n();
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<{ i: number; correct: boolean }[]>([]);
   const [picked, setPicked] = useState<number | null>(null);
@@ -28,7 +30,7 @@ export default function QuizRunner({ items, onFinish }: Props) {
   const item = items[idx];
   const bank = useMemo(() => (item?.type === 'order' ? shuffle(item.words.map((w, i) => ({ w, i }))) : []), [item]);
 
-  if (!items.length) return <p className="muted">No quiz questions yet.</p>;
+  if (!items.length) return <p className="muted">{t('quiz.none')}</p>;
 
   const score = answers.filter((a) => a.correct).length;
 
@@ -40,7 +42,7 @@ export default function QuizRunner({ items, onFinish }: Props) {
         <h3>
           {score} / {items.length}
         </h3>
-        <p>{pct >= 80 ? '대단해요! Amazing!' : pct >= 50 ? '잘했어요! Good job!' : '괜찮아요! Let’s try again.'}</p>
+        <p>{pct >= 80 ? `대단해요! ${t('quiz.amazing')}` : pct >= 50 ? `잘했어요! ${t('quiz.good')}` : `괜찮아요! ${t('quiz.again')}`}</p>
         <button
           className="btn"
           onClick={() => {
@@ -52,7 +54,7 @@ export default function QuizRunner({ items, onFinish }: Props) {
             setDone(false);
           }}
         >
-          ↻ Try again
+          ↻ {t('quiz.tryAgain')}
         </button>
       </div>
     );
@@ -84,7 +86,7 @@ export default function QuizRunner({ items, onFinish }: Props) {
   return (
     <div className="quiz">
       <div className="quiz__meta">
-        Question {idx + 1} / {items.length}
+        {t('quiz.question', { n: idx + 1, total: items.length })}
         <span className="quiz__score">⭐ {score}</span>
       </div>
       <h3 className="quiz__prompt">{item.prompt}</h3>
@@ -93,10 +95,10 @@ export default function QuizRunner({ items, onFinish }: Props) {
       {item.type === 'listen' && (
         <div className="quiz__listen">
           <button className="btn btn--round" onClick={() => speak(item.say)}>
-            🔊 Play
+            🔊 {t('common.play')}
           </button>
           <button className="btn btn--ghost" onClick={() => speak(item.say, { rate: 0.55 })}>
-            🐢 Slow
+            🐢 {t('common.slow')}
           </button>
         </div>
       )}
@@ -121,7 +123,7 @@ export default function QuizRunner({ items, onFinish }: Props) {
         <div className="quiz__order">
           <p className="muted">“{item.en}”</p>
           <div className="order__answer">
-            {built.length === 0 && <span className="muted">Tap the words below…</span>}
+            {built.length === 0 && <span className="muted">{t('quiz.tapWords')}</span>}
             {built.map((wi, k) => (
               <button key={k} className="chip chip--solid" disabled={checked !== null} onClick={() => setBuilt(built.filter((_, j) => j !== k))}>
                 {item.words[wi]}
@@ -142,13 +144,13 @@ export default function QuizRunner({ items, onFinish }: Props) {
       <div className="quiz__actions">
         {checked === null ? (
           <button className="btn" disabled={!canCheck} onClick={check}>
-            Check
+            {t('quiz.check')}
           </button>
         ) : (
           <>
-            <span className={`feedback ${checked ? 'feedback--ok' : 'feedback--no'}`}>{checked ? '정답! Correct 🎉' : 'Not quite 😅'}</span>
+            <span className={`feedback ${checked ? 'feedback--ok' : 'feedback--no'}`}>{checked ? `정답! ${t('quiz.correct')} 🎉` : `${t('quiz.wrong')} 😅`}</span>
             <button className="btn" onClick={next}>
-              {idx + 1 >= items.length ? 'See results' : 'Next →'}
+              {idx + 1 >= items.length ? t('quiz.results') : `${t('common.next')} →`}
             </button>
           </>
         )}

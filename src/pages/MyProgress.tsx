@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { ErrorBox, Loading, ScoreBadge, fmtDate } from '../components/ui';
 import Mascot from '../components/Mascot';
+import { useI18n } from '../i18n';
 import type { Assignment, Evaluation, Progress, PronRecord, QuizResult, Student } from '../types';
 
 interface Summary {
@@ -15,6 +16,7 @@ interface Summary {
 }
 
 export default function MyProgress() {
+  const { t, lang } = useI18n();
   const [s, setS] = useState<Summary | null>(null);
   const [error, setError] = useState<unknown>(null);
   useEffect(() => {
@@ -30,33 +32,33 @@ export default function MyProgress() {
 
   return (
     <div className="me">
-      <h1>My Progress 나의 학습</h1>
+      <h1>{t('me.title')}{lang !== 'ko' && ' 나의 학습'}</h1>
       <div className="stat-grid">
         <div className="stat card">
           <span>📚</span>
           <b>{completed}</b>
-          <small>lessons completed</small>
+          <small>{t('me.lessons')}</small>
         </div>
         <div className="stat card">
           <span>✏️</span>
           <b>{quizAvg ?? '–'}</b>
-          <small>quiz average</small>
+          <small>{t('me.quizAvg')}</small>
         </div>
         <div className="stat card">
           <span>🎤</span>
           <b>{pronAvg ?? '–'}</b>
-          <small>pronunciation average</small>
+          <small>{t('me.pronAvg')}</small>
         </div>
         <div className="stat card">
           <span>💬</span>
           <b>{s.chatCount}</b>
-          <small>AI chat messages</small>
+          <small>{t('me.chat')}</small>
         </div>
       </div>
 
       {s.evaluations.length > 0 && (
         <section className="card">
-          <h3>💌 Feedback from your teacher</h3>
+          <h3>💌 {t('me.feedback')}</h3>
           <ul className="list">
             {s.evaluations.map((e) => (
               <li key={e.id}>
@@ -69,11 +71,11 @@ export default function MyProgress() {
       )}
 
       <section className="card">
-        <h3>🎤 Recent pronunciation</h3>
+        <h3>🎤 {t('me.recentPron')}</h3>
         {s.pronunciation.length === 0 ? (
           <div className="empty">
             <Mascot size={80} mood="think" />
-            <p>No pronunciation practice yet. Try the Speak tab!</p>
+            <p>{t('me.noPron')}</p>
           </div>
         ) : (
           <div className="spark">
@@ -95,14 +97,14 @@ export default function MyProgress() {
       </section>
 
       <section className="card">
-        <h3>📌 Homework</h3>
+        <h3>📌 {t('me.homework')}</h3>
         {s.assignments.length === 0 ? (
-          <p className="muted">No homework right now.</p>
+          <p className="muted">{t('me.noHomework')}</p>
         ) : (
           <ul className="list">
             {s.assignments.map((a) => (
               <li key={a.id}>
-                {a.done ? '✅' : '⬜'} {a.title || a.lessonId || a.videoId} {a.due && <span className="muted small">due {fmtDate(a.due)}</span>}
+                {a.done ? '✅' : '⬜'} {a.title || a.lessonId || a.videoId} {a.due && <span className="muted small">{t('home.due', { date: fmtDate(a.due) })}</span>}
               </li>
             ))}
           </ul>

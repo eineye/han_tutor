@@ -1,14 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { speak } from '../lib/speech';
+import { useI18n } from '../i18n';
 
 export function SpeakButton({ text, rate, pitch, label, className = '' }: { text: string; rate?: number; pitch?: number; label?: string; className?: string }) {
+  const { t } = useI18n();
   const [on, setOn] = useState(false);
   return (
     <button
       type="button"
       className={`btn-icon ${on ? 'is-on' : ''} ${className}`}
-      title={`Listen: ${text}`}
-      aria-label={`Listen to ${text}`}
+      title={`${t('common.listen')}: ${text}`}
+      aria-label={`${t('common.listen')}: ${text}`}
       onClick={(e) => {
         e.stopPropagation();
         setOn(true);
@@ -20,10 +22,11 @@ export function SpeakButton({ text, rate, pitch, label, className = '' }: { text
   );
 }
 
-export function Loading({ text = 'Loading…' }: { text?: string }) {
+export function Loading({ text }: { text?: string }) {
+  const { t } = useI18n();
   return (
     <div className="loading">
-      <span className="spinner" /> {text}
+      <span className="spinner" /> {text || t('common.loading')}
     </div>
   );
 }

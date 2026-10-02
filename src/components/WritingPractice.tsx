@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { speak } from '../lib/speech';
+import { useI18n } from '../i18n';
 
 interface Item {
   text: string;
@@ -14,6 +15,7 @@ const BOX = 180; // px per character box
  * with a finger, pen or mouse. Mirrors the textbook's "다음을 써 보세요" pages.
  */
 export default function WritingPractice({ items, tip, onDone }: { items: Item[]; tip?: string; onDone?: () => void }) {
+  const { t } = useI18n();
   const [idx, setIdx] = useState(0);
   const [showGuide, setShowGuide] = useState(true);
   const [traced, setTraced] = useState<Record<number, boolean>>({});
@@ -45,7 +47,7 @@ export default function WritingPractice({ items, tip, onDone }: { items: Item[];
     };
   }, [idx, showGuide, width]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!item) return <p className="muted">No writing items.</p>;
+  if (!item) return <p className="muted">{t('writing.none')}</p>;
 
   const pos = (e: React.PointerEvent) => {
     const r = canvas.current!.getBoundingClientRect();
@@ -76,7 +78,7 @@ export default function WritingPractice({ items, tip, onDone }: { items: Item[];
   const up = () => {
     if (!drawing.current) return;
     drawing.current = false;
-    if (inked.current > 8 && !traced[idx]) setTraced((t) => ({ ...t, [idx]: true }));
+    if (inked.current > 8 && !traced[idx]) setTraced((prev) => ({ ...prev, [idx]: true }));
   };
 
   const clear = () => {
@@ -97,7 +99,7 @@ export default function WritingPractice({ items, tip, onDone }: { items: Item[];
           </span>{' '}
           {item.roman && <span className="roman">{item.roman}</span>} {item.en && <span className="muted">· {item.en}</span>}
         </div>
-        <button className="btn-icon" onClick={() => speak(item.text, { rate: 0.7 })} aria-label="Listen">
+        <button className="btn-icon" onClick={() => speak(item.text, { rate: 0.7 })} aria-label={t('common.listen')}>
           🔊
         </button>
       </div>
@@ -109,34 +111,34 @@ export default function WritingPractice({ items, tip, onDone }: { items: Item[];
           onPointerMove={move}
           onPointerUp={up}
           onPointerCancel={up}
-          aria-label={`Tracing area for ${item.text}`}
+          aria-label={`${t('sec.writing')}: ${item.text}`}
         />
       </div>
       <div className="row writing__controls">
-        <button className="btn-icon" disabled={idx === 0} onClick={() => setIdx(idx - 1)} aria-label="Previous">
+        <button className="btn-icon" disabled={idx === 0} onClick={() => setIdx(idx - 1)} aria-label={t('common.prev')}>
           ◀
         </button>
         <span className="small">
           {idx + 1} / {items.length}
         </span>
-        <button className="btn-icon" disabled={idx === items.length - 1} onClick={() => setIdx(idx + 1)} aria-label="Next">
+        <button className="btn-icon" disabled={idx === items.length - 1} onClick={() => setIdx(idx + 1)} aria-label={t('common.next')}>
           ▶
         </button>
         <button className="btn btn--ghost btn--small" onClick={clear}>
-          ↺ Clear
+          ↺ {t('writing.clear')}
         </button>
         <label className="toggle">
           <input type="checkbox" checked={showGuide} onChange={(e) => setShowGuide(e.target.checked)} />
           <span className="toggle__track" />
-          <span>Guide letter</span>
+          <span>{t('writing.guide')}</span>
         </label>
         <span className="spacer" />
         <span className="small muted">
-          Traced {doneCount}/{items.length}
+          {t('writing.traced', { n: doneCount, total: items.length })}
         </span>
         {onDone && doneCount >= Math.min(items.length, 3) && (
           <button className="btn btn--small" onClick={onDone}>
-            Done ✓
+            {t('common.done')} ✓
           </button>
         )}
       </div>

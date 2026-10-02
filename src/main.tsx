@@ -5,6 +5,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './auth';
 import { IS_DEMO } from './api';
+import { LangProvider } from './i18n';
 import './styles.css';
 
 if (IS_DEMO && window.self !== window.top) {
@@ -19,11 +20,13 @@ const Router = IS_DEMO ? MemoryRouter : BrowserRouter;
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <Router>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </Router>
+      <LangProvider>
+        <Router>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </Router>
+      </LangProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

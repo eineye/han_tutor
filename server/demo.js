@@ -38,16 +38,45 @@ const SCRIPT = [
   },
 ];
 
-export function demoChatReply(messages = []) {
+// Translations / hints of the script above for the other student UI languages
+const SCRIPT_I18N = {
+  Mongolian: [
+    { en: 'Сайн байна уу! Би Бори байна. Чиний нэр хэн бэ?', hint_en: 'Ингэж хариул: 저는 ___이에요/예요.', suggestions_ko: ['저는 테무진이에요.', '제 이름은 사랑이에요.'] },
+    { en: 'Танилцсандаа таатай байна! Чи аль улсын хүн бэ?', hint_en: 'Ингэж хэлээд үз: 저는 ___ 사람이에요.', suggestions_ko: ['저는 몽골 사람이에요.', '저는 한국 사람이에요.'] },
+    { en: 'Хөөх, гоё юм! Чи хэддүгээр ангид сурдаг вэ?', hint_en: 'Ингэж хэлээд үз: ___학년이에요. (жишээ нь 9학년)', suggestions_ko: ['9학년이에요.', '고등학교 1학년이에요.'] },
+    { en: 'Сайн байна! Чи солонгос драманд дуртай юу?', hint_en: '네, 좋아해요 / 아니요, 안 좋아해요 гэж хариул.', suggestions_ko: ['네, 좋아해요!', '아니요, K-pop을 좋아해요.'] },
+    { en: 'Би ч бас! Өнөөдөр чи үнэхээр сайн хичээллээ. Дахиад ярилцъя!', hint_en: 'Салах ёс: 안녕히 계세요!', suggestions_ko: ['고마워요!', '안녕히 계세요!'] },
+  ],
+  Korean: [
+    { en: '안녕하세요! 저는 보리예요. 이름이 뭐예요?', hint_en: '‘저는 ___이에요/예요.’로 대답해 보세요.', suggestions_ko: ['저는 민수예요.', '제 이름은 에마예요.'] },
+    { en: '만나서 반가워요! 어느 나라 사람이에요?', hint_en: '‘저는 ___ 사람이에요.’로 말해 보세요.', suggestions_ko: ['저는 몽골 사람이에요.', '저는 한국 사람이에요.'] },
+    { en: '와, 멋있어요! 몇 학년이에요?', hint_en: '‘___학년이에요.’로 말해 보세요. (예: 9학년)', suggestions_ko: ['9학년이에요.', '고등학교 1학년이에요.'] },
+    { en: '좋아요! 한국 드라마 좋아해요?', hint_en: '‘네, 좋아해요 / 아니요, 안 좋아해요’로 대답해요.', suggestions_ko: ['네, 좋아해요!', '아니요, K-pop을 좋아해요.'] },
+    { en: '저도요! 오늘 정말 잘했어요. 또 이야기해요!', hint_en: '‘안녕히 계세요!’로 인사해요.', suggestions_ko: ['고마워요!', '안녕히 계세요!'] },
+  ],
+};
+
+const EXPLAIN = {
+  English: { useKorean: 'Try answering in Korean! Here is one way to say it.', ieyo: 'After a consonant (받침) use 이에요; after a vowel use 예요.' },
+  Mongolian: { useKorean: 'Солонгосоор хариулаад үзээрэй! Ингэж хэлж болно.', ieyo: 'Гийгүүлэгчээр (받침) төгссөн бол 이에요, эгшгээр төгссөн бол 예요 хэрэглэнэ.' },
+  Korean: { useKorean: '한국어로 대답해 보세요! 이렇게 말할 수 있어요.', ieyo: '받침이 있으면 ‘이에요’, 받침이 없으면 ‘예요’를 써요.' },
+};
+
+export function demoChatReply(messages = [], lang = 'English') {
   const userTurns = messages.filter((m) => m.role === 'user').length;
-  const base = SCRIPT[Math.min(userTurns, SCRIPT.length - 1)];
+  const step = Math.min(userTurns, SCRIPT.length - 1);
+  const base = { ...SCRIPT[step], ...(SCRIPT_I18N[lang]?.[step] || {}) };
+  // Corrections answer the question Bori asked just before (the previous step)
+  const prevStep = Math.max(0, step - 1);
+  const prevSuggestions = (SCRIPT_I18N[lang]?.[prevStep] || SCRIPT[prevStep]).suggestions_ko;
+  const ex = EXPLAIN[lang] || EXPLAIN.English;
   const last = [...messages].reverse().find((m) => m.role === 'user')?.text || '';
   let correction = null;
   if (last && !/[가-힣]/.test(last)) {
     correction = {
       original: last,
-      corrected: base.suggestions_ko[0],
-      explanation_en: 'Try answering in Korean! Here is one way to say it.',
+      corrected: prevSuggestions[0],
+      explanation_en: ex.useKorean,
     };
   } else {
     // Common beginner mistake: 이예요 → 이에요 (after consonant) / 예요 (after vowel)
@@ -57,26 +86,26 @@ export function demoChatReply(messages = []) {
       correction = {
         original: last,
         corrected: last.replace(`${m[1]}이예요`, hasFinal ? `${m[1]}이에요` : `${m[1]}예요`),
-        explanation_en: 'After a consonant (받침) use 이에요; after a vowel use 예요.',
+        explanation_en: ex.ieyo,
       };
     }
   }
   return { ...base, correction };
 }
 
-export function demoPronunciation(target) {
+const DEMO_PRON = {
+  English: ['Demo mode: add a Gemini API key for real AI listening. Your browser score above is still based on speech recognition.', 'Example tip', 'Open your mouth a little wider and keep the vowel short and clear.'],
+  Mongolian: ['Туршилтын горим: жинхэнэ AI сонсголд Gemini түлхүүр хэрэгтэй. Дээрх оноо хөтчийн яриа таних үйлчилгээгээр гарсан.', 'Жишээ зөвлөгөө', 'Амаа арай илүү ангайж, эгшгийг богино, тод хэлээрэй.'],
+  Korean: ['데모 모드: 실제 AI 듣기는 Gemini 키가 있어야 해요. 위의 점수는 브라우저 음성 인식으로 매긴 점수예요.', '예시 팁', '입을 조금 더 벌리고 모음을 짧고 또렷하게 발음해 보세요.'],
+};
+
+export function demoPronunciation(target, lang = 'English') {
+  const [fb, issue, how] = DEMO_PRON[lang] || DEMO_PRON.English;
   return {
     heard: target,
     score: 80,
-    feedback_en:
-      'Demo mode: add a GEMINI_API_KEY on the server for real AI listening. Your browser score above is still based on speech recognition.',
-    tips: [
-      {
-        syllable: [...target][0] || '',
-        issue_en: 'Example tip',
-        how_to_en: 'Open your mouth a little wider and keep the vowel short and clear.',
-      },
-    ],
+    feedback_en: fb,
+    tips: [{ syllable: [...target][0] || '', issue_en: issue, how_to_en: how }],
   };
 }
 

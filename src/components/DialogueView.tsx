@@ -3,6 +3,7 @@ import type { Line } from '../types';
 import { speak, stopSpeaking } from '../lib/speech';
 import { Modal, Toggle } from './ui';
 import PronunciationPractice from './PronunciationPractice';
+import { useI18n } from '../i18n';
 
 const COLORS = ['#ff7aa8', '#33b38a', '#6c8cff', '#ffb020', '#a66cff', '#ff7a59'];
 
@@ -13,6 +14,7 @@ export function speakerStyle(name: string) {
 }
 
 export default function DialogueView({ lines, setting, lessonId }: { lines: Line[]; setting?: string; lessonId?: string }) {
+  const { t } = useI18n();
   const [showRoman, setShowRoman] = useState(true);
   const [showEn, setShowEn] = useState(true);
   const [current, setCurrent] = useState(-1);
@@ -62,10 +64,10 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
       {setting && <p className="dialogue__setting">🎬 {setting}</p>}
       <div className="dialogue__bar">
         <button className="btn" onClick={playAll}>
-          {current >= 0 && playing.current ? '⏹ Stop' : '▶ Play conversation'}
+          {current >= 0 && playing.current ? `⏹ ${t('common.stop')}` : `▶ ${t('dialogue.play')}`}
         </button>
-        <Toggle checked={showRoman} onChange={setShowRoman} label="Romanization" />
-        <Toggle checked={showEn} onChange={setShowEn} label="English" />
+        <Toggle checked={showRoman} onChange={setShowRoman} label={t('common.romanization')} />
+        <Toggle checked={showEn} onChange={setShowEn} label={t('common.translation')} />
       </div>
       <ol className="dialogue__lines">
         {lines.map((l, i) => {
@@ -83,13 +85,13 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
                 {showRoman && <div className="roman">{l.roman}</div>}
                 {showEn && <div className="en">{l.en}</div>}
                 <div className="dline__actions">
-                  <button className="btn-icon" onClick={() => sayLine(i)} aria-label="Play line">
+                  <button className="btn-icon" onClick={() => sayLine(i)} aria-label={t('common.play')}>
                     🔊
                   </button>
-                  <button className="btn-icon" onClick={() => speak(l.ko.replace(/\([^)]*\)/g, ''), { rate: 0.55, pitch: st.pitch })} aria-label="Play slowly">
+                  <button className="btn-icon" onClick={() => speak(l.ko.replace(/\([^)]*\)/g, ''), { rate: 0.55, pitch: st.pitch })} aria-label={t('common.slow')}>
                     🐢
                   </button>
-                  <button className="btn-icon" onClick={() => setPractice(l)} aria-label="Practice this line">
+                  <button className="btn-icon" onClick={() => setPractice(l)} aria-label={t('dialogue.practice')}>
                     🎤
                   </button>
                 </div>
@@ -98,7 +100,7 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
           );
         })}
       </ol>
-      <Modal open={!!practice} onClose={() => setPractice(null)} title="Shadowing practice" wide>
+      <Modal open={!!practice} onClose={() => setPractice(null)} title={t('dialogue.shadowing')} wide>
         {practice && <PronunciationPractice compact lessonId={lessonId} items={[{ text: practice.ko, roman: practice.roman, tip_en: practice.en }]} />}
       </Modal>
     </div>

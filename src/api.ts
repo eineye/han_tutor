@@ -17,7 +17,7 @@ export function setToken(token: string | null) {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -29,7 +29,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
   if (IS_DEMO) {
     const { mockFetch } = await import('./demo/mockServer');
     const r = await mockFetch(opts.method || (opts.body ? 'POST' : 'GET'), path, token, opts.body);
-    if (r.status >= 400) throw new ApiError(r.status, (r.body as any)?.error || 'Error');
+    if (r.status >= 400) throw new ApiError(r.status, (r.body as any)?.error || 'Error', (r.body as any)?.code);
     return r.body as T;
   }
   const res = await fetch('/api' + path, {
@@ -42,7 +42,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
   });
   const isJson = res.headers.get('content-type')?.includes('json');
   const data = isJson ? await res.json() : await res.text();
-  if (!res.ok) throw new ApiError(res.status, (isJson && (data as any).error) || res.statusText);
+  if (!res.ok) throw new ApiError(res.status, (isJson && (data as any).error) || res.statusText, isJson ? (data as any).code : undefined);
   return data as T;
 }
 

@@ -11,7 +11,8 @@ Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md
 ## Layout
 - `server/core.js` — all API logic (framework-agnostic). Used by `server/index.js` (Express) and `src/demo/mockServer.ts` (browser demo). Change API behavior here only.
 - `server/seed/` — curriculum and drama scenes. `curriculum.js` follows the table of contents and teaching flow of the class textbook (세종학당 한국어 입문; the PDF is not kept in the repo: 예비편 + 12과 + 연습 활용 1–5), but every example, explanation and quiz item is original — never copy text from the textbook or real dramas. `bonus.js` holds draft conversation lessons.
-- `src/` — UI; `src/pages/admin/` — teacher screens (Korean UI); student UI is English + Korean.
+- `src/` — UI; `src/pages/admin/` — teacher screens (Korean UI).
+- 학생 화면 언어 (한국어/English/Монгол): `src/i18n/`. 화면 문구는 `ui.ts`(키별 3개 언어), 교재·드라마 설명은 영어 원문을 키로 하는 `content.mn.json` / `content.ko.json`. 시드의 영어 문장을 추가·수정하면 두 사전에도 번역을 추가해야 하며, `server/tests/i18n.test.js`가 누락을 잡아낸다. AI 설명 언어는 요청의 `lang` 값으로 정한다.
 
 ## After every change (owner's standing request: always build, commit and deploy)
 1. `npx tsc -b && npm test && npm run build:demo` — all must pass.

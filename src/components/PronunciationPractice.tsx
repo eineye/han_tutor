@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import Mascot, { type Mood } from './Mascot';
 import { useMascotSpeech } from './useMascotSpeech';
 import type { PronItem } from '../types';
-import { pronunciationScore, romanize, syllableDiff, visemesFor, VISEME_TIPS, type Viseme } from '../lib/hangul';
+import { pronunciationScore, romanize, syllableDiff, visemesFor, type Viseme } from '../lib/hangul';
+import { LANG_NAME, useI18n } from '../i18n';
+import type { UIKey } from '../i18n/ui';
 import { listenKorean, recognitionSupported, type Recognizer } from '../lib/speech';
 import { MicRecorder, type Recording } from '../lib/recorder';
 import { api } from '../api';
@@ -32,6 +34,7 @@ interface Props {
  * 3. Optional: "Ask AI coach" sends the recording to Gemini for detailed feedback
  */
 export default function PronunciationPractice({ items, lessonId, compact, onAllDone }: Props) {
+  const { t, lang } = useI18n();
   const [idx, setIdx] = useState(0);
   const item = items[idx];
   const mascot = useMascotSpeech();
@@ -107,7 +110,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         await micRef.current.start();
       }
     } catch {
-      setError('Microphone permission is needed. Please allow the mic in your browser.');
+      setError(t('pron.micNeeded'));
       return;
     }
     setRecording(true);
@@ -122,8 +125,8 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
           finish(best);
         },
         onError: (e) => {
-          if (e === 'not-allowed') setError('Microphone permission is needed.');
-          else if (e === 'no-speech') setError('I didn’t hear anything. Try again a bit louder!');
+          if (e === 'not-allowed') setError(t('pron.micNeeded'));
+          else if (e === 'no-speech') setError(t('pron.noSpeech'));
         },
       });
     }
@@ -140,7 +143,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
     setError('');
     try {
       const r = await api<AiFeedback>('/ai/pronunciation', {
-        body: { target, roman: item.roman, audioBase64: rec.base64, mimeType: rec.mimeType },
+        body: { target, roman: item.roman, audioBase64: rec.base64, mimeType: rec.mimeType, lang: LANG_NAME[lang] },
       });
       setAi(r);
       if (!r.demo) {
@@ -161,16 +164,16 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
   const diff = result ? syllableDiff(target, result.heard) : null;
   const viseme = guide ?? mascot.viseme;
   const bubble = recording
-    ? '듣고 있어요… I’m listening!'
+    ? t('pron.listening')
     : result
       ? result.score >= 85
-        ? '완벽해요! Perfect! 🎉'
+        ? t('pron.perfect')
         : result.score >= 60
-          ? '좋아요! Almost there!'
-          : '다시 해 봐요! Listen once more and try again.'
+          ? t('pron.almost')
+          : t('pron.tryAgain')
       : guide
-        ? VISEME_TIPS[guide]
-        : item.tip_en || 'Press 🔊 to hear me, then 🎤 to try!';
+        ? t(`viseme.${guide}` as UIKey)
+        : item.tip_en || t('pron.hint');
 
   return (
     <div className={`pron ${compact ? 'pron--compact' : ''}`}>
@@ -182,13 +185,13 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
       <div className="pron__panel">
         {items.length > 1 && (
           <div className="pron__nav">
-            <button className="btn-icon" disabled={idx === 0} onClick={() => setIdx(idx - 1)} aria-label="Previous">
+            <button className="btn-icon" disabled={idx === 0} onClick={() => setIdx(idx - 1)} aria-label={t('common.prev')}>
               ◀
             </button>
             <span>
               {idx + 1} / {items.length}
             </span>
-            <button className="btn-icon" disabled={idx === items.length - 1} onClick={() => setIdx(idx + 1)} aria-label="Next">
+            <button className="btn-icon" disabled={idx === items.length - 1} onClick={() => setIdx(idx + 1)} aria-label={t('common.next')}>
               ▶
             </button>
           </div>
@@ -207,7 +210,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
                   !punct && d ? (d.ok ? 'syl--ok' : 'syl--miss') : '',
                 ].join(' ')}
                 onClick={() => !punct && mascot.say(c, { rate: 0.7 })}
-                title={punct ? '' : 'Click to hear this syllable'}
+                title={punct ? '' : t('pron.clickSyllable')}
               >
                 {c}
               </span>
@@ -217,7 +220,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         <div className="pron__roman">{item.roman || romanize(target)}</div>
         {item.tip_en && <div className="pron__tip">💡 {item.tip_en}</div>}
 
-        <div className="mouth-guide" aria-label="Mouth shape guide">
+        <div className="mouth-guide" aria-label={t('pron.hoverMouth')}>
           {chars
             .filter(isLetter)
             .map((c, i) => {
@@ -229,29 +232,29 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
                 </button>
               );
             })}
-          <span className="muted small">← hover to see Bori’s mouth shape</span>
+          <span className="muted small">← {t('pron.hoverMouth')}</span>
         </div>
 
         <div className="pron__controls">
           <button className="btn btn--round" onClick={() => listen(0.85)} disabled={recording}>
-            🔊 Listen
+            🔊 {t('common.listen')}
           </button>
           <button className="btn btn--ghost btn--round" onClick={() => listen(0.5)} disabled={recording}>
-            🐢 Slow
+            🐢 {t('common.slow')}
           </button>
           {!recording ? (
             <button className="btn btn--rec btn--round" onClick={startRecording} disabled={!canRecognize && !canRecord}>
-              🎤 Speak
+              🎤 {t('pron.speak')}
             </button>
           ) : (
             <button className="btn btn--rec is-recording btn--round" onClick={stopRecording}>
-              ⏹ Stop
+              ⏹ {t('common.stop')}
             </button>
           )}
         </div>
         {!canRecognize && (
           <p className="muted small">
-            Your browser has no built-in Korean speech recognition (use Chrome/Edge/Safari for instant scores). Your recording will be checked by the AI coach instead.
+            {t('pron.noRecognition')}
           </p>
         )}
         {recording && interim && <p className="pron__interim">“{interim}”</p>}
@@ -262,8 +265,8 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
             <div className="pron__score">
               <ScoreBadge score={result.score} />
               <div>
-                <div className="small muted">I heard</div>
-                <div className="ko-mid">{result.heard || '(nothing)'}</div>
+                <div className="small muted">{t('pron.iHeard')}</div>
+                <div className="ko-mid">{result.heard || t('pron.nothing')}</div>
               </div>
             </div>
           </div>
@@ -273,7 +276,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
           <div className="pron__ai">
             <audio controls src={audio.url} />
             <button className="btn btn--ghost" onClick={() => askAi()} disabled={aiLoading}>
-              {aiLoading ? 'Bori is listening carefully…' : '🤖 Ask the AI coach for detailed feedback'}
+              {aiLoading ? t('pron.aiLoading') : `🤖 ${t('pron.askAi')}`}
             </button>
           </div>
         )}
@@ -281,15 +284,15 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         {ai && (
           <div className="ai-feedback">
             <div className="ai-feedback__head">
-              <ScoreBadge score={ai.score} /> <span>AI heard: <b lang="ko">{ai.heard}</b></span>
+              <ScoreBadge score={ai.score} /> <span>{t('pron.aiHeard')}: <b lang="ko">{ai.heard}</b></span>
               {ai.demo && <span className="badge">demo</span>}
             </div>
             <p>{ai.feedback_en}</p>
             {ai.tips?.length > 0 && (
               <ul>
-                {ai.tips.map((t, i) => (
+                {ai.tips.map((tip, i) => (
                   <li key={i}>
-                    <b lang="ko">{t.syllable}</b> — {t.issue_en}. <i>{t.how_to_en}</i>
+                    <b lang="ko">{tip.syllable}</b> — {tip.issue_en}. <i>{tip.how_to_en}</i>
                   </li>
                 ))}
               </ul>
@@ -300,11 +303,11 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         {items.length > 1 && (
           <div className="pron__dots">
             {items.map((_, i) => (
-              <button key={i} className={`dot ${i === idx ? 'is-current' : ''} ${scores[i] != null ? (scores[i] >= 85 ? 'is-good' : 'is-tried') : ''}`} onClick={() => setIdx(i)} aria-label={`Item ${i + 1}`} />
+              <button key={i} className={`dot ${i === idx ? 'is-current' : ''} ${scores[i] != null ? (scores[i] >= 85 ? 'is-good' : 'is-tried') : ''}`} onClick={() => setIdx(i)} aria-label={`${i + 1}`} />
             ))}
             {onAllDone && Object.keys(scores).length >= Math.min(items.length, 3) && (
               <button className="btn btn--small" onClick={onAllDone}>
-                Done ✓
+                {t('common.done')} ✓
               </button>
             )}
           </div>

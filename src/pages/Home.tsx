@@ -5,19 +5,22 @@ import { useAuth } from '../auth';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
 import { ErrorBox, Loading, ProgressBar, fmtDate } from '../components/ui';
+import { subtitle, useI18n } from '../i18n';
+import type { UIKey } from '../i18n/ui';
 import type { Assignment, Lesson, Progress, Unit } from '../types';
 
 type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null };
 
-const PHRASES = [
-  { ko: '오늘도 화이팅!', en: 'You can do it today too!' },
-  { ko: '천천히 해도 괜찮아요.', en: 'It’s okay to go slowly.' },
-  { ko: '같이 공부해요!', en: 'Let’s study together!' },
-  { ko: '한국어 재미있어요!', en: 'Korean is fun!' },
+const PHRASES: { ko: string; key: UIKey }[] = [
+  { ko: '오늘도 화이팅!', key: 'home.phrase1' },
+  { ko: '천천히 해도 괜찮아요.', key: 'home.phrase2' },
+  { ko: '같이 공부해요!', key: 'home.phrase3' },
+  { ko: '한국어 재미있어요!', key: 'home.phrase4' },
 ];
 
 export default function Home() {
   const { student } = useAuth();
+  const { t, tc, lang } = useI18n();
   const [data, setData] = useState<{ units: Unit[]; lessons: LessonSummary[] } | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [error, setError] = useState<unknown>(null);
@@ -38,21 +41,22 @@ export default function Home() {
   const done = data.lessons.filter((l) => l.progress?.completedAt).length;
   const lessonTitle = (id: string | null) => data.lessons.find((l) => l.id === id)?.title;
   const openAssignments = assignments.filter((a) => !a.done);
+  const phraseMeaning = t(phrase.key);
 
   return (
     <div className="home">
       <section className="hero card">
-        <button className="hero__mascot" onClick={() => mascot.say(`${student?.name} 씨, 안녕하세요! ${phrase.ko}`)} aria-label="Talk to Bori">
+        <button className="hero__mascot" onClick={() => mascot.say(`${student?.name} 씨, 안녕하세요! ${phrase.ko}`)} aria-label={t('home.talkToBori')}>
           <Mascot viseme={mascot.viseme} talking={mascot.speaking} mood="happy" size={150} />
         </button>
         <div>
           <p className="muted">안녕하세요, {student?.name}!</p>
           <h1 lang="ko">{phrase.ko}</h1>
-          <p className="muted">{phrase.en}</p>
+          {phraseMeaning !== phrase.ko && <p className="muted">{phraseMeaning}</p>}
           <div className="hero__stats">
             <div>
               <b>{done}</b>
-              <small>lessons done</small>
+              <small>{t('home.lessonsDone')}</small>
             </div>
             <div>
               <b>⭐ {student?.xp ?? 0}</b>
@@ -60,7 +64,7 @@ export default function Home() {
             </div>
             <div>
               <b>🔥 {student?.streak ?? 0}</b>
-              <small>day streak</small>
+              <small>{t('home.streak')}</small>
             </div>
           </div>
           <ProgressBar value={done} max={data.lessons.length} />
@@ -70,9 +74,9 @@ export default function Home() {
       {next && (
         <Link to={`/lesson/${next.id}`} className="card continue">
           <div>
-            <small className="muted">{next.progress ? 'Continue' : 'Start'} →</small>
+            <small className="muted">{next.progress ? t('home.continue') : t('home.start')} →</small>
             <h2 lang="ko">{next.title.ko}</h2>
-            <p>{next.title.en}</p>
+            <p>{subtitle({ ko: next.title.ko, en: tc(next.title.en) }, lang)}</p>
           </div>
           <span className="continue__arrow">▶</span>
         </Link>
@@ -80,14 +84,14 @@ export default function Home() {
 
       {openAssignments.length > 0 && (
         <section className="card">
-          <h3>📌 Homework from your teacher</h3>
+          <h3>📌 {t('home.homework')}</h3>
           <ul className="list">
             {openAssignments.map((a) => (
               <li key={a.id}>
                 <Link to={a.lessonId ? `/lesson/${a.lessonId}` : `/drama/${a.videoId}`}>
-                  <b>{a.title || lessonTitle(a.lessonId)?.en || 'Drama scene'}</b>
+                  <b>{a.title || (lessonTitle(a.lessonId) ? `${lessonTitle(a.lessonId)!.ko}` : t('home.dramaScene'))}</b>
                 </Link>
-                {a.due && <span className="badge">Due {fmtDate(a.due)}</span>}
+                {a.due && <span className="badge">{t('home.due', { date: fmtDate(a.due) })}</span>}
                 {a.note && <div className="muted small">{a.note}</div>}
               </li>
             ))}
@@ -98,23 +102,23 @@ export default function Home() {
       <section className="quick-grid">
         <Link className="quick quick--hangeul" to="/hangeul">
           <span>🔤</span>
-          <b>Hangeul Lab</b>
-          <small>Letters & syllable builder</small>
+          <b>{t('home.q.hangeul')}</b>
+          <small>{t('home.q.hangeulSub')}</small>
         </Link>
         <Link className="quick quick--speak" to="/speak">
           <span>🎤</span>
-          <b>Pronunciation Coach</b>
-          <small>Speak with Bori</small>
+          <b>{t('home.q.speak')}</b>
+          <small>{t('home.q.speakSub')}</small>
         </Link>
         <Link className="quick quick--talk" to="/talk">
           <span>💬</span>
-          <b>AI Talk</b>
-          <small>Real-time conversation</small>
+          <b>{t('home.q.talk')}</b>
+          <small>{t('home.q.talkSub')}</small>
         </Link>
         <Link className="quick quick--drama" to="/drama">
           <span>🎬</span>
-          <b>Drama Studio</b>
-          <small>Learn with K-drama scenes</small>
+          <b>{t('home.q.drama')}</b>
+          <small>{t('home.q.dramaSub')}</small>
         </Link>
       </section>
     </div>

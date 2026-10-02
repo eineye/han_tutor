@@ -11,21 +11,23 @@ import WritingPractice from '../components/WritingPractice';
 import { lessonLabel } from '../lib/lessonLabel';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
-import { compose, visemesFor, VISEME_TIPS } from '../lib/hangul';
+import { compose, visemesFor } from '../lib/hangul';
+import { localizeLesson, subtitle, useI18n } from '../i18n';
+import type { UIKey } from '../i18n/ui';
 
 type SectionKey = 'intro' | 'letters' | 'writing' | 'vocab' | 'grammar' | 'dialogue' | 'pronunciation' | 'quiz' | 'culture' | 'talk';
 
-const LABELS: Record<SectionKey, { icon: string; en: string; ko: string }> = {
-  intro: { icon: '🌱', en: 'Warm-up', ko: '도입' },
-  letters: { icon: '🔤', en: 'Letters', ko: '글자' },
-  writing: { icon: '✍️', en: 'Writing', ko: '쓰기' },
-  vocab: { icon: '📝', en: 'Words', ko: '어휘' },
-  grammar: { icon: '🧩', en: 'Grammar', ko: '문법' },
-  dialogue: { icon: '💬', en: 'Dialogue', ko: '대화' },
-  pronunciation: { icon: '🎤', en: 'Speak', ko: '발음' },
-  quiz: { icon: '✏️', en: 'Quiz', ko: '평가' },
-  culture: { icon: '🇰🇷', en: 'Culture', ko: '문화' },
-  talk: { icon: '🤖', en: 'AI Talk', ko: 'AI 대화' },
+const LABELS: Record<SectionKey, { icon: string; key: UIKey; ko: string }> = {
+  intro: { icon: '🌱', key: 'sec.intro', ko: '도입' },
+  letters: { icon: '🔤', key: 'sec.letters', ko: '글자' },
+  writing: { icon: '✍️', key: 'sec.writing', ko: '쓰기' },
+  vocab: { icon: '📝', key: 'sec.vocab', ko: '어휘' },
+  grammar: { icon: '🧩', key: 'sec.grammar', ko: '문법' },
+  dialogue: { icon: '💬', key: 'sec.dialogue', ko: '대화' },
+  pronunciation: { icon: '🎤', key: 'sec.pronunciation', ko: '발음' },
+  quiz: { icon: '✏️', key: 'sec.quiz', ko: '평가' },
+  culture: { icon: '🇰🇷', key: 'sec.culture', ko: '문화' },
+  talk: { icon: '🤖', key: 'sec.talk', ko: 'AI 대화' },
 };
 
 const TRACKED: SectionKey[] = ['letters', 'writing', 'vocab', 'grammar', 'dialogue', 'pronunciation', 'quiz'];
@@ -34,7 +36,9 @@ export default function LessonPage() {
   const { id = '' } = useParams();
   const nav = useNavigate();
   const { setStudent } = useAuth();
-  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const { t, tc, lang } = useI18n();
+  const [rawLesson, setLesson] = useState<Lesson | null>(null);
+  const lesson = useMemo(() => (rawLesson ? localizeLesson(rawLesson, tc) : null), [rawLesson, tc]);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [section, setSection] = useState<SectionKey>('intro');
@@ -102,26 +106,26 @@ export default function LessonPage() {
     <div className="lesson">
       <div className="lesson__head">
         <Link to="/learn" className="muted small">
-          ← Lessons
+          ← {t('nav.lessons')}
         </Link>
         <h1>
           {lessonLabel(lesson.id) && <span className="lesson-label">{lessonLabel(lesson.id)}</span>}
-          <span lang="ko">{lesson.title.ko}</span> <small>{lesson.title.en}</small>
+          <span lang="ko">{lesson.title.ko}</span> <small>{subtitle(lesson.title, lang)}</small>
         </h1>
       </div>
 
-      <nav className="stepper" aria-label="Lesson sections">
+      <nav className="stepper" aria-label={t('lesson.sections')}>
         {sections.map((s) => (
           <button key={s} className={`step ${section === s ? 'is-active' : ''} ${progress?.sections?.[s] ? 'is-done' : ''}`} onClick={() => setSection(s)}>
             <span aria-hidden>{progress?.sections?.[s] ? '✓' : LABELS[s].icon}</span>
-            <small>{LABELS[s].en}</small>
+            <small>{t(LABELS[s].key)}</small>
           </button>
         ))}
       </nav>
 
       <section className="card lesson__body">
         <h2 className="section-title">
-          {LABELS[section].icon} {LABELS[section].en} <small lang="ko">{LABELS[section].ko}</small>
+          {LABELS[section].icon} {t(LABELS[section].key)} {lang !== 'ko' && <small lang="ko">{LABELS[section].ko}</small>}
         </h2>
 
         {section === 'intro' && (
@@ -130,7 +134,7 @@ export default function LessonPage() {
               <span className="intro__emoji">{lesson.warmup?.emoji || '🌱'}</span>
               <p>{lesson.warmup?.question_en}</p>
             </div>
-            <h3>In this lesson you will…</h3>
+            <h3>{t('lesson.willLearn')}</h3>
             <ul className="checklist">
               {lesson.objectives.filter(Boolean).map((o, i) => (
                 <li key={i}>{o}</li>
@@ -188,11 +192,11 @@ export default function LessonPage() {
           <div className="talk-intro">
             <Mascot mood="happy" size={120} />
             <div>
-              <h3>Role-play with Bori</h3>
-              <p>{lesson.chat.scenario}</p>
-              <p className="muted">🎯 Goal: {lesson.chat.goal_en}</p>
+              <h3>{t('lesson.roleplay')}</h3>
+              <p>{tc(lesson.chat.scenario)}</p>
+              <p className="muted">🎯 {t('lesson.goal')}: {lesson.chat.goal_en}</p>
               <Link className="btn" to={`/talk?lesson=${lesson.id}`}>
-                Start AI conversation →
+                {t('lesson.startTalk')} →
               </Link>
             </div>
           </div>
@@ -200,10 +204,10 @@ export default function LessonPage() {
 
         <div className="lesson__footer">
           <button className="btn btn--ghost" disabled={sections.indexOf(section) === 0} onClick={() => setSection(sections[sections.indexOf(section) - 1])}>
-            ← Back
+            ← {t('common.back')}
           </button>
           <button className="btn" onClick={goNext}>
-            {sections.indexOf(section) === sections.length - 1 ? 'Finish lesson 🎉' : 'Next →'}
+            {sections.indexOf(section) === sections.length - 1 ? `${t('lesson.finish')} 🎉` : `${t('common.next')} →`}
           </button>
         </div>
       </section>
@@ -212,6 +216,7 @@ export default function LessonPage() {
 }
 
 function VocabSection({ lesson }: { lesson: Lesson }) {
+  const { t } = useI18n();
   const [flip, setFlip] = useState<Record<number, boolean>>({});
   const [hideEn, setHideEn] = useState(false);
   return (
@@ -220,7 +225,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
         <label className="toggle">
           <input type="checkbox" checked={hideEn} onChange={(e) => setHideEn(e.target.checked)} />
           <span className="toggle__track" />
-          <span>Flashcard mode (hide meanings)</span>
+          <span>{t('lesson.flashcard')}</span>
         </label>
       </div>
       <div className="vocab-grid">
@@ -232,7 +237,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
             </span>
             {w.pron && <span className="pron-note" lang="ko">{w.pron}</span>}
             <span className="roman">{w.roman}</span>
-            <span className="en">{hideEn && !flip[i] ? 'tap to reveal' : w.en}</span>
+            <span className="en">{hideEn && !flip[i] ? t('lesson.tapReveal') : w.en}</span>
             <SpeakButton text={w.ko.split('→').pop()!.trim()} className="vocab-card__speak" />
           </button>
         ))}
@@ -242,6 +247,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
 }
 
 function LettersSection({ lesson }: { lesson: Lesson }) {
+  const { t } = useI18n();
   const mascot = useMascotSpeech();
   const [sel, setSel] = useState(0);
   const letter = lesson.letters![sel];
@@ -276,7 +282,7 @@ function LettersSection({ lesson }: { lesson: Lesson }) {
           <p>{letter.tip_en}</p>
           <div className="row">
             <button className="btn" onClick={sayLetter}>
-              🔊 Hear it
+              🔊 {t('lesson.hearIt')}
             </button>
             <button className="btn btn--ghost" onClick={() => mascot.say(letter.example.ko, { rate: 0.75 })}>
               🔊 {letter.example.ko}
@@ -285,7 +291,7 @@ function LettersSection({ lesson }: { lesson: Lesson }) {
           <p className="letters__example">
             <b lang="ko">{letter.example.ko}</b> <span className="roman">{letter.example.roman}</span> — {letter.example.en}
           </p>
-          <p className="muted small">👄 {VISEME_TIPS[exampleViseme]}</p>
+          <p className="muted small">👄 {t(`viseme.${exampleViseme}` as UIKey)}</p>
         </div>
       </div>
     </div>

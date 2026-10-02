@@ -5,7 +5,7 @@ export const CHAT_SCHEMA = {
   properties: {
     ko: { type: 'STRING', description: 'Your reply in Korean' },
     roman: { type: 'STRING', description: 'Revised Romanization of the reply' },
-    en: { type: 'STRING', description: 'Natural English translation of the reply' },
+    en: { type: 'STRING', description: 'Natural translation of the reply in the student’s explanation language' },
     correction: {
       type: 'OBJECT',
       nullable: true,
@@ -21,7 +21,12 @@ export const CHAT_SCHEMA = {
   required: ['ko', 'roman', 'en'],
 };
 
-export function chatSystemPrompt({ scenario, level, studentName, nativeLang, vocab = [] }) {
+/** Languages the student UI offers for explanations. */
+export const EXPLAIN_LANGS = ['English', 'Korean', 'Mongolian'];
+const explainLang = (l) => (EXPLAIN_LANGS.includes(l) ? l : 'English');
+
+export function chatSystemPrompt({ scenario, level, studentName, nativeLang, vocab = [], lang = 'English' }) {
+  const L = explainLang(lang);
   return `You are "Bori (보리)", a cheerful little tiger cub character who tutors Korean to middle and high school students living abroad.
 Student: ${studentName || 'a student'} (native/school language: ${nativeLang || 'English'}), level: ${level || 'beginner'}.
 Role-play scenario: ${scenario || 'Free conversation about everyday life'}.
@@ -30,9 +35,9 @@ Rules:
 - Stay in the role-play, but keep it friendly, encouraging and age-appropriate (13-18). Never discuss adult, violent, or unsafe topics; gently steer back.
 - Reply in SHORT Korean: 1-2 sentences. Beginner = very simple 해요체 sentences with basic vocabulary. Intermediate = natural 해요체.
 - Always end with a simple question or prompt so the student keeps talking.
-- If the student's last Korean message has a mistake, fill "correction" (original, corrected, short English explanation). Otherwise set correction to null. If they wrote in English, gently show how to say it in Korean in "correction".
+- If the student's last Korean message has a mistake, fill "correction" (original, corrected, short explanation in ${L}). Otherwise set correction to null. If they wrote in another language instead of Korean, gently show how to say it in Korean in "correction".
 - Give 2-3 very short example replies in "suggestions_ko" matching the student's level.
-- Explanations and translations must be in English.`;
+- Put translations (field "en"), hints ("hint_en") and correction explanations in ${L}${L === 'Korean' ? ' (easy Korean that a beginner can follow)' : ''}. Your Korean reply itself ("ko") stays Korean.`;
 }
 
 export const PRON_SCHEMA = {
@@ -40,7 +45,7 @@ export const PRON_SCHEMA = {
   properties: {
     heard: { type: 'STRING', description: 'What you actually heard, written in Hangul' },
     score: { type: 'INTEGER', description: '0-100 overall pronunciation accuracy' },
-    feedback_en: { type: 'STRING', description: 'Two or three friendly sentences of feedback in English' },
+    feedback_en: { type: 'STRING', description: 'Two or three friendly sentences of feedback in the requested language' },
     tips: {
       type: 'ARRAY',
       items: {
@@ -56,11 +61,12 @@ export const PRON_SCHEMA = {
   required: ['heard', 'score', 'feedback_en', 'tips'],
 };
 
-export function pronunciationPrompt(target, roman) {
+export function pronunciationPrompt(target, roman, lang = 'English') {
+  const L = explainLang(lang);
   return `You are a kind Korean pronunciation coach for teenage learners.
 The student tried to say: "${target}"${roman ? ` (romanization: ${roman})` : ''}.
 Listen to the audio and evaluate their pronunciation. Focus on: vowel quality (ㅓ vs ㅗ, ㅡ, ㅐ/ㅔ), plain/aspirated/tense consonants (ㄱ/ㅋ/ㄲ etc.), final consonants (받침), and Korean sound-change rules (연음, 비음화 ...).
-Be encouraging. Give at most 3 tips, each tied to a specific syllable, with concrete mouth/tongue instructions in simple English.
+Be encouraging. Give at most 3 tips, each tied to a specific syllable, with concrete mouth/tongue instructions. Write feedback_en, issue_en and how_to_en in simple ${L}.
 If the audio is silent or not Korean, set score to 0 and explain kindly.`;
 }
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
-import { CHO, JONG, JUNG, compose, romanize, visemesFor, VISEME_TIPS } from '../lib/hangul';
+import { CHO, JONG, JUNG, compose, romanize, visemesFor } from '../lib/hangul';
+import { useI18n } from '../i18n';
+import type { UIKey } from '../i18n/ui';
 
 const VOWELS: { c: string; r: string }[] = [
   ['ㅏ', 'a'], ['ㅑ', 'ya'], ['ㅓ', 'eo'], ['ㅕ', 'yeo'], ['ㅗ', 'o'], ['ㅛ', 'yo'], ['ㅜ', 'u'], ['ㅠ', 'yu'], ['ㅡ', 'eu'], ['ㅣ', 'i'],
@@ -17,6 +19,8 @@ const CONSONANTS: { c: string; r: string; group: 'basic' | 'aspirated' | 'tense'
 type Tab = 'vowels' | 'consonants' | 'builder';
 
 export default function HangeulLab() {
+  const { t, lang } = useI18n();
+  const ko = (s: string) => (lang === 'ko' ? '' : ` ${s}`);
   const [tab, setTab] = useState<Tab>('vowels');
   const mascot = useMascotSpeech();
   const [focus, setFocus] = useState<string>('ㅏ');
@@ -30,16 +34,16 @@ export default function HangeulLab() {
 
   return (
     <div className="lab">
-      <h1>Hangeul Lab 한글 연구소</h1>
+      <h1>{t('lab.title')}{ko('한글 연구소')}</h1>
       <div className="tabs tabs--wide">
         <button className={tab === 'vowels' ? 'is-active' : ''} onClick={() => setTab('vowels')}>
-          Vowels 모음
+          {t('lab.vowels')}{ko('모음')}
         </button>
         <button className={tab === 'consonants' ? 'is-active' : ''} onClick={() => setTab('consonants')}>
-          Consonants 자음
+          {t('lab.consonants')}{ko('자음')}
         </button>
         <button className={tab === 'builder' ? 'is-active' : ''} onClick={() => setTab('builder')}>
-          Syllable Builder 글자 만들기
+          {t('lab.builder')}{ko('글자 만들기')}
         </button>
       </div>
 
@@ -49,7 +53,7 @@ export default function HangeulLab() {
           <div className="lab__focus" lang="ko">
             {tab === 'builder' ? built : focus}
           </div>
-          {tab === 'vowels' && focusViseme && <p className="muted">👄 {VISEME_TIPS[focusViseme]}</p>}
+          {tab === 'vowels' && focusViseme && <p className="muted">👄 {t(`viseme.${focusViseme}` as UIKey)}</p>}
           {tab === 'builder' && (
             <p className="roman">
               {romanize(built)} <button className="btn-icon" onClick={() => say(built)}>🔊</button>
@@ -60,7 +64,7 @@ export default function HangeulLab() {
         <div className="card">
           {tab === 'vowels' && (
             <>
-              <p className="muted">Tap a vowel. Watch Bori’s mouth: round for ㅗ ㅜ, flat for ㅡ, wide for ㅏ.</p>
+              <p className="muted">{t('lab.vowelHint')}</p>
               <div className="jamo-grid">
                 {VOWELS.map((v, i) => (
                   <button
@@ -81,10 +85,10 @@ export default function HangeulLab() {
 
           {tab === 'consonants' && (
             <>
-              <p className="muted">Tap a consonant to hear it with ㅏ. Compare the three families: plain / aspirated (+air) / tense (tight).</p>
+              <p className="muted">{t('lab.consHint')}</p>
               {(['basic', 'aspirated', 'tense'] as const).map((g) => (
                 <div key={g}>
-                  <h4 className="jamo-group">{g === 'basic' ? 'Basic 기본' : g === 'aspirated' ? 'Aspirated 거센소리 💨' : 'Tense 된소리 💪'}</h4>
+                  <h4 className="jamo-group">{g === 'basic' ? `${t('lab.basic')}${ko('기본')}` : g === 'aspirated' ? `${t('lab.aspirated')}${ko('거센소리')} 💨` : `${t('lab.tense')}${ko('된소리')} 💪`}</h4>
                   <div className="jamo-grid">
                     {CONSONANTS.filter((c) => c.group === g).map((c) => (
                       <button
@@ -103,7 +107,7 @@ export default function HangeulLab() {
                 </div>
               ))}
               <div className="minimal-pairs">
-                <h4>Minimal pairs 비교</h4>
+                <h4>{t('lab.pairs')}{ko('비교')}</h4>
                 {['가 카 까', '다 타 따', '바 파 빠', '자 차 짜', '사 싸'].map((set) => (
                   <button key={set} className="chip" onClick={() => say(set.replace(/ /g, ', '), 0.6)}>
                     🔊 {set}
@@ -115,10 +119,10 @@ export default function HangeulLab() {
 
           {tab === 'builder' && (
             <div className="builder">
-              <p className="muted">Build a syllable block: first consonant + vowel (+ final consonant).</p>
+              <p className="muted">{t('lab.builderHint')}</p>
               <div className="builder__row">
                 <label>
-                  Initial 초성
+                  {t('lab.initial')}{ko('초성')}
                   <div className="jamo-grid jamo-grid--small">
                     {CHO.map((c) => (
                       <button key={c} className={`jamo ${cho === c ? 'is-active' : ''}`} onClick={() => setCho(c)}>
@@ -128,7 +132,7 @@ export default function HangeulLab() {
                   </div>
                 </label>
                 <label>
-                  Vowel 중성
+                  {t('lab.vowel')}{ko('중성')}
                   <div className="jamo-grid jamo-grid--small">
                     {JUNG.map((c) => (
                       <button key={c} className={`jamo ${jung === c ? 'is-active' : ''}`} onClick={() => setJung(c)}>
@@ -138,7 +142,7 @@ export default function HangeulLab() {
                   </div>
                 </label>
                 <label>
-                  Final 받침
+                  {t('lab.final')}{ko('받침')}
                   <div className="jamo-grid jamo-grid--small">
                     {JONG.filter((c) => c.length <= 1).map((c) => (
                       <button key={c || 'none'} className={`jamo ${jong === c ? 'is-active' : ''}`} onClick={() => setJong(c)}>
@@ -157,7 +161,7 @@ export default function HangeulLab() {
                   {built}
                 </span>
                 <button className="btn" onClick={() => say(built)}>
-                  🔊 Listen
+                  🔊 {t('common.listen')}
                 </button>
               </div>
             </div>
