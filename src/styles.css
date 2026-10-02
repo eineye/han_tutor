@@ -2526,3 +2526,61 @@ label.inline select {
 .recordings .filters select {
   min-width: min(340px, 100%);
 }
+
+/* ───────── Subtitle import (드라마 영상 › 대본·자막 타이밍) ───────── */
+.subimport {
+  margin-bottom: 14px;
+}
+.subimport__head {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.subimport__body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.subimport__opts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.subimport__opts .radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.subimport__offset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.subimport__offset input {
+  width: 90px;
+}
+.subimport__preview {
+  max-height: 360px;
+  overflow: auto;
+}
+.text-good {
+  color: var(--good);
+  font-weight: 700;
+}
+.subimport__opts label {
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: left;
+  width: auto;
+  margin: 0;
+  font-weight: 500;
+}
+.subimport__opts input[type='radio'],
+.subimport__opts input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}

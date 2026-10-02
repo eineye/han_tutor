@@ -5,6 +5,7 @@ import { ErrorBox, Loading } from '../../components/ui';
 import VideoSurface, { parseYouTubeId, type VideoHandle } from '../../components/VideoSurface';
 import type { Line, Video } from '../../types';
 import { JsonEditor, QuizEditor, RowsEditor } from './editors';
+import SubtitleImport from './SubtitleImport';
 
 type Tab = 'basic' | 'source' | 'cast' | 'lines' | 'expr' | 'quiz' | 'json';
 
@@ -192,6 +193,15 @@ export default function AdminVideoEditor() {
 
         {tab === 'lines' && (
           <>
+            <SubtitleImport
+              lines={v.lines}
+              cast={v.cast}
+              onApply={(lines, cast, note) => {
+                up({ lines, cast });
+                setMsg(note);
+                setTimeout(() => setMsg(''), 6000);
+              }}
+            />
             {hasPlayer ? (
               <div className="timing">
                 <VideoSurface ref={player} type={v.source.type as 'youtube' | 'file'} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} onTime={setNow} />
