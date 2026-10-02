@@ -574,13 +574,21 @@ label.inline select {
   animation: bob 3.2s ease-in-out infinite;
 }
 .mascot--talking .mascot__body {
-  animation: talk 0.5s ease-in-out infinite;
+  animation: talk 1.6s ease-in-out infinite;
+}
+.mascot__magpie {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: magpie 5s ease-in-out infinite;
+}
+.mascot--talking .mascot__magpie {
+  animation-duration: 1.2s;
 }
 .mascot--cheer .mascot__body {
   animation: hop 0.6s ease-in-out 3;
 }
 .mascot__eyes {
-  transform-origin: 100px 94px;
+  transform-origin: 100px 91px;
   animation: blink 4.5s infinite;
 }
 @keyframes bob {
@@ -595,10 +603,29 @@ label.inline select {
 @keyframes talk {
   0%,
   100% {
-    transform: rotate(-1.5deg);
+    transform: rotate(-1deg) translateY(0);
+  }
+  25% {
+    transform: rotate(0deg) translateY(-2px);
   }
   50% {
-    transform: rotate(1.5deg) translateY(-2px);
+    transform: rotate(1deg) translateY(0);
+  }
+  75% {
+    transform: rotate(0deg) translateY(-1.5px);
+  }
+}
+@keyframes magpie {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  78% {
+    transform: rotate(-8deg) translateY(-2px);
+  }
+  86% {
+    transform: rotate(3deg);
   }
 }
 @keyframes hop {
@@ -622,7 +649,8 @@ label.inline select {
 }
 @media (prefers-reduced-motion: reduce) {
   .mascot__body,
-  .mascot__eyes {
+  .mascot__eyes,
+  .mascot__magpie {
     animation: none !important;
   }
 }

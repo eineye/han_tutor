@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId } from 'react';
 import type { Viseme } from '../lib/hangul';
 import { useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
+import { SHAPES, useAnimatedShape, type Shape } from '../lib/mouthShape';
 
 /**
  * Detailed 2D mouth for the pronunciation coach.
@@ -9,29 +10,6 @@ import type { UIKey } from '../i18n/ui';
  * - Side view (cross-section): jaw drop, lip protrusion and tongue position (front/back, high/low)
  * Shapes are parametric and smoothly interpolated between vowels.
  */
-
-interface Shape {
-  open: number; // jaw/lip opening 0–1
-  width: number; // mouth width (1 = neutral)
-  round: number; // lip rounding + protrusion 0–1
-  tX: number; // tongue front(0) → back(1)
-  tY: number; // tongue low(0) → high(1)
-  teethU: number; // how much the upper teeth show
-  teethL: number; // how much the lower teeth show
-  press: number; // lips pressed together (ㅁ/ㅂ/ㅍ)
-}
-
-const SHAPES: Record<Viseme, Shape> = {
-  rest: { open: 0.04, width: 0.95, round: 0.05, tX: 0.5, tY: 0.4, teethU: 0, teethL: 0, press: 0 },
-  A: { open: 0.85, width: 1.0, round: 0, tX: 0.5, tY: 0.1, teethU: 0.6, teethL: 0.3, press: 0 },
-  EO: { open: 0.55, width: 0.88, round: 0.05, tX: 0.7, tY: 0.35, teethU: 0.5, teethL: 0.2, press: 0 },
-  O: { open: 0.38, width: 0.58, round: 0.8, tX: 0.8, tY: 0.5, teethU: 0.2, teethL: 0, press: 0 },
-  U: { open: 0.22, width: 0.44, round: 1, tX: 0.85, tY: 0.85, teethU: 0, teethL: 0, press: 0 },
-  EU: { open: 0.14, width: 1.05, round: 0, tX: 0.7, tY: 0.8, teethU: 0.9, teethL: 0.8, press: 0 },
-  I: { open: 0.12, width: 1.18, round: 0, tX: 0.15, tY: 0.9, teethU: 1, teethL: 0.8, press: 0 },
-  E: { open: 0.42, width: 1.04, round: 0, tX: 0.25, tY: 0.5, teethU: 0.8, teethL: 0.5, press: 0 },
-  M: { open: 0, width: 0.92, round: 0.1, tX: 0.5, tY: 0.4, teethU: 0, teethL: 0, press: 1 },
-};
 
 const LETTER: Record<Viseme, string> = { rest: '', A: 'ㅏ', EO: 'ㅓ', O: 'ㅗ', U: 'ㅜ', EU: 'ㅡ', I: 'ㅣ', E: 'ㅐ ㅔ', M: 'ㅁ ㅂ ㅍ' };
 const LIP_TAG: Record<Viseme, UIKey | null> = {
@@ -45,44 +23,6 @@ const LIP_TAG: Record<Viseme, UIKey | null> = {
   E: 'lips.half',
   M: 'lips.closed',
 };
-const KEYS = Object.keys(SHAPES.rest) as (keyof Shape)[];
-
-/** Smoothly animates the shape toward the target viseme (with a little life while speaking). */
-function useAnimatedShape(viseme: Viseme, speaking: boolean): Shape {
-  const [shape, setShape] = useState<Shape>(SHAPES[viseme]);
-  const cur = useRef<Shape>(SHAPES[viseme]);
-
-  useEffect(() => {
-    const target = SHAPES[viseme];
-    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
-      cur.current = target;
-      setShape(target);
-      return;
-    }
-    let raf = 0;
-    const t0 = performance.now();
-    const step = (now: number) => {
-      const next = { ...cur.current };
-      let moving = false;
-      for (const k of KEYS) {
-        const d = target[k] - next[k];
-        if (Math.abs(d) > 0.002) moving = true;
-        next[k] += d * 0.3;
-      }
-      cur.current = next;
-      // tiny natural movement while the voice is playing
-      const wobble = speaking && target.open > 0.05 ? Math.sin((now - t0) / 70) * 0.03 : 0;
-      setShape({ ...next, open: Math.max(0, next.open + wobble) });
-      if (moving || speaking) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [viseme, speaking]);
-
-  return shape;
-}
-
 const f = (n: number) => n.toFixed(1);
 
 function FrontView({ s, uid }: { s: Shape; uid: string }) {
@@ -299,7 +239,7 @@ interface Props {
 export default function LipsView({ viseme, speaking = false, compact = false }: Props) {
   const { t } = useI18n();
   const uid = useId().replace(/:/g, '');
-  const s = useAnimatedShape(viseme, speaking);
+  const s = useAnimatedShape(SHAPES[viseme], speaking);
   const target = SHAPES[viseme];
 
   const lipTag: UIKey | null = LIP_TAG[viseme];
