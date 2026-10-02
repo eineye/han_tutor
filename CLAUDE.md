@@ -12,6 +12,7 @@ Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md
 - `server/core.js` — all API logic (framework-agnostic). Used by `server/index.js` (Express) and `src/demo/mockServer.ts` (browser demo). Change API behavior here only.
 - `server/seed/` — curriculum and drama scenes. `curriculum.js` follows the table of contents and teaching flow of the class textbook (세종학당 한국어 입문; the PDF is not kept in the repo: 예비편 + 12과 + 연습 활용 1–5), but every example, explanation and quiz item is original — never copy text from the textbook or real dramas. `bonus.js` holds draft conversation lessons.
 - `src/` — UI; `src/pages/admin/` — teacher screens (Korean UI).
+- 자막·가사 추출기(교사용): `server/transcripts.js`(프롬프트·가져오기·내보내기 형식, 테스트 `server/tests/transcripts.test.js`), 화면 `src/pages/admin/AdminTranscripts.tsx`·`AdminTranscriptEditor.tsx`, 공용 타입 `src/lib/transcript.ts`.
 - 학생 화면 언어 (한국어/English/Монгол): `src/i18n/`. 화면 문구는 `ui.ts`(키별 3개 언어), 교재·드라마 설명은 영어 원문을 키로 하는 `content.mn.json` / `content.ko.json`. 시드의 영어 문장을 추가·수정하면 두 사전에도 번역을 추가해야 하며, `server/tests/i18n.test.js`가 누락을 잡아낸다. AI 설명 언어는 요청의 `lang` 값으로 정한다. 교사가 화면(관리자 › 번역 관리)에서 입력한 번역은 DB `translations`에 저장되어 기본 사전보다 우선한다 (`server/i18nStrings.js`가 학생에게 보이는 문장을 모음).
 
 ## After every change (owner's standing request: always build, commit and deploy)

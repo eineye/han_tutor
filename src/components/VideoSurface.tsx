@@ -38,11 +38,11 @@ export function parseYouTubeId(input: string): string {
   return /^[\w-]{11}$/.test(input.trim()) ? input.trim() : '';
 }
 
-/** Unified player for YouTube embeds and plain video files. */
-const VideoSurface = forwardRef<VideoHandle, { type: 'youtube' | 'file'; src: string; onTime?: (t: number) => void }>(function VideoSurface({ type, src, onTime }, ref) {
+/** Unified player for YouTube embeds, plain video files and audio files. */
+const VideoSurface = forwardRef<VideoHandle, { type: 'youtube' | 'file' | 'audio'; src: string; onTime?: (t: number) => void }>(function VideoSurface({ type, src, onTime }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const yt = useRef<any>(null);
-  const vid = useRef<HTMLVideoElement>(null);
+  const vid = useRef<HTMLVideoElement & HTMLAudioElement>(null);
 
   useEffect(() => {
     if (type !== 'youtube' || !src) return;
@@ -87,6 +87,7 @@ const VideoSurface = forwardRef<VideoHandle, { type: 'youtube' | 'file'; src: st
     time: () => (type === 'youtube' ? yt.current?.getCurrentTime?.() || 0 : vid.current?.currentTime || 0),
   }));
 
+  if (type === 'audio') return <audio ref={vid} src={src} controls className="audio-surface" />;
   return <div className="video-surface">{type === 'youtube' ? <div ref={host} className="video-surface__yt" /> : <video ref={vid} src={src} controls playsInline />}</div>;
 });
 

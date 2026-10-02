@@ -7,6 +7,7 @@ const NAV = [
   { to: '/admin/students', icon: '🧑‍🎓', label: '학생 관리' },
   { to: '/admin/content', icon: '📚', label: '학습 콘텐츠' },
   { to: '/admin/videos', icon: '🎬', label: '드라마 영상' },
+  { to: '/admin/transcripts', icon: '🎞️', label: '자막·가사 추출' },
   { to: '/admin/translations', icon: '🌐', label: '번역 관리' },
   { to: '/admin/recordings', icon: '🎙️', label: '녹음 관리' },
   { to: '/admin/settings', icon: '⚙️', label: '설정' },

@@ -87,6 +87,16 @@
 - **콘텐츠 편집**: 단원 CRUD, 레슨 CRUD·복제·공개/초안 전환, 섹션별 폼 편집기(어휘·문법·대화·발음·퀴즈·문화·AI 시나리오) + JSON 고급 편집, 발음 미리듣기
 - **드라마 편집**: 소스 방식, 등장인물 음색, 대본·타이밍, 핵심 표현, 퀴즈
 - **녹음 관리** (관리자 › 녹음 관리): 글자·문장별 원어민 녹음. 목록(한글 연구소 자음·모음·비교 세트 / 레슨별 어휘·대화·발음·쓰기 문장 / 저장된 녹음 전체 / 직접 입력)에서 🎤 바로 녹음(24kHz WAV, 앞뒤 무음 자동 제거, 저장 전 미리듣기) 또는 📁 파일(mp3·m4a·wav·ogg·webm, 최대 2MB). 여러 파일 한 번에 올리기는 파일 이름이 곧 문장. 띄어쓰기·문장부호를 무시한 키로 연결되어(「가 카 까」=「가, 카, 까.」) 앱의 모든 음성 재생에서 브라우저 TTS보다 우선 사용, 없으면 TTS. 한글 연구소 자음은 음절(「가」) 녹음을 먼저 찾고 없으면 「기역, 가.」를 TTS로 읽음. 녹음 재생 시 보리 입 모양은 녹음 길이에 맞춰 움직임. 저장: 서버 `DATA_DIR/audio/`(메타데이터는 DB `recordings`), 브라우저 데모는 IndexedDB. API: `GET /audio/index`, `GET /audio/:id`, `POST /admin/audio`, `DELETE /admin/audio/:id`
+- **자막·가사 추출** (관리자 › 자막·가사 추출, `server/transcripts.js`, `src/pages/admin/AdminTranscripts.tsx`·`AdminTranscriptEditor.tsx`)
+  - **가져오기 4가지**: ① 🎬 동영상 대화·자막 ② 🎵 음악 가사 — 둘 다 YouTube 링크 / 내 파일 / 파일 주소(URL) ③ 📄 기존 자막·가사 파일(SRT·VTT·LRC·SBV·CSV·TSV·JSON·TXT, 시간 없는 TXT는 줄마다 3초, `[Chorus]` 같은 머리줄은 구간으로) ④ ✏️ 빈 문서(들으면서 직접 받아 적기)
+  - **AI 추출(Gemini)**: 대화는 말소리를 시간·화자와 함께 받아 적고, 영상에 박힌 자막(화면 자막)은 `onscreen`으로 따로 읽음. 가사는 한 줄씩 시간과 구간(Verse/Chorus…)을 붙임. 동시에 제목·요약·핵심 내용(가사는 주제·주요 표현)을 고른 언어로 정리. 옵션: 말하는 언어(자동 감지), 요약 언어, 화자 구분, 구간(시작·끝 — YouTube·동영상은 Gemini `videoMetadata`로 잘라 보내고, 모델이 구간 기준 시간을 주면 전체 기준으로 보정)
+  - **파일 전송**: 14MB 이하는 요청에 바로 넣고, 그보다 크면 Gemini File API로 올림(최대 60MB, 처리 완료까지 대기). 큰 동영상은 브라우저에서 소리만 16kHz 모노 WAV로 뽑아 보냄(화면 자막은 못 읽음, 구간이 있으면 그 부분만 자르고 시간은 서버가 되돌려 맞춤). 원본 미디어는 저장하지 않고 링크·파일 이름만 저장 — 내 파일로 만든 자료를 다시 열면 같은 파일을 열어야 재생됨
+  - **편집**: 왼쪽 플레이어(YouTube·영상·음악) + 자막 미리보기(화자·원문·번역·화면 자막), 오른쪽 줄 목록. 재생 중인 줄 강조·자동 스크롤, 줄 번호 누르면 그 위치부터 재생, ⏱ 시작/끝을 지금 재생 위치로, 한 줄 반복, 줄 추가·커서 위치에서 나누기(시간은 글자 수 비율)·다음 줄과 합치기·삭제, 찾기/바꾸기(대사·번역·화자·구간), 전체 시간 ±초 이동, 시간순 정렬, 되돌리기/다시 실행, Ctrl/⌘+S 저장, 저장 안 하고 나가면 경고
+  - **번역**: 20개 언어(한국어·영어·몽골어·일본어·중국어 간체/번체·스페인어·프랑스어·독일어·포르투갈어·이탈리아어·러시아어·베트남어·태국어·인도네시아어·튀르키예어·아랍어·힌디어·카자흐어·우즈베크어). 60줄씩 나눠 AI 번역(빈 칸만 / 전체 다시), 언어별로 따로 저장되어 직접 고칠 수 있음. 요약도 다른 언어로 따로 만들 수 있음
+  - **보기**: ✏️ 편집 / 📖 정리본(화자·구간별 문단, 번역 병기, 누르면 재생) / 📝 요약·핵심(편집 가능, 지금 대본으로 다시 요약)
+  - **내보내기 10가지**: SRT, WebVTT(화자는 `<v>` 태그), YouTube SBV, LRC 가사, TXT, 시간 표시 TXT, Markdown 정리 문서, HTML 정리 문서(Word에서 열기·PDF 인쇄), 엑셀 CSV(BOM, 언어별 번역 열), JSON(다시 불러오면 번역·구간까지 복원). 원문만 / 번역만 / 원문+번역(2개 언어), 화자 이름·화면 자막 포함 여부 선택, 미리보기·복사
+  - **저작권**: 상업 음원·방송의 가사·대본은 Gemini가 원문 재현을 막아(RECITATION) 결과가 나오지 않을 수 있음 → 안내 문구로 알리고, 직접 만들었거나 허락받은 자료 사용을 권장. 키가 없으면 예시 결과(자체 작성)로 화면을 시험할 수 있음
+  - API: `GET/POST /admin/transcripts`, `GET/PUT/DELETE /admin/transcripts/:id`, `POST /admin/transcribe`(미디어 → 추출·저장, 이 경로만 요청 크기 90MB), `POST /admin/transcripts/translate`, `POST /admin/transcripts/summarize`. DB `transcripts`
 - **설정**: 반 코드, Gemini 모델, 콘텐츠 JSON 백업/가져오기/초기화
 
 ### 3.5 학생 화면 언어 선택 (한국어 / English / Монгол)
@@ -111,11 +121,12 @@
 ```
 
 ### 데이터 모델 (요약)
-`units`, `lessons`, `videos` (콘텐츠) · `students`, `sessions` · `progress{studentId, lessonId, sections, quizBest, completedAt}` · `quizResults` · `pronunciation{target, heard, score, source}` · `chatLogs` · `evaluations{category, score, comment, shared}` · `assignments{lessonId|videoId, due, done}` · `settings{classCodes, geminiModel}`
+`units`, `lessons`, `videos` (콘텐츠) · `students`, `sessions` · `progress{studentId, lessonId, sections, quizBest, completedAt}` · `quizResults` · `pronunciation{target, heard, score, source}` · `chatLogs` · `evaluations{category, score, comment, shared}` · `assignments{lessonId|videoId, due, done}` · `transcripts{title, mode(video|lyrics), source, summary, keyPoints, summaries{언어}, segments[{start, end, speaker, section, text, onscreen, tr{언어}}]}` · `settings{classCodes, geminiModel}`
 
 ## 5. 개인정보·안전
 - 학생 계정은 이름·반 코드·PIN만 사용 (이메일·생년월일 수집 없음), PIN은 해시 저장
 - 음성 녹음은 서버에 저장하지 않음 — AI 피드백 요청 시 Gemini로만 전송되고 텍스트 결과만 저장
+- 자막·가사 추출기에 올린 영상·음악도 서버에 저장하지 않음 — Gemini로만 보내고(큰 파일은 Gemini File API, 48시간 뒤 자동 삭제) 받아 적은 글만 저장
 - AI 대화는 청소년 적합 가드레일 프롬프트 + Gemini 기본 안전 필터, 모든 대화는 교사가 열람 가능
 - 운영 시: HTTPS 필수, 관리자 비밀번호 변경, 학교/보호자 동의 절차, 국가별 아동 개인정보 규정(COPPA/GDPR-K 등) 검토 필요
 

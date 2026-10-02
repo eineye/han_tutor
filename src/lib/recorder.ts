@@ -56,17 +56,20 @@ export class MicRecorder {
   }
 }
 
-async function toWav(blob: Blob, sampleRate = 16000, trimSilence = false): Promise<Blob> {
+/** Decode any audio/video file and re-encode its sound as mono 16-bit WAV (optionally only start–end seconds). */
+export async function toWav(blob: Blob, sampleRate = 16000, trimSilence = false, clip?: { start: number; end: number }): Promise<Blob> {
   const buf = await blob.arrayBuffer();
   const ctx = new AudioContext();
   const decoded = await ctx.decodeAudioData(buf);
   await ctx.close();
-  const length = Math.ceil(decoded.duration * sampleRate);
+  const from = Math.min(clip?.start || 0, decoded.duration);
+  const to = clip?.end ? Math.min(clip.end, decoded.duration) : decoded.duration;
+  const length = Math.max(1, Math.ceil((to - from) * sampleRate));
   const offline = new OfflineAudioContext(1, length, sampleRate);
   const src = offline.createBufferSource();
   src.buffer = decoded;
   src.connect(offline.destination);
-  src.start();
+  src.start(0, from, to - from);
   const rendered = await offline.startRendering();
   let data: Float32Array = rendered.getChannelData(0);
   if (trimSilence) data = trim(data, sampleRate);

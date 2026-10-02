@@ -10,6 +10,7 @@
 - 🎬 **드라마 스튜디오** — K-드라마 스타일 장면으로 자막·쉐도잉·역할극·퀴즈 (YouTube/자체영상/오디오드라마)
 - 🧑‍🏫 **관리자(교사) 모드** — 진도·평가·과제·개별 관리, AI 학습 리포트, 레슨/영상 콘텐츠 편집
 - 🎙️ **교사 녹음** — 교사 화면 「녹음 관리」에서 원어민 녹음을 올리거나 바로 녹음하면, 학생 화면에서 같은 글자·문장을 읽을 때 브라우저 음성 대신 재생
+- 🎞️ **자막·가사 추출기** — 교사 화면 「자막·가사 추출」에서 YouTube 링크·동영상 파일로 대화와 화면 자막을, 음악 파일로 가사를 AI(Gemini)가 시간과 함께 받아 적고 요약·정리. 영상과 함께 보며 편집하고, 20개 언어로 번역해 SRT·VTT·SBV·LRC·TXT·Markdown·HTML(Word·PDF용)·CSV·JSON으로 내보내기
 - 🌐 **학생 화면 언어 선택** — 한국어 / English / Монгол (화면 문구, 교재 설명, 드라마 해석, AI 설명까지). 교사 화면 「번역 관리」에서 번역을 직접 고치고 채울 수 있음 (AI 초안 지원)
 
 설계 문서: [docs/DESIGN.md](docs/DESIGN.md)
@@ -71,6 +72,7 @@ npm run typecheck
 server/            Express API (인증, 진도, Gemini 프록시, 관리자 API)
   seed/            기본 커리큘럼(한글 5과 + 레슨 9과) · 드라마 장면 3편 — 모두 자체 작성
   gemini.js        Gemini REST 호출, 프롬프트/응답 스키마
+  transcripts.js   자막·가사 추출기: 추출 프롬프트, 자막·가사 파일 가져오기, 10가지 형식 내보내기
 src/
   components/      Mascot(보리), PronunciationPractice, QuizRunner, DialogueView, VideoSurface …
   lib/             hangul(자모 분해·채점·입모양), speech(TTS/STT), recorder(WAV 녹음)

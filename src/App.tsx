@@ -24,6 +24,8 @@ import AdminVideoEditor from './pages/admin/AdminVideoEditor';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminTranslations from './pages/admin/AdminTranslations';
 import AdminRecordings from './pages/admin/AdminRecordings';
+import AdminTranscripts from './pages/admin/AdminTranscripts';
+import AdminTranscriptEditor from './pages/admin/AdminTranscriptEditor';
 
 function RequireRole({ role, children }: { role: 'student' | 'admin'; children: ReactNode }) {
   const auth = useAuth();
@@ -72,6 +74,8 @@ export default function App() {
         <Route path="videos/:id" element={<AdminVideoEditor />} />
         <Route path="translations" element={<AdminTranslations />} />
         <Route path="recordings" element={<AdminRecordings />} />
+        <Route path="transcripts" element={<AdminTranscripts />} />
+        <Route path="transcripts/:id" element={<AdminTranscriptEditor />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="*" element={<Navigate to={auth.role === 'admin' ? '/admin' : auth.role === 'student' ? '/home' : '/login'} replace />} />

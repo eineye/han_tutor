@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import express from 'express';
 import * as store from './db.js';
-import { generate, hasKey } from './gemini.js';
+import { generate, hasKey, uploadFile } from './gemini.js';
 import { createCore } from './core.js';
 import { fileAudioStore } from './audioStore.js';
 
@@ -33,12 +33,15 @@ const core = createCore({
   resetContent: store.resetContent,
   hasKey,
   generate,
+  uploadFile,
   adminPassword: () => process.env.ADMIN_PASSWORD || 'admin1234',
   defaultModel: () => process.env.GEMINI_MODEL,
   audio: fileAudioStore,
 });
 
 export const app = express();
+// Media files for the transcriber arrive as base64 JSON (up to 60 MB → ~80 MB of text)
+app.use('/api/admin/transcribe', express.json({ limit: '90mb' }));
 app.use(express.json({ limit: '15mb' }));
 
 app.get('/healthz', (_req, res) => res.send('ok'));

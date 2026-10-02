@@ -3,7 +3,7 @@
 import { createCore, lessonSections } from '../../server/core.js';
 import { seedUnits, seedLessons } from '../../server/seed/curriculum.js';
 import { seedVideos } from '../../server/seed/videos.js';
-import { callGemini } from '../../server/geminiClient.js';
+import { callGemini, uploadGeminiFile } from '../../server/geminiClient.js';
 import { getBrowserGeminiKey } from './browserKey';
 import { clearDemoAudio, idbAudioStore } from './audioStore';
 
@@ -42,6 +42,7 @@ function freshDb(): any {
     evaluations: [],
     assignments: [],
     recordings: [],
+    transcripts: [],
   };
   addExampleStudents(db);
   return db;
@@ -111,6 +112,7 @@ const core = createCore({
   },
   hasKey: () => Boolean(getBrowserGeminiKey()),
   generate: (opts: any) => callGemini({ ...opts, apiKey: getBrowserGeminiKey() }),
+  uploadFile: (opts: any) => uploadGeminiFile({ ...opts, apiKey: getBrowserGeminiKey() }),
   adminPassword: () => DEMO_ADMIN_PASSWORD,
   audio: idbAudioStore,
 });

@@ -4,6 +4,22 @@
 import { CHAT_SCHEMA, chatSystemPrompt, PRON_SCHEMA, pronunciationPrompt, REPORT_SCHEMA } from './prompts.js';
 import { demoChatReply, demoPronunciation, demoReport } from './demo.js';
 import { collectStudentStrings, TRANSLATION_LANGS } from './i18nStrings.js';
+import {
+  demoTranscript,
+  INLINE_MEDIA_BYTES,
+  isYouTubeUrl,
+  MAX_MEDIA_BYTES,
+  MEDIA_TYPES,
+  normalizeSegments,
+  normalizeYouTubeUrl,
+  SUMMARY_SCHEMA,
+  TRANSCRIBE_SCHEMA,
+  transcribePrompt,
+  TRANSCRIPT_LANGS,
+  TRANSLATE_BATCH,
+  TRANSLATE_SCHEMA,
+  translatePrompt,
+} from './transcripts.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
 export class HttpError extends Error {
@@ -41,6 +57,7 @@ export function lessonSections(lesson) {
  * @param {() => string} deps.adminPassword
  * @param {() => string} [deps.defaultModel]
  * @param {{put(id: string, base64: string): Promise<void>, get(id: string): Promise<string|null>, remove(id: string): Promise<void>}} [deps.audio]  recording file storage
+ * @param {(opts: {bytes: Uint8Array, mimeType: string, name?: string}) => Promise<{uri: string, mimeType: string}|null>} [deps.uploadFile]  Gemini File API upload for large media
  */
 export function createCore(deps) {
   const db = deps.db;
@@ -647,6 +664,239 @@ export function createCore(deps) {
     await audioStore().remove(rec.id);
     save();
     return { ok: true };
+  });
+
+  // ---- media transcriber (teacher tool): dialogue/subtitles from videos, lyrics from music ----
+  const transcripts = () => (db().transcripts ||= []);
+  const findTranscript = (id) => {
+    const t = transcripts().find((x) => x.id === id);
+    if (!t) throw new HttpError(404, '자료를 찾을 수 없습니다');
+    return t;
+  };
+  const cut = (v, max) => String(v ?? '').trim().slice(0, max);
+  const cleanSummary = (x) => ({ title: cut(x?.title, 200), summary: cut(x?.summary, 6000), keyPoints: (Array.isArray(x?.keyPoints) ? x.keyPoints : []).map((k) => cut(k, 500)).filter(Boolean).slice(0, 20) });
+  /** Only known fields are stored; the media itself is never saved (only its link/name). */
+  function cleanTranscript(body, prev = {}) {
+    const src = body.source || prev.source || {};
+    const summaries = {};
+    for (const [k, v] of Object.entries(body.summaries || prev.summaries || {})) if (TRANSCRIPT_LANGS.some((l) => l.code === k)) summaries[k] = cleanSummary(v);
+    return {
+      title: cut(body.title ?? prev.title, 200) || '제목 없음',
+      mode: (body.mode ?? prev.mode) === 'lyrics' ? 'lyrics' : 'video',
+      language: cut(body.language ?? prev.language, 20),
+      summary: cut(body.summary ?? prev.summary, 6000),
+      keyPoints: cleanSummary({ keyPoints: body.keyPoints ?? prev.keyPoints }).keyPoints,
+      summaryLang: TRANSCRIPT_LANGS.some((l) => l.code === (body.summaryLang ?? prev.summaryLang)) ? body.summaryLang ?? prev.summaryLang : 'ko',
+      speakers: (Array.isArray(body.speakers ?? prev.speakers) ? body.speakers ?? prev.speakers : []).map((x) => cut(x, 60)).filter(Boolean).slice(0, 50),
+      summaries,
+      source: {
+        kind: ['youtube', 'url', 'file', 'subtitle', 'blank'].includes(src.kind) ? src.kind : 'blank',
+        url: cut(src.url, 1000),
+        name: cut(src.name, 200),
+        mime: cut(src.mime, 80),
+        size: Number(src.size) || 0,
+        range: src.range && (src.range.start || src.range.end) ? { start: Number(src.range.start) || 0, end: Number(src.range.end) || 0 } : undefined,
+      },
+      segments: normalizeSegments(body.segments ?? prev.segments, { keepEmpty: true }),
+    };
+  }
+  const listRow = ({ segments, summaries: _s, keyPoints: _k, ...t }) => ({ ...t, segmentCount: segments.length, duration: segments.length ? segments[segments.length - 1].end : 0 });
+
+  route('GET', '/admin/transcripts', 'admin', () => [...transcripts()].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))).map(listRow));
+  route('GET', '/admin/transcripts/:id', 'admin', ({ params }) => findTranscript(params.id));
+  route('POST', '/admin/transcripts', 'admin', ({ body }) => {
+    const t = { id: deps.id('tr_'), ...cleanTranscript(body), createdAt: now(), updatedAt: now() };
+    transcripts().push(t);
+    save();
+    return t;
+  });
+  route('PUT', '/admin/transcripts/:id', 'admin', ({ params, body }) => {
+    const t = findTranscript(params.id);
+    Object.assign(t, cleanTranscript(body, t), { updatedAt: now() });
+    save();
+    return t;
+  });
+  route('DELETE', '/admin/transcripts/:id', 'admin', ({ params }) => {
+    db().transcripts = transcripts().filter((x) => x.id !== params.id);
+    save();
+    return { ok: true };
+  });
+
+  const b64ToBytes = (b64) => {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  const bytesToB64 = (bytes) => {
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  };
+  const mimeFromName = (name) => MEDIA_TYPES[String(name || '').split(/[?#]/)[0].split('.').pop()?.toLowerCase() || ''] || '';
+  const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|\[?::1\]?$|\[?f[cd][0-9a-f]{2}:)/i;
+
+  /** Turn the request's media source into a Gemini content part. */
+  async function mediaPart(source) {
+    const kind = source?.kind;
+    if (kind === 'youtube') {
+      const uri = normalizeYouTubeUrl(source.url);
+      if (!uri) throw new HttpError(400, 'YouTube 주소를 확인해 주세요.');
+      return { part: { fileData: { fileUri: uri } }, video: true };
+    }
+    let bytes = null;
+    let b64 = '';
+    let mime = '';
+    if (kind === 'url') {
+      let u;
+      try {
+        u = new URL(String(source.url || '').trim());
+      } catch {
+        throw new HttpError(400, '영상·음악 주소(URL)를 확인해 주세요.');
+      }
+      if (!/^https?:$/.test(u.protocol) || PRIVATE_HOST.test(u.hostname)) throw new HttpError(400, 'http(s) 공개 주소만 사용할 수 있습니다.');
+      if (isYouTubeUrl(u.href)) return mediaPart({ kind: 'youtube', url: u.href });
+      let res;
+      try {
+        res = await fetch(u.href, { signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(120000) : undefined });
+      } catch {
+        throw new HttpError(400, '주소에서 파일을 내려받지 못했습니다. (브라우저 시험판에서는 다른 사이트의 파일을 읽지 못할 수 있습니다 — 파일을 내려받아 직접 올려 주세요)');
+      }
+      if (!res.ok) throw new HttpError(400, `주소에서 파일을 내려받지 못했습니다 (${res.status}).`);
+      if (Number(res.headers.get('content-length')) > MAX_MEDIA_BYTES) throw new HttpError(400, `파일이 너무 큽니다 (최대 ${MAX_MEDIA_BYTES / 1048576}MB).`);
+      mime = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (!/^(audio|video)\//.test(mime)) mime = mimeFromName(u.pathname);
+      if (!mime) throw new HttpError(400, '이 주소는 영상·음악 파일이 아닙니다. (웹페이지 주소가 아니라 .mp4, .mp3 같은 파일 주소가 필요합니다)');
+      bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length > MAX_MEDIA_BYTES) throw new HttpError(400, `파일이 너무 큽니다 (최대 ${MAX_MEDIA_BYTES / 1048576}MB).`);
+    } else if (kind === 'file') {
+      b64 = String(source.data || '').replace(/^data:[^,]*,/, '');
+      if (!b64 || !/^[A-Za-z0-9+/]+=*$/.test(b64)) throw new HttpError(400, '파일 내용을 읽을 수 없습니다.');
+      if (base64Bytes(b64) > MAX_MEDIA_BYTES) throw new HttpError(400, `파일이 너무 큽니다 (최대 ${MAX_MEDIA_BYTES / 1048576}MB).`);
+      mime = String(source.mime || '').toLowerCase().split(';')[0] || mimeFromName(source.name);
+      if (mime === 'video/x-matroska') mime = 'video/webm';
+      if (!/^(audio|video)\//.test(mime)) throw new HttpError(400, '영상 또는 음악 파일만 올릴 수 있습니다.');
+    } else throw new HttpError(400, '영상·음악 파일이나 주소를 선택해 주세요.');
+
+    const video = mime.startsWith('video/');
+    const size = bytes ? bytes.length : base64Bytes(b64);
+    if (size <= INLINE_MEDIA_BYTES) return { part: { inlineData: { mimeType: mime, data: b64 || bytesToB64(bytes) } }, video };
+    if (!deps.uploadFile) throw new HttpError(400, `큰 파일(${Math.round(INLINE_MEDIA_BYTES / 1048576)}MB 초과)은 이 환경에서 처리할 수 없습니다.`);
+    let file;
+    try {
+      file = await deps.uploadFile({ bytes: bytes || b64ToBytes(b64), mimeType: mime, name: source.name || 'media' });
+    } catch (e) {
+      throw new HttpError(502, 'Gemini에 파일을 올리지 못했습니다: ' + (e?.message || e));
+    }
+    if (!file) throw new HttpError(400, 'Gemini API 키가 없어 큰 파일을 올릴 수 없습니다.');
+    return { part: { fileData: { fileUri: file.uri, mimeType: file.mimeType } }, video };
+  }
+
+  const geminiError = (e) => {
+    const reason = e?.finishReason || '';
+    if (reason === 'RECITATION')
+      return new HttpError(422, '저작권 보호 때문에 Gemini가 결과를 내보내지 않았습니다. 상업 음원의 가사·대본 원문은 AI가 그대로 옮겨 적지 못할 수 있습니다. 직접 만든 노래·영상이거나 사용 허락을 받은 자료로 다시 시도하거나, 가사 파일(LRC·SRT)을 불러와 편집해 주세요.');
+    if (reason === 'MAX_TOKENS') return new HttpError(422, '내용이 길어 결과가 중간에 잘렸습니다. 구간(시작·끝 시간)을 나눠서 추출해 주세요.');
+    if (reason === 'SAFETY' || reason === 'PROHIBITED_CONTENT' || reason === 'BLOCKLIST') return new HttpError(422, '안전 정책 때문에 Gemini가 이 자료를 처리하지 않았습니다.');
+    return new HttpError(502, 'AI 추출에 실패했습니다: ' + String(e?.message || e).slice(0, 400));
+  };
+
+  route('POST', '/admin/transcribe', 'admin', async ({ body }) => {
+    const mode = body.mode === 'lyrics' ? 'lyrics' : 'video';
+    const source = body.source || {};
+    const range = { start: Math.max(0, Number(body.range?.start) || 0), end: Math.max(0, Number(body.range?.end) || 0) };
+    if (range.end && range.end <= range.start) throw new HttpError(400, '끝 시간은 시작 시간보다 뒤여야 합니다.');
+    const meta = { kind: source.kind, url: source.kind === 'file' ? '' : String(source.url || '').trim(), name: source.name, mime: source.mime, size: source.size, range: range.start || range.end ? range : source.range?.start || source.range?.end ? { start: Number(source.range.start) || 0, end: Number(source.range.end) || 0 } : undefined };
+    if (source.kind === 'youtube' && meta.url) meta.url = normalizeYouTubeUrl(meta.url) || meta.url;
+
+    let result;
+    let demo = false;
+    if (!deps.hasKey()) {
+      if (!['youtube', 'url', 'file'].includes(source.kind)) throw new HttpError(400, '영상·음악 파일이나 주소를 선택해 주세요.');
+      result = demoTranscript(mode);
+      demo = true;
+    } else {
+      const { part, video } = await mediaPart(source);
+      if (video && (range.start || range.end)) part.videoMetadata = { startOffset: `${range.start}s`, ...(range.end ? { endOffset: `${range.end}s` } : {}) };
+      const clip = range.start || range.end ? `\nOnly the part from ${range.start}s${range.end ? ` to ${range.end}s` : ''} of the media is relevant. Give timestamps measured from the start of the FULL media.` : '';
+      try {
+        result = await deps.generate({
+          model: model(),
+          temperature: 0.2,
+          schema: TRANSCRIBE_SCHEMA,
+          config: video ? { mediaResolution: 'MEDIA_RESOLUTION_LOW' } : undefined,
+          system: transcribePrompt({ mode, language: body.language, summaryLang: body.summaryLang, speakers: body.speakers !== false, hasVisual: video }),
+          contents: [{ role: 'user', parts: [part, { text: (mode === 'lyrics' ? 'Transcribe the lyrics of this song.' : 'Transcribe this media.') + clip }] }],
+        });
+      } catch (e) {
+        throw geminiError(e);
+      }
+    }
+    // offset: the browser already cut the clip out of the file (audio only) — add its start back
+    const offset = Math.max(0, Number(body.offset) || 0);
+    let segments = normalizeSegments(result?.segments, { offset });
+    // Clipped media: some models count from the clip start — shift those back to full-media time
+    if (!offset && range.start && segments.length && segments[0].start < range.start - 5) segments = normalizeSegments(segments, { offset: range.start });
+    if (!segments.length) throw new HttpError(422, mode === 'lyrics' ? '가사를 찾지 못했습니다. 노래(보컬)가 있는 파일인지 확인해 주세요.' : '말소리나 자막을 찾지 못했습니다.');
+    const summaryLang = TRANSCRIPT_LANGS.some((l) => l.code === body.summaryLang) ? body.summaryLang : 'ko';
+    const doc = cleanTranscript({
+      ...result,
+      title: cut(body.title, 200) || result.title,
+      mode,
+      segments,
+      source: meta,
+      summaryLang,
+    });
+    const t = { id: deps.id('tr_'), ...doc, demo, createdAt: now(), updatedAt: now() };
+    transcripts().push(t);
+    save();
+    return t;
+  });
+
+  route('POST', '/admin/transcripts/translate', 'admin', async ({ body }) => {
+    const target = String(body.target || '');
+    if (!TRANSCRIPT_LANGS.some((l) => l.code === target)) throw new HttpError(400, '지원하지 않는 언어입니다.');
+    if (!Array.isArray(body.texts) || !body.texts.length) throw new HttpError(400, '번역할 문장이 없습니다.');
+    if (!deps.hasKey()) throw new HttpError(400, 'Gemini API 키가 없어 AI 번역을 쓸 수 없습니다. (설정에서 키를 입력하세요)');
+    const batch = body.texts.slice(0, TRANSLATE_BATCH).map((s) => String(s ?? '').slice(0, 1000));
+    let result;
+    try {
+      result = await deps.generate({
+        model: model(),
+        temperature: 0.2,
+        schema: TRANSLATE_SCHEMA,
+        system: translatePrompt({ target, mode: body.mode, title: cut(body.title, 200) }),
+        contents: [{ role: 'user', parts: [{ text: JSON.stringify(batch) }] }],
+      });
+    } catch (e) {
+      throw geminiError(e);
+    }
+    const out = Array.isArray(result?.translations) ? result.translations : [];
+    return { translations: batch.map((src, i) => (src.trim() && typeof out[i] === 'string' ? out[i].trim() : '')) };
+  });
+
+  route('POST', '/admin/transcripts/summarize', 'admin', async ({ body }) => {
+    const lang = TRANSCRIPT_LANGS.find((l) => l.code === body.lang);
+    if (!lang) throw new HttpError(400, '지원하지 않는 언어입니다.');
+    if (!deps.hasKey()) throw new HttpError(400, 'Gemini API 키가 없어 AI 요약을 쓸 수 없습니다. (설정에서 키를 입력하세요)');
+    const lines = (Array.isArray(body.segments) ? body.segments : []).map((s) => `${s.section ? `[${s.section}] ` : ''}${s.speaker ? s.speaker + ': ' : ''}${s.text || ''}${s.onscreen ? ` (on screen: ${s.onscreen})` : ''}`);
+    const transcript = lines.join('\n').slice(0, 120000);
+    if (!transcript.trim()) throw new HttpError(400, '요약할 내용이 없습니다.');
+    try {
+      const r = await deps.generate({
+        model: model(),
+        temperature: 0.3,
+        schema: SUMMARY_SCHEMA,
+        system:
+          body.mode === 'lyrics'
+            ? `You summarise song lyrics. Write everything in ${lang.name}. "summary": the theme and mood in 2–4 sentences. "keyPoints": 3–8 useful words or expressions from the lyrics with their meaning. "title": a short title.`
+            : `You summarise a transcript. Write everything in ${lang.name}. "summary": 3–6 sentences. "keyPoints": 3–8 main points or key expressions. "title": a short title.`,
+        contents: [{ role: 'user', parts: [{ text: (body.title ? `Title: ${cut(body.title, 200)}\n\n` : '') + transcript }] }],
+      });
+      return cleanSummary(r);
+    } catch (e) {
+      throw geminiError(e);
+    }
   });
 
   route('GET', '/admin/settings', 'admin', () => ({ ...db().settings, ai: deps.hasKey() }));
