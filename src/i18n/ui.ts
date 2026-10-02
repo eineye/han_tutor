@@ -200,7 +200,7 @@ export const UI = {
   'lab.consonants': e('Consonants', '자음', 'Гийгүүлэгч'),
   'lab.builder': e('Syllable Builder', '글자 만들기', 'Үе бүтээх'),
   'lab.vowelHint': e('Tap a vowel. Watch Bori’s mouth: round for ㅗ ㅜ, flat for ㅡ, wide for ㅏ.', '모음을 눌러 보세요. 보리의 입을 보세요: ㅗ ㅜ는 둥글게, ㅡ는 평평하게, ㅏ는 크게.', 'Эгшиг дээр дарна уу. Бориийн амыг хараарай: ㅗ ㅜ дугуй, ㅡ хавтгай, ㅏ том ангайна.'),
-  'lab.consHint': e('Tap a consonant to hear it with ㅏ. Compare the three families: plain / aspirated (+air) / tense (tight).', '자음을 누르면 ㅏ와 함께 소리가 나요. 평음 / 격음(바람) / 경음(힘)을 비교해 보세요.', 'Гийгүүлэгч дээр дарвал ㅏ-тай хамт дуугарна. Гурван бүлийг харьцуулаарай: энгийн / амьсгалт (агаартай) / чангавтар (чанга).'),
+  'lab.consHint': e('Tap a consonant to hear its name and then its sound with ㅏ (e.g. “기역, 가”). Compare the three families: plain / aspirated (+air) / tense (tight).', '자음을 누르면 이름과 함께 ㅏ를 붙인 소리가 나요 (예: “기역, 가”). 평음 / 격음(바람) / 경음(힘)을 비교해 보세요.', 'Гийгүүлэгч дээр дарвал нэрийг нь хэлээд ㅏ-тай хамт дуудна (жишээ: “기역, 가”). Гурван бүлийг харьцуулаарай: энгийн / амьсгалт (агаартай) / чангавтар (чанга).'),
   'lab.basic': e('Basic', '기본', 'Үндсэн'),
   'lab.aspirated': e('Aspirated', '거센소리', 'Амьсгалт'),
   'lab.tense': e('Tense', '된소리', 'Чангавтар'),

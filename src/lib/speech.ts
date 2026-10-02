@@ -83,16 +83,35 @@ export function warmUp() {
   } catch {
     /* ignore */
   }
+  keepAudioAwake();
+}
+
+/**
+ * Speakers and Bluetooth headsets go to sleep between sounds and wake up a moment late,
+ * which cuts off the start of short utterances (가/카/까 all sound like "아").
+ * While Bori is talking (and for 20 s after), play an inaudible (−100 dB) loop so the
+ * audio output stays awake and the first consonant is heard.
+ */
+let audioCtx: AudioContext | null = null;
+let idleTimer: number | null = null;
+export function keepAudioAwake() {
   try {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (Ctx) {
-      const ctx = new Ctx();
-      const src = ctx.createBufferSource();
-      src.buffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.25), ctx.sampleRate);
-      src.connect(ctx.destination);
-      src.onended = () => ctx.close().catch(() => {});
+    if (!Ctx) return;
+    if (!audioCtx) {
+      audioCtx = new Ctx();
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 1e-5;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(audioCtx.destination);
       src.start();
     }
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    if (idleTimer) window.clearTimeout(idleTimer);
+    idleTimer = window.setTimeout(() => audioCtx?.suspend().catch(() => {}), 20000);
   } catch {
     /* ignore */
   }
@@ -134,6 +153,7 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     return () => {};
   }
   warmedUp = true;
+  keepAudioAwake();
   const synth = window.speechSynthesis;
   // Starting right after cancel() makes Chrome clip or crackle the first sound,
   // so leave a short gap whenever something was still playing.
