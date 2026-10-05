@@ -1,5 +1,5 @@
 import { findRecording, recordingUrl } from './recordings';
-import { api } from '../api';
+import { api, getToken } from '../api';
 import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
@@ -55,23 +55,29 @@ function koreanVoice(): SpeechSynthesisVoice | null {
 
 // ---- teacher-chosen voice style (음색), applied to Bori's voice on every device ----
 export interface TtsSettings {
+  /** 'gemini' = AI voice (natural, same on every device), 'browser' = device voices */
+  engine: 'gemini' | 'browser';
   preset: string;
   voiceName: string;
+  geminiVoice: string;
   pitchAdj: number;
   rateAdj: number;
+  model: string;
 }
-let classTts: TtsSettings = { ...DEFAULT_TTS };
+let classTts: TtsSettings = { ...DEFAULT_TTS } as TtsSettings;
+let aiAvailable = false; // the server/demo has a Gemini key
 const styledVoices = new Map<string, { voice: SpeechSynthesisVoice | null; genderOk: boolean }>();
 
 export function setTtsSettings(t: Partial<TtsSettings> | null | undefined) {
-  classTts = { ...DEFAULT_TTS, ...(t || {}) };
+  classTts = { ...DEFAULT_TTS, ...(t || {}) } as TtsSettings;
 }
 
 /** Load the class voice style chosen by the teacher (public, works before login). */
 export async function loadTtsSettings() {
   try {
-    const r = await api<{ tts?: TtsSettings }>('/status');
+    const r = await api<{ tts?: TtsSettings; ai?: boolean }>('/status');
     setTtsSettings(r.tts);
+    aiAvailable = Boolean(r.ai);
   } catch {
     /* keep the default */
   }
@@ -204,6 +210,54 @@ export interface SpeakOptions {
   useRecording?: boolean;
   /** Preview a voice style instead of the class setting (teacher settings screen) */
   style?: TtsSettings;
+  /** Character name: picks a stable AI voice per drama/dialogue character */
+  voiceHint?: string;
+  /** AI voice chosen for this character (see assignCastVoices) */
+  aiVoice?: string;
+}
+
+// ---- AI voice (Gemini TTS through the API, cached on the server and here) ----
+const aiUrls = new Map<string, Promise<string>>();
+let aiOffUntil = 0; // after an error, use the browser voice for a while
+
+/** Let the teacher's settings screen enable the AI voice right after a key is set. */
+export function setAiAvailable(v: boolean) {
+  aiAvailable = v;
+  aiOffUntil = 0;
+}
+
+function wantsAi(text: string, opts: SpeakOptions) {
+  const engine = (opts.style || classTts).engine;
+  return engine === 'gemini' && aiAvailable && Date.now() > aiOffUntil && Boolean(getToken()) && /[가-힣]/.test(text);
+}
+
+/** True when speak() will play an audio file (teacher recording or AI voice) that may take a moment to load. */
+export function usesAudioFile(text: string, opts: SpeakOptions = {}) {
+  const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
+  return (opts.useRecording !== false && Boolean(findRecording(...extra, text))) || wantsAi(text, opts);
+}
+
+function aiUrl(text: string, opts: SpeakOptions): Promise<string> {
+  const body: Record<string, unknown> = { text };
+  if (opts.pitch != null) Object.assign(body, { pitch: opts.pitch, hint: opts.voiceHint || '', voice: opts.aiVoice || undefined });
+  else if (opts.style) Object.assign(body, { preset: opts.style.preset, voice: opts.style.geminiVoice || undefined });
+  const key = JSON.stringify(body);
+  let p = aiUrls.get(key);
+  if (!p) {
+    p = api<{ mime: string; data: string }>('/tts', { body }).then(({ mime, data }) => {
+      const bin = atob(data);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([bytes], { type: mime }));
+    });
+    p.catch((e: { status?: number; code?: string }) => {
+      aiUrls.delete(key);
+      // no key / daily limit: browser voice until reload; other errors: retry after a minute
+      aiOffUntil = Date.now() + (e?.code === 'no_key' || e?.status === 429 ? 1e12 : 60000);
+    });
+    aiUrls.set(key, p);
+  }
+  return p;
 }
 
 let speakSeq = 0;
@@ -294,44 +348,56 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     armGuard(2500 + (text.length * 450) / (u.rate || 1));
   };
 
+  /** Play an audio URL (teacher recording or AI voice); on any failure use the browser voice. */
+  const playUrl = (url: string, playbackRate: number, shownText?: string) => {
+    if (seq !== speakSeq) return;
+    const a = new Audio(url);
+    currentAudio = a;
+    a.playbackRate = playbackRate;
+    let started = false;
+    a.onplaying = () => {
+      if (started) return;
+      started = true;
+      const durationMs = Number.isFinite(a.duration) ? (a.duration * 1000) / a.playbackRate : undefined;
+      armGuard((durationMs ?? 10000) + 3000);
+      opts.onStart?.({ durationMs, text: shownText });
+    };
+    a.onended = () => {
+      if (currentAudio === a) currentAudio = null;
+      finish();
+    };
+    a.onerror = () => {
+      if (currentAudio !== a) return;
+      currentAudio = null;
+      tts();
+    };
+    a.play().catch(() => {
+      if (currentAudio !== a) return;
+      currentAudio = null;
+      tts();
+    });
+  };
+  // Natural speed; only the "Slow" buttons (rate ≈ 0.5) slow audio down a little (pitch is kept)
+  const slow = rate < 0.6 ? Math.max(0.6, rate / 0.8) : 1;
+
   const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
   const rec = opts.useRecording === false ? null : findRecording(...extra, text);
-  if (!rec) {
-    tts();
-  } else {
+  if (rec) {
     armGuard(15000);
     recordingUrl(rec)
-      .then((url) => {
-        if (seq !== speakSeq) return;
-        const a = new Audio(url);
-        currentAudio = a;
-        // Recordings play at natural speed; only the "Slow" buttons (rate ≈ 0.5) slow them down
-        // a little (the browser keeps the pitch)
-        a.playbackRate = rate < 0.6 ? Math.max(0.6, rate / 0.8) : 1;
-        let started = false;
-        a.onplaying = () => {
-          if (started) return;
-          started = true;
-          const durationMs = Number.isFinite(a.duration) ? (a.duration * 1000) / a.playbackRate : undefined;
-          armGuard((durationMs ?? 10000) + 3000);
-          opts.onStart?.({ durationMs, text: rec.text });
-        };
-        a.onended = () => {
-          if (currentAudio === a) currentAudio = null;
-          finish();
-        };
-        a.onerror = () => {
-          if (currentAudio !== a) return;
-          currentAudio = null;
-          tts();
-        };
-        a.play().catch(() => {
-          if (currentAudio !== a) return;
-          currentAudio = null;
-          tts();
-        });
-      })
+      .then((url) => playUrl(url, slow, rec.text))
       .catch(() => tts());
+  } else if (wantsAi(text, opts)) {
+    armGuard(20000);
+    const st = opts.style || classTts;
+    const speed = opts.pitch != null ? slow : Math.min(1.4, Math.max(0.6, slow * (st.rateAdj || 1)));
+    aiUrl(text, opts)
+      .then((url) => playUrl(url, speed))
+      .catch(() => {
+        if (seq === speakSeq) tts();
+      });
+  } else {
+    tts();
   }
 
   return () => {

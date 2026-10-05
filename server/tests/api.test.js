@@ -163,7 +163,11 @@ test('teacher voice style (TTS 음색): default, save with clamping, public to s
   assert.equal((await call('/status')).data.tts.preset, 'bright', 'default style');
   assert.equal((await call('/admin/settings', { method: 'PUT', body: { tts: { preset: 'male' } } })).status, 403);
   const r = await call('/admin/settings', { token: admin, method: 'PUT', body: { tts: { preset: 'maleSoft', pitchAdj: 9, rateAdj: 0.1, voiceName: 'Microsoft InJoon' } } });
-  assert.deepEqual(r.data.tts, { preset: 'maleSoft', voiceName: 'Microsoft InJoon', pitchAdj: 0.4, rateAdj: 0.7 });
+  assert.deepEqual(r.data.tts, { engine: 'gemini', preset: 'maleSoft', voiceName: 'Microsoft InJoon', geminiVoice: '', model: 'gemini-2.5-flash-preview-tts', pitchAdj: 0.4, rateAdj: 0.7 });
+  assert.equal((await call('/tts', { body: { text: '안녕하세요' } })).status, 401, 'AI speech needs a login');
+  const noKey = await call('/tts', { token: admin, body: { text: '안녕하세요' } });
+  assert.equal(noKey.status, 503);
+  assert.equal(noKey.data.code, 'no_key');
   assert.equal((await call('/status')).data.tts.preset, 'maleSoft', 'students read it without logging in');
   const bad = await call('/admin/settings', { token: admin, method: 'PUT', body: { tts: { preset: 'nope' } } });
   assert.equal(bad.data.tts.preset, 'bright', 'unknown style falls back to the default');

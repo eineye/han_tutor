@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Line } from '../types';
 import { speak, stopSpeaking } from '../lib/speech';
 import { Modal, Toggle } from './ui';
 import PronunciationPractice from './PronunciationPractice';
 import { useI18n } from '../i18n';
+import { assignCastVoices } from '../../server/ttsVoices.js';
 
 const COLORS = ['#ff7aa8', '#33b38a', '#6c8cff', '#ffb020', '#a66cff', '#ff7a59'];
 
@@ -20,6 +21,8 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
   const [current, setCurrent] = useState(-1);
   const [practice, setPractice] = useState<Line | null>(null);
   const playing = useRef(false);
+  // a different AI voice for each speaker in this dialogue
+  const voices = useMemo(() => assignCastVoices([...new Set(lines.map((l) => l.speaker))].map((name) => ({ name, pitch: speakerStyle(name).pitch }))), [lines]);
 
   useEffect(
     () => () => {
@@ -40,6 +43,8 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
     const text = l.ko.replace(/\([^)]*\)/g, '');
     speak(text, {
       pitch: speakerStyle(l.speaker).pitch,
+      voiceHint: l.speaker,
+      aiVoice: voices[l.speaker],
       rate: 0.9,
       onEnd: () => {
         if (chain && playing.current) window.setTimeout(() => playing.current && sayLine(i + 1, true), 450);
@@ -88,7 +93,7 @@ export default function DialogueView({ lines, setting, lessonId }: { lines: Line
                   <button className="btn-icon" onClick={() => sayLine(i)} aria-label={t('common.play')}>
                     🔊
                   </button>
-                  <button className="btn-icon" onClick={() => speak(l.ko.replace(/\([^)]*\)/g, ''), { rate: 0.55, pitch: st.pitch })} aria-label={t('common.slow')}>
+                  <button className="btn-icon" onClick={() => speak(l.ko.replace(/\([^)]*\)/g, ''), { rate: 0.55, pitch: st.pitch, voiceHint: l.speaker, aiVoice: voices[l.speaker] })} aria-label={t('common.slow')}>
                     🐢
                   </button>
                   <button className="btn-icon" onClick={() => setPractice(l)} aria-label={t('dialogue.practice')}>

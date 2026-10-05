@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, download, IS_DEMO } from '../../api';
 import { getBrowserGeminiKey, setBrowserGeminiKey } from '../../demo/browserKey';
 import { ErrorBox, Loading } from '../../components/ui';
-import type { TtsSettings } from '../../lib/speech';
+import { setAiAvailable, type TtsSettings } from '../../lib/speech';
 import VoiceSettings from './VoiceSettings';
 
 interface Settings {
@@ -24,6 +24,7 @@ export default function AdminSettings() {
     api<Settings>('/admin/settings')
       .then((r) => {
         setS(r);
+        setAiAvailable(r.ai);
         setCodes(r.classCodes.join(', '));
         setModel(r.geminiModel);
       })
@@ -42,6 +43,7 @@ export default function AdminSettings() {
     if (IS_DEMO) setBrowserGeminiKey(browserKey);
     const r = await api<Settings>('/admin/settings', { method: 'PUT', body: { classCodes: codes.split(',').map((c) => c.trim()), geminiModel: model } });
     setS(r);
+    setAiAvailable(r.ai);
     setCodes(r.classCodes.join(', '));
     flash('저장되었습니다 ✓');
   };
@@ -92,7 +94,7 @@ export default function AdminSettings() {
         </button>
       </section>
 
-      <VoiceSettings initial={s.tts} onSaved={(m) => flash(m)} />
+      <VoiceSettings initial={s.tts} ai={s.ai} onSaved={(m) => flash(m)} />
 
       <section className="card form">
         <h3>콘텐츠 백업 / 가져오기</h3>

@@ -8,6 +8,7 @@ import VideoSurface, { type VideoHandle } from '../components/VideoSurface';
 import { ErrorBox, Loading, Modal, ScoreBadge, SpeakButton } from '../components/ui';
 import { speak, stopSpeaking, listenKorean, recognitionSupported } from '../lib/speech';
 import { pronunciationScore } from '../lib/hangul';
+import { assignCastVoices } from '../../server/ttsVoices.js';
 import type { CastMember, Line, Video } from '../types';
 import { localizeVideo, subtitle as subTitle, useI18n } from '../i18n';
 
@@ -40,6 +41,8 @@ export default function DramaPlayer() {
   }, [id]);
 
   const castOf = useCallback((name: string): CastMember => video?.cast.find((c) => c.name === name) || { name, role: '', color: '#999' }, [video]);
+  // each character gets its own AI voice (male / female / young by the cast pitch)
+  const castVoices = useMemo(() => assignCastVoices((video?.cast || []).map((c) => ({ name: c.name, pitch: c.voice?.pitch }))), [video]);
 
   const hasVideo = video && video.source.type !== 'none' && (video.source.type === 'youtube' ? !!video.source.youtubeId : !!video.source.url);
   const timed = hasVideo && video!.lines.some((l) => l.start != null);
@@ -73,6 +76,8 @@ export default function DramaPlayer() {
     const c = castOf(l.speaker);
     speak(clean(l.ko), {
       pitch: c.voice?.pitch ?? 1,
+      voiceHint: l.speaker,
+      aiVoice: castVoices[l.speaker],
       rate: (c.voice?.rate ?? 1) * 0.92,
       onEnd: () => {
         if (chain && playingAll.current) window.setTimeout(() => playingAll.current && ttsLine(i + 1, true), 500);
@@ -249,6 +254,7 @@ export default function DramaPlayer() {
 }
 
 function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => CastMember }) {
+  const castVoices = useMemo(() => assignCastVoices(video.cast.map((c) => ({ name: c.name, pitch: c.voice?.pitch }))), [video]);
   const { t: tr } = useI18n();
   const [me, setMe] = useState(video.cast[video.cast.length - 1]?.name || '');
   const [step, setStep] = useState(-1);
@@ -278,7 +284,7 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
     const l = video.lines[i];
     if (l.speaker !== me) {
       const c = castOf(l.speaker);
-      speak(clean(l.ko), { pitch: c.voice?.pitch, rate: (c.voice?.rate ?? 1) * 0.92, onEnd: () => active.current && window.setTimeout(() => active.current && goto(i + 1), 400) });
+      speak(clean(l.ko), { pitch: c.voice?.pitch ?? 1, voiceHint: l.speaker, aiVoice: castVoices[l.speaker], rate: (c.voice?.rate ?? 1) * 0.92, onEnd: () => active.current && window.setTimeout(() => active.current && goto(i + 1), 400) });
     }
   };
 

@@ -2895,3 +2895,9 @@ label.inline select {
 .voice-tune input[type='range'] {
   width: 100%;
 }
+.voice-engine {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}

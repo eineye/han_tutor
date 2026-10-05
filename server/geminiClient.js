@@ -10,8 +10,9 @@ const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
  * @param {object} [opts.schema] JSON schema for structured output
  * @param {number} [opts.temperature]
  * @param {object} [opts.config] extra generationConfig fields (e.g. mediaResolution, maxOutputTokens)
+ * @param {boolean} [opts.audio] speech generation (TTS): resolve to { data, mimeType } of the audio part
  */
-export async function callGemini({ apiKey, model, system, contents, schema, temperature = 0.7, config }) {
+export async function callGemini({ apiKey, model, system, contents, schema, temperature = 0.7, config, audio = false }) {
   const body = {
     contents,
     generationConfig: { temperature, ...config },
@@ -35,6 +36,11 @@ export async function callGemini({ apiKey, model, system, contents, schema, temp
   }
   const data = await res.json();
   const cand = data?.candidates?.[0];
+  if (audio) {
+    const part = cand?.content?.parts?.find((p) => p.inlineData?.data);
+    if (!part) throw new Error(`Gemini returned no audio${cand?.finishReason ? ` (${cand.finishReason})` : ''}.`);
+    return { data: part.inlineData.data, mimeType: part.inlineData.mimeType || 'audio/L16;rate=24000' };
+  }
   const text = cand?.content?.parts?.map((p) => p.text || '').join('') ?? '';
   const reason = cand?.finishReason || data?.promptFeedback?.blockReason || '';
   if (!text) {

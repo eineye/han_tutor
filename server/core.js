@@ -20,7 +20,7 @@ import {
   TRANSLATE_SCHEMA,
   translatePrompt,
 } from './transcripts.js';
-import { cleanTts, DEFAULT_TTS } from './ttsVoices.js';
+import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
 export class HttpError extends Error {
@@ -196,7 +196,7 @@ export function createCore(deps) {
     throw new HttpError(401, 'not logged in');
   });
 
-  route('GET', '/status', 'public', () => ({ ai: deps.hasKey(), model: model(), tts: db().settings.tts || DEFAULT_TTS }));
+  route('GET', '/status', 'public', () => ({ ai: deps.hasKey(), model: model(), tts: { ...DEFAULT_TTS, ...db().settings.tts } }));
 
   // content (students)
   route('GET', '/curriculum', 'student', ({ student }) => {
@@ -900,14 +900,65 @@ export function createCore(deps) {
     }
   });
 
-  route('GET', '/admin/settings', 'admin', () => ({ tts: DEFAULT_TTS, ...db().settings, ai: deps.hasKey() }));
+  // ---- AI speech (Gemini TTS) for Bori and drama characters, cached so each sentence is made once ----
+  const ttsCache = () => (db().ttsCache ||= []); // {key, id, voice, at}
+  const ttsUsage = new Map(); // session token → {day, n}: limit new generations per user per day
+  const TTS_DAILY_LIMIT = 400;
+  const TTS_CACHE_MAX = 3000;
+
+  route('POST', '/tts', 'public', async ({ body, session }) => {
+    if (!session) throw new HttpError(401, '로그인이 필요합니다 / Please log in');
+    const text = String(body.text || '').trim();
+    if (!text || text.length > 300) throw new HttpError(400, 'text must be 1–300 characters');
+    const t = { ...DEFAULT_TTS, ...db().settings.tts };
+    const { voice, style } = geminiVoiceFor(t, {
+      preset: body.preset ? String(body.preset) : undefined,
+      voice: body.voice ? String(body.voice) : undefined,
+      pitch: body.pitch != null && Number.isFinite(Number(body.pitch)) ? Number(body.pitch) : undefined,
+      hint: body.hint ? String(body.hint).slice(0, 40) : undefined,
+    });
+    const key = ttsCacheKey(t.model, voice, style, text);
+    const hit = ttsCache().find((c) => c.key === key);
+    if (hit && deps.audio) {
+      const data = await deps.audio.get(hit.id);
+      if (data) return { mime: 'audio/wav', data, voice, cached: true };
+    }
+    if (!deps.hasKey()) throw new HttpError(503, 'AI 음성을 쓰려면 Gemini API 키가 필요합니다', 'no_key');
+    const today = now().slice(0, 10);
+    const u = ttsUsage.get(session.token);
+    const used = u && u.day === today ? u.n : 0;
+    if (used >= TTS_DAILY_LIMIT) throw new HttpError(429, '오늘 AI 음성 사용량을 모두 썼습니다', 'tts_limit');
+    ttsUsage.set(session.token, { day: today, n: used + 1 });
+    const out = await deps.generate({
+      model: t.model,
+      contents: [{ role: 'user', parts: [{ text: `${style}, pronouncing every Korean syllable clearly: ${text}` }] }],
+      temperature: 1,
+      config: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+      audio: true,
+    });
+    if (!out?.data) throw new HttpError(502, 'AI 음성을 만들지 못했습니다');
+    const data = /wav|wave/i.test(out.mimeType) ? out.data : pcmToWavBase64(out.data, out.mimeType);
+    if (deps.audio) {
+      const id = deps.id('tts_');
+      await deps.audio.put(id, data);
+      ttsCache().push({ key, id, voice, at: now() });
+      while (ttsCache().length > TTS_CACHE_MAX) {
+        const old = ttsCache().shift();
+        await deps.audio.remove(old.id);
+      }
+      save();
+    }
+    return { mime: 'audio/wav', data, voice, cached: false };
+  });
+
+  route('GET', '/admin/settings', 'admin', () => ({ ...db().settings, tts: { ...DEFAULT_TTS, ...db().settings.tts }, ai: deps.hasKey() }));
   route('PUT', '/admin/settings', 'admin', ({ body }) => {
     const { classCodes, geminiModel, tts } = body;
     if (Array.isArray(classCodes)) db().settings.classCodes = [...new Set(classCodes.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
     if (geminiModel) db().settings.geminiModel = String(geminiModel).trim();
     if (tts && typeof tts === 'object') db().settings.tts = cleanTts(tts);
     save();
-    return { tts: DEFAULT_TTS, ...db().settings, ai: deps.hasKey() };
+    return { ...db().settings, tts: { ...DEFAULT_TTS, ...db().settings.tts }, ai: deps.hasKey() };
   });
 
   route('GET', '/admin/export/students.csv', 'admin', () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { visemesFor, type Viseme } from '../lib/hangul';
-import { speak, stopSpeaking } from '../lib/speech';
+import { speak, stopSpeaking, usesAudioFile } from '../lib/speech';
 
 /**
  * Speaks Korean text with TTS and drives Bori's mouth shapes syllable by syllable.
@@ -85,8 +85,8 @@ export function useMascotSpeech() {
         opts.onEnd?.();
       },
     });
-    // Start anyway if onstart is slow / missing
-    window.setTimeout(startAnim, 350);
+    // Start anyway if onstart is slow / missing (audio files report their own start; AI voice may take a few seconds)
+    window.setTimeout(startAnim, usesAudioFile(text, { recordingText: opts.recordingText }) ? 8000 : 350);
   }, []);
 
   useEffect(() => stop, [stop]);
