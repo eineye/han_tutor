@@ -59,6 +59,11 @@ npm start                 # dist/ 정적 파일 + API를 8787 포트에서 함�
 
 마이크 사용을 위해 배포 시 **HTTPS**가 필요합니다.
 
+## 그림 저작권
+
+- 어휘·평가 그림: [Twemoji](https://github.com/jdecked/twemoji) 그래픽 © Twitter/X 및 기여자, [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`@twemoji/svg` 패키지에서 필요한 그림만 묶음)
+- 한복·한옥·한글·한식 등 한국 고유 아이콘과 보리 캐릭터: 자체 제작
+
 ## 테스트
 
 ```bash

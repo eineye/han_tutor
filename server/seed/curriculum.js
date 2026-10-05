@@ -172,7 +172,7 @@ const lessons = [
       L('ㅇ', '– (silent)', 'Silent at the start of a syllable.', '오리', 'ori', 'duck', '이응'),
       L('ㅈ', 'j', 'Like “j” in “jam”, but softer.', '지도', 'jido', 'map', '지읒'),
     ],
-    vocab: [v('고기', 'gogi', 'meat', '🍖'), v('누나', 'nuna', 'older sister (boy speaking)', '👧'), v('다리', 'dari', 'leg / bridge', '🦵'), v('우리', 'uri', 'we / our', '🫶'), v('모자', 'moja', 'hat', '🧢'), v('바지', 'baji', 'pants', '👖'), v('사자', 'saja', 'lion', '🦁'), v('오리', 'ori', 'duck', '🦆'), v('지도', 'jido', 'map', '🗺️'), v('나무', 'namu', 'tree', '🌳'), v('바다', 'bada', 'sea', '🌊'), v('가수', 'gasu', 'singer', '🎤')],
+    vocab: [v('고기', 'gogi', 'meat', '🍖'), v('누나', 'nuna', 'older sister (boy speaking)', '👧'), v('다리', 'dari', 'leg / bridge', '🦵'), v('우리', 'uri', 'we / our', '🧑‍🤝‍🧑'), v('모자', 'moja', 'hat', '🧢'), v('바지', 'baji', 'pants', '👖'), v('사자', 'saja', 'lion', '🦁'), v('오리', 'ori', 'duck', '🦆'), v('지도', 'jido', 'map', '🗺️'), v('나무', 'namu', 'tree', '🌳'), v('바다', 'bada', 'sea', '🌊'), v('가수', 'gasu', 'singer', '🎤')],
     grammar: [
       g('Consonant + vowel', 'Building a syllable', 'Put the consonant in the ㅇ position. Tall vowels go to the right, flat vowels go underneath.', [
         ['ㄱ + ㅏ = 가', 'ga'],
@@ -216,7 +216,7 @@ const lessons = [
     title: { ko: '연습 활용 (1)', en: 'Practice 1: Vowels & Basic Consonants' },
     objectives: ['Review basic vowels and consonants', 'Read and write two-syllable words', 'Listen and pick the right word'],
     warmup: { emoji: '🎯', question_en: 'Review time! How many Korean words can you already read? Try: 나무, 바다, 오이.' },
-    vocab: [v('거미', 'geomi', 'spider', '🕷️'), v('구두', 'gudu', 'dress shoes', '👞'), v('기자', 'gija', 'reporter', '📰'), v('두부', 'dubu', 'tofu', '🧈'), v('머리', 'meori', 'head / hair', '💇'), v('부모', 'bumo', 'parents', '👨‍👩‍👧'), v('소리', 'sori', 'sound', '🔊'), v('어머니', 'eomeoni', 'mother', '👩'), v('이마', 'ima', 'forehead', '🙂'), v('자두', 'jadu', 'plum', '🍑')],
+    vocab: [v('거미', 'geomi', 'spider', '🕷️'), v('구두', 'gudu', 'dress shoes', '👞'), v('기자', 'gija', 'reporter', '🎙️'), v('두부', 'dubu', 'tofu', '🧈'), v('머리', 'meori', 'head / hair', '💇'), v('부모', 'bumo', 'parents', '👨‍👩‍👧'), v('소리', 'sori', 'sound', '🔊'), v('어머니', 'eomeoni', 'mother', '👩'), v('이마', 'ima', 'forehead', '🙂'), v('자두', 'jadu', 'plum', '🍑')],
     grammar: [],
     dialogue: { setting_en: '', lines: [] },
     pronunciation: { focus_en: 'Read each word smoothly, then check with the coach.', items: [p('거미', 'geomi'), p('구두', 'gudu'), p('두부', 'dubu'), p('머리', 'meori'), p('부모', 'bumo'), p('소리', 'sori'), p('어머니', 'eomeoni'), p('자두', 'jadu')] },
@@ -289,7 +289,7 @@ const lessons = [
       L('ㅆ', 'ss', 'A sharp, strong “s”.', '싸다', 'ssada', 'to be cheap', '쌍시옷'),
       L('ㅉ', 'jj', 'A tight “j”, no air.', '짜다', 'jjada', 'to be salty', '쌍지읒'),
     ],
-    vocab: [v('꼬마', 'kkoma', 'little kid', '🧒'), v('까치', 'kkachi', 'magpie', '🐦'), v('따다', 'ttada', 'to pick', '🍎'), v('오빠', 'oppa', 'older brother (girl speaking)', '👦'), v('빠르다', 'ppareuda', 'to be fast', '⚡'), v('싸다', 'ssada', 'to be cheap', '🏷️'), v('아저씨', 'ajeossi', 'mister', '👨'), v('짜다', 'jjada', 'to be salty', '🧂'), v('가짜', 'gajja', 'fake', '🎭')],
+    vocab: [v('꼬마', 'kkoma', 'little kid', '🧒'), v('까치', 'kkachi', 'magpie', '🐦'), v('따다', 'ttada', 'to pick', '🍒'), v('오빠', 'oppa', 'older brother (girl speaking)', '👦'), v('빠르다', 'ppareuda', 'to be fast', '⚡'), v('싸다', 'ssada', 'to be cheap', '🏷️'), v('아저씨', 'ajeossi', 'mister', '👨'), v('짜다', 'jjada', 'to be salty', '🧂'), v('가짜', 'gajja', 'fake', '🎭')],
     grammar: [g('Plain · aspirated · tense', 'Three families of sounds', 'Plain: relaxed, a little air. Aspirated: lots of air. Tense: no air, tight throat, a bit higher pitch.', [['가 · 카 · 까', 'ga · ka · kka'], ['다 · 타 · 따', 'da · ta · tta'], ['바 · 파 · 빠', 'ba · pa · ppa'], ['자 · 차 · 짜', 'ja · cha · jja'], ['사 · 싸', 'sa · ssa']])],
     dialogue: { setting_en: '', lines: [] },
     pronunciation: {
@@ -395,7 +395,7 @@ const lessons = [
       L('ㅟ', 'wi', 'ㅜ + ㅣ: “wee”.', '귀', 'gwi', 'ear'),
       L('ㅢ', 'ui', 'ㅡ + ㅣ said quickly. At the start of a word: [의]. After a consonant: [이]. Meaning “of”: [에].', '의자', 'uija', 'chair'),
     ],
-    vocab: [v('사과', 'sagwa', 'apple', '🍎'), v('과자', 'gwaja', 'snack', '🍘'), v('뭐', 'mwo', 'what', '❓'), v('돼지', 'dwaeji', 'pig', '🐷'), v('왜', 'wae', 'why', '🤔'), v('웨이터', 'weiteo', 'waiter', '🧑‍🍳'), v('회사', 'hoesa', 'company', '🏢'), v('귀', 'gwi', 'ear', '👂'), v('가위', 'gawi', 'scissors', '✂️'), v('의자', 'uija', 'chair', '🪑'), v('의사', 'uisa', 'doctor', '🩺'), v('희다', 'huida', 'to be white', '⚪', '[히다]')],
+    vocab: [v('사과', 'sagwa', 'apple', '🍎'), v('과자', 'gwaja', 'snack', '🍘'), v('뭐', 'mwo', 'what', '❓'), v('돼지', 'dwaeji', 'pig', '🐷'), v('왜', 'wae', 'why', '🤔'), v('웨이터', 'weiteo', 'waiter', '🤵'), v('회사', 'hoesa', 'company', '🏢'), v('귀', 'gwi', 'ear', '👂'), v('가위', 'gawi', 'scissors', '✂️'), v('의자', 'uija', 'chair', '🪑'), v('의사', 'uisa', 'doctor', '🩺'), v('희다', 'huida', 'to be white', '⚪', '[히다]')],
     grammar: [
       g('w-vowels', 'ㅗ / ㅜ + another vowel', 'Start with rounded lips (ㅗ or ㅜ) and glide into the next vowel.', [['ㅗ + ㅏ = ㅘ', 'wa'], ['ㅜ + ㅓ = ㅝ', 'wo'], ['ㅗ + ㅐ = ㅙ', 'wae'], ['ㅜ + ㅔ = ㅞ', 'we'], ['ㅗ + ㅣ = ㅚ', 'oe'], ['ㅜ + ㅣ = ㅟ', 'wi']]),
       g('ㅢ', 'Three ways to say it', 'Word start: [의] 의사. After a consonant: [이] 희다 [히다]. As the particle “of”: usually [에].', [['의자 [의자]', 'chair'], ['희다 [히다]', 'to be white']]),
@@ -461,7 +461,7 @@ const lessons = [
       L('ㄴ', 'n', 'Tongue tip touches the gum ridge: [n].', '산', 'san', 'mountain'),
       L('ㄹ', 'l', 'Tongue tip stays up on the roof of the mouth: [l].', '물', 'mul', 'water'),
     ],
-    vocab: [v('밤', 'bam', 'night', '🌙'), v('감', 'gam', 'persimmon', '🟠'), v('김치', 'gimchi', 'kimchi', '🥬'), v('공', 'gong', 'ball', '⚽'), v('방', 'bang', 'room', '🚪'), v('가방', 'gabang', 'bag', '🎒'), v('산', 'san', 'mountain', '⛰️'), v('눈', 'nun', 'eye / snow', '👁️'), v('라면', 'ramyeon', 'ramen', '🍜'), v('물', 'mul', 'water', '💧'), v('달', 'dal', 'moon', '🌕'), v('일', 'il', 'one / work', '1️⃣')],
+    vocab: [v('밤', 'bam', 'night', '🌃'), v('감', 'gam', 'persimmon', '🟠'), v('김치', 'gimchi', 'kimchi', '🥬'), v('공', 'gong', 'ball', '⚽'), v('방', 'bang', 'room', '🚪'), v('가방', 'gabang', 'bag', '🎒'), v('산', 'san', 'mountain', '⛰️'), v('눈', 'nun', 'eye / snow', '👁️'), v('라면', 'ramyeon', 'ramen', '🍜'), v('물', 'mul', 'water', '💧'), v('달', 'dal', 'moon', '🌕'), v('일', 'il', 'one / work', '1️⃣')],
     grammar: [g('Syllable + 받침', 'The final consonant goes at the bottom', 'A syllable can have a third part. The final consonant always sits at the bottom of the block.', [['ㅂ + ㅏ + ㅁ = 밤', 'night'], ['ㄱ + ㅗ + ㅇ = 공', 'ball'], ['ㅅ + ㅏ + ㄴ = 산', 'mountain'], ['ㅁ + ㅜ + ㄹ = 물', 'water']]), g('Humming finals', 'ㅁ ㅇ ㄴ ㄹ keep sounding', 'These four finals can be held long: mmm, nnn, ngng, lll. Don’t add a vowel after them: 물 is [mul], not “mu-ru”.', [['밤 [bam]', 'not “ba-mu”'], ['물 [mul]', 'not “mu-ru”']])],
     dialogue: { setting_en: '', lines: [] },
     pronunciation: {

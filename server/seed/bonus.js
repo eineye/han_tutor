@@ -112,8 +112,8 @@ export const bonusLessons = [
     vocab: [
       v('저', 'jeo', 'I / me (polite)', '🙋'),
       v('이름', 'ireum', 'name', '📛'),
-      v('학생', 'haksaeng', 'student', '🎒'),
-      v('중학생', 'junghaksaeng', 'middle school student', '🧑‍🎓'),
+      v('학생', 'haksaeng', 'student', '🧑‍🎓'),
+      v('중학생', 'junghaksaeng', 'middle school student', '🧒'),
       v('고등학생', 'godeunghaksaeng', 'high school student', '👩‍🎓'),
       v('선생님', 'seonsaengnim', 'teacher', '🧑‍🏫'),
       v('나라', 'nara', 'country', '🌍'),
@@ -200,7 +200,7 @@ export const bonusLessons = [
       v('필통', 'piltong', 'pencil case', '🖍️'),
       v('가방', 'gabang', 'bag', '🎒'),
       v('책상', 'chaeksang', 'desk', '🪑'),
-      v('의자', 'uija', 'chair', '💺'),
+      v('의자', 'uija', 'chair', '🪑'),
       v('휴대폰', 'hyudaepon', 'cell phone', '📱'),
       v('이거 / 이게', 'igeo / ige', 'this (thing)', '👇'),
       v('그거', 'geugeo', 'that (near you)', '👉'),
@@ -272,7 +272,7 @@ export const bonusLessons = [
       v('교실', 'gyosil', 'classroom', '🏫'),
       v('화장실', 'hwajangsil', 'restroom', '🚻'),
       v('도서관', 'doseogwan', 'library', '📚'),
-      v('매점', 'maejeom', 'school snack shop', '🍙'),
+      v('매점', 'maejeom', 'school snack shop', '🏪'),
       v('운동장', 'undongjang', 'sports field', '⚽'),
       v('급식실', 'geupsiksil', 'school cafeteria', '🍱'),
       v('교무실', 'gyomusil', 'teachers’ office', '🗂️'),
@@ -355,7 +355,7 @@ export const bonusLessons = [
       v('남동생', 'namdongsaeng', 'younger brother', '🧒'),
       v('여동생', 'yeodongsaeng', 'younger sister', '👧'),
       v('누구', 'nugu', 'who', '❓'),
-      v('우리', 'uri', 'we / our', '🫶'),
+      v('우리', 'uri', 'we / our', '🧑‍🤝‍🧑'),
     ],
     grammar: [
       {

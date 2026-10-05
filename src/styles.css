@@ -2907,3 +2907,44 @@ label.inline select {
   border-radius: 10px;
   background: var(--surface-2);
 }
+
+/* ───────── Pictures for words (어휘·평가) ───────── */
+.pic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: none;
+}
+.pic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pic img {
+  display: block;
+}
+.vocab-card__pic {
+  margin: 4px 0 6px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
+}
+.quiz__picprompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 12px;
+}
+.quiz__picprompt .pic {
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.15));
+}
+.option__pic {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pic-credit {
+  margin-top: 10px;
+  font-size: 0.7rem;
+}

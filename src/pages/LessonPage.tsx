@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import type { Lesson, Progress } from '../types';
 import { ErrorBox, Loading, SpeakButton } from '../components/ui';
+import PicIcon from '../components/PicIcon';
 import QuizRunner from '../components/QuizRunner';
 import PronunciationPractice from '../components/PronunciationPractice';
 import DialogueView from '../components/DialogueView';
@@ -231,7 +232,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
       <div className="vocab-grid">
         {lesson.vocab.map((w, i) => (
           <button key={i} className={`vocab-card ${hideEn && !flip[i] ? 'is-hidden' : ''}`} onClick={() => setFlip({ ...flip, [i]: !flip[i] })}>
-            <span className="vocab-card__emoji">{w.emoji}</span>
+            <PicIcon emoji={w.emoji} word={w.ko.split('→')[0].trim()} size={76} className="vocab-card__pic" />
             <span className="ko-mid" lang="ko">
               {w.ko}
             </span>
@@ -242,6 +243,7 @@ function VocabSection({ lesson }: { lesson: Lesson }) {
           </button>
         ))}
       </div>
+      <p className="muted pic-credit">Pictures: Twemoji (CC-BY 4.0, © Twitter/X and contributors) · Korean food & culture icons: Hangeul On</p>
     </>
   );
 }

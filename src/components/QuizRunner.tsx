@@ -1,3 +1,4 @@
+import PicIcon, { splitPicture } from './PicIcon';
 import { useMemo, useState } from 'react';
 import type { QuizItem } from '../types';
 import { speak } from '../lib/speech';
@@ -89,7 +90,18 @@ export default function QuizRunner({ items, onFinish }: Props) {
         {t('quiz.question', { n: idx + 1, total: items.length })}
         <span className="quiz__score">⭐ {score}</span>
       </div>
-      <h3 className="quiz__prompt">{item.prompt}</h3>
+      {(() => {
+        // "🍑 = ?" style questions: show the picture big (the answer word picks an exact drawing)
+        const { pic, rest } = splitPicture(item.prompt);
+        if (!pic) return <h3 className="quiz__prompt">{item.prompt}</h3>;
+        const answerWord = item.type !== 'order' ? item.options[item.answer] : undefined;
+        return (
+          <div className="quiz__picprompt">
+            <PicIcon emoji={pic} word={answerWord && !splitPicture(answerWord).pic ? answerWord : undefined} size={120} />
+            {rest && <h3 className="quiz__prompt">{rest}</h3>}
+          </div>
+        );
+      })()}
       {item.type === 'mc' && item.ko && <p className="ko-big">{item.ko}</p>}
 
       {item.type === 'listen' && (
@@ -112,7 +124,17 @@ export default function QuizRunner({ items, onFinish }: Props) {
             if (checked === false && picked === i) cls += ' is-wrong';
             return (
               <button key={i} className={cls} disabled={checked !== null} onClick={() => setPicked(i)}>
-                {o}
+                {(() => {
+                  const { pic, rest } = splitPicture(o);
+                  return pic ? (
+                    <span className="option__pic">
+                      <PicIcon emoji={pic} word={rest} size={56} />
+                      <span>{rest}</span>
+                    </span>
+                  ) : (
+                    o
+                  );
+                })()}
               </button>
             );
           })}
