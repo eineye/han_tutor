@@ -7,6 +7,7 @@ import { AuthProvider } from './auth';
 import { IS_DEMO } from './api';
 import { LangProvider } from './i18n';
 import { loadRecordings } from './lib/recordings';
+import { loadTtsSettings } from './lib/speech';
 import './styles.css';
 
 if (IS_DEMO && window.self !== window.top) {
@@ -17,6 +18,7 @@ if (IS_DEMO && window.self !== window.top) {
 
 // Teacher recordings replace the browser voice wherever the same text is spoken
 loadRecordings();
+loadTtsSettings();
 
 // The demo is a single page inside a frame, so routes live in memory instead of the URL.
 const Router = IS_DEMO ? MemoryRouter : BrowserRouter;

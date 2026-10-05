@@ -20,6 +20,7 @@ import {
   TRANSLATE_SCHEMA,
   translatePrompt,
 } from './transcripts.js';
+import { cleanTts, DEFAULT_TTS } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
 export class HttpError extends Error {
@@ -195,7 +196,7 @@ export function createCore(deps) {
     throw new HttpError(401, 'not logged in');
   });
 
-  route('GET', '/status', 'public', () => ({ ai: deps.hasKey(), model: model() }));
+  route('GET', '/status', 'public', () => ({ ai: deps.hasKey(), model: model(), tts: db().settings.tts || DEFAULT_TTS }));
 
   // content (students)
   route('GET', '/curriculum', 'student', ({ student }) => {
@@ -899,13 +900,14 @@ export function createCore(deps) {
     }
   });
 
-  route('GET', '/admin/settings', 'admin', () => ({ ...db().settings, ai: deps.hasKey() }));
+  route('GET', '/admin/settings', 'admin', () => ({ tts: DEFAULT_TTS, ...db().settings, ai: deps.hasKey() }));
   route('PUT', '/admin/settings', 'admin', ({ body }) => {
-    const { classCodes, geminiModel } = body;
+    const { classCodes, geminiModel, tts } = body;
     if (Array.isArray(classCodes)) db().settings.classCodes = [...new Set(classCodes.map((c) => String(c).trim().toUpperCase()).filter(Boolean))];
     if (geminiModel) db().settings.geminiModel = String(geminiModel).trim();
+    if (tts && typeof tts === 'object') db().settings.tts = cleanTts(tts);
     save();
-    return { ...db().settings, ai: deps.hasKey() };
+    return { tts: DEFAULT_TTS, ...db().settings, ai: deps.hasKey() };
   });
 
   route('GET', '/admin/export/students.csv', 'admin', () => {

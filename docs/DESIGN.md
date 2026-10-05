@@ -97,6 +97,7 @@
   - **내보내기 10가지**: SRT, WebVTT(화자는 `<v>` 태그), YouTube SBV, LRC 가사, TXT, 시간 표시 TXT, Markdown 정리 문서, HTML 정리 문서(Word에서 열기·PDF 인쇄), 엑셀 CSV(BOM, 언어별 번역 열), JSON(다시 불러오면 번역·구간까지 복원). 원문만 / 번역만 / 원문+번역(2개 언어), 화자 이름·화면 자막 포함 여부 선택, 미리보기·복사
   - **저작권**: 상업 음원·방송의 가사·대본은 Gemini가 원문 재현을 막아(RECITATION) 결과가 나오지 않을 수 있음 → 안내 문구로 알리고, 직접 만들었거나 허락받은 자료 사용을 권장. 키가 없으면 예시 결과(자체 작성)로 화면을 시험할 수 있음
   - API: `GET/POST /admin/transcripts`, `GET/PUT/DELETE /admin/transcripts/:id`, `POST /admin/transcribe`(미디어 → 추출·저장, 이 경로만 요청 크기 90MB), `POST /admin/transcripts/translate`, `POST /admin/transcripts/summarize`. DB `transcripts`
+- **발음 음성 (TTS 음색)** (설정): 밝은 여성(기본)·부드러운 여성·아나운서·깔끔한·남성·부드러운 남성·남성 아나운서·어린이 8가지 음색 + 높낮이·빠르기 조절 + 특정 음성 고정(선택). 음색 = 기기에 설치된 한국어 음성 중 선호 성별·고품질 음성 선택 + 높낮이·빠르기 (`server/ttsVoices.js`). 남성 음성이 없는 기기에서는 낮은 높낮이로 흉내. 교사 설정은 `settings.tts`에 저장되고 `/status`로 학생 기기에 적용. 드라마 등장인물은 각자의 목소리 설정을 유지, 녹음이 있으면 녹음이 우선
 - **설정**: 반 코드, Gemini 모델, 콘텐츠 JSON 백업/가져오기/초기화
 
 ### 3.5 학생 화면 언어 선택 (한국어 / English / Монгол)

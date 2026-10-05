@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { api, download, IS_DEMO } from '../../api';
 import { getBrowserGeminiKey, setBrowserGeminiKey } from '../../demo/browserKey';
 import { ErrorBox, Loading } from '../../components/ui';
+import type { TtsSettings } from '../../lib/speech';
+import VoiceSettings from './VoiceSettings';
 
 interface Settings {
   classCodes: string[];
   geminiModel: string;
   ai: boolean;
+  tts: TtsSettings;
 }
 
 export default function AdminSettings() {
@@ -88,6 +91,8 @@ export default function AdminSettings() {
           저장
         </button>
       </section>
+
+      <VoiceSettings initial={s.tts} onSaved={(m) => flash(m)} />
 
       <section className="card form">
         <h3>콘텐츠 백업 / 가져오기</h3>

@@ -157,3 +157,15 @@ test('teacher recordings: upload, match by text, play, replace, delete', async (
   assert.equal((await call(`/admin/audio/${up.data.id}`, { token: admin, method: 'DELETE' })).status, 200);
   assert.equal((await call(`/audio/${up.data.id}`)).status, 404);
 });
+
+test('teacher voice style (TTS 음색): default, save with clamping, public to students', async () => {
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  assert.equal((await call('/status')).data.tts.preset, 'bright', 'default style');
+  assert.equal((await call('/admin/settings', { method: 'PUT', body: { tts: { preset: 'male' } } })).status, 403);
+  const r = await call('/admin/settings', { token: admin, method: 'PUT', body: { tts: { preset: 'maleSoft', pitchAdj: 9, rateAdj: 0.1, voiceName: 'Microsoft InJoon' } } });
+  assert.deepEqual(r.data.tts, { preset: 'maleSoft', voiceName: 'Microsoft InJoon', pitchAdj: 0.4, rateAdj: 0.7 });
+  assert.equal((await call('/status')).data.tts.preset, 'maleSoft', 'students read it without logging in');
+  const bad = await call('/admin/settings', { token: admin, method: 'PUT', body: { tts: { preset: 'nope' } } });
+  assert.equal(bad.data.tts.preset, 'bright', 'unknown style falls back to the default');
+  assert.deepEqual(bad.data.classCodes, ['DEMO'], 'other settings untouched');
+});

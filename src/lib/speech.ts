@@ -1,4 +1,6 @@
 import { findRecording, recordingUrl } from './recordings';
+import { api } from '../api';
+import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -25,6 +27,7 @@ export function setVoiceMode(mode: VoiceMode) {
     /* storage may be blocked */
   }
   cachedVoice = null;
+  styledVoices.clear();
   warmedUp = false;
   warmUp();
 }
@@ -50,9 +53,69 @@ function koreanVoice(): SpeechSynthesisVoice | null {
   return cachedVoice;
 }
 
+// ---- teacher-chosen voice style (음색), applied to Bori's voice on every device ----
+export interface TtsSettings {
+  preset: string;
+  voiceName: string;
+  pitchAdj: number;
+  rateAdj: number;
+}
+let classTts: TtsSettings = { ...DEFAULT_TTS };
+const styledVoices = new Map<string, { voice: SpeechSynthesisVoice | null; genderOk: boolean }>();
+
+export function setTtsSettings(t: Partial<TtsSettings> | null | undefined) {
+  classTts = { ...DEFAULT_TTS, ...(t || {}) };
+}
+
+/** Load the class voice style chosen by the teacher (public, works before login). */
+export async function loadTtsSettings() {
+  try {
+    const r = await api<{ tts?: TtsSettings }>('/status');
+    setTtsSettings(r.tts);
+  } catch {
+    /* keep the default */
+  }
+}
+
+/** Korean voices on this device, with a guessed gender (for the teacher's settings screen). */
+export function listKoreanVoices() {
+  return koreanVoices().map((v) => ({ name: v.name, gender: voiceGender(v.name) as 'male' | 'female' | 'unknown', local: v.localService }));
+}
+
+/** Pick the device voice for a style; genderOk=false means a male style found no male voice. */
+function styledVoice(t: TtsSettings) {
+  const key = `${getVoiceMode()}|${t.preset}|${t.voiceName}`;
+  const hit = styledVoices.get(key);
+  if (hit) return hit;
+  const voices = koreanVoices();
+  const p = presetById(t.preset);
+  let out: { voice: SpeechSynthesisVoice | null; genderOk: boolean } = { voice: null, genderOk: p.gender !== 'male' };
+  if (voices.length) {
+    const exact = t.voiceName ? voices.find((v) => v.name === t.voiceName) : undefined;
+    if (exact) out = { voice: exact, genderOk: true };
+    else {
+      const local = voices.filter((v) => v.localService);
+      const online = voices.filter((v) => !v.localService);
+      let cands = getVoiceMode() === 'quality' ? [...online, ...local] : [...local, ...online];
+      if (p.gender !== 'any') {
+        const same = cands.filter((v) => voiceGender(v.name) === p.gender);
+        const notOther = cands.filter((v) => voiceGender(v.name) !== (p.gender === 'male' ? 'female' : 'male'));
+        cands = same.length ? same : notOther.length ? notOther : cands;
+      }
+      const good = /google|natural|neural|online|yuna|heami|sora|premium|enhanced/i;
+      const prefer = p.prefer ? new RegExp(p.prefer, 'i') : null;
+      const voice = (prefer && cands.find((v) => prefer.test(v.name))) || cands.find((v) => good.test(v.name)) || cands[0] || null;
+      out = { voice, genderOk: p.gender !== 'male' || (voice ? voiceGender(voice.name) === 'male' : false) };
+    }
+  }
+  if (voices.length) styledVoices.set(key, out);
+  return out;
+}
+
 if ('speechSynthesis' in window) {
   window.speechSynthesis.addEventListener?.('voiceschanged', () => {
     cachedVoice = null;
+    styledVoices.clear();
     koreanVoice();
   });
   window.speechSynthesis.getVoices(); // starts loading the voice list early
@@ -139,6 +202,8 @@ export interface SpeakOptions {
   recordingText?: string | string[];
   /** false = always use the browser voice (e.g. the teacher comparing with TTS) */
   useRecording?: boolean;
+  /** Preview a voice style instead of the class setting (teacher settings screen) */
+  style?: TtsSettings;
 }
 
 let speakSeq = 0;
@@ -197,10 +262,22 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     const wait = GAP_MS - (performance.now() - lastBusyCancel);
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ko-KR';
-    const voice = koreanVoice();
-    if (voice) u.voice = voice;
-    u.rate = rate;
-    u.pitch = opts.pitch ?? 1.1;
+    if (opts.pitch != null) {
+      // Drama / dialogue characters bring their own pitch: keep the neutral device voice
+      const voice = koreanVoice();
+      if (voice) u.voice = voice;
+      u.rate = rate;
+      u.pitch = opts.pitch;
+    } else {
+      // Bori and narration: the teacher's voice style
+      const st = opts.style || classTts;
+      const p = presetById(st.preset);
+      const { voice, genderOk } = styledVoice(st);
+      if (voice) u.voice = voice;
+      const basePitch = genderOk ? p.pitch : p.fallbackPitch ?? p.pitch;
+      u.pitch = Math.min(2, Math.max(0.1, basePitch + (st.pitchAdj || 0)));
+      u.rate = Math.min(2, Math.max(0.3, rate * p.rate * (st.rateAdj || 1)));
+    }
     u.onstart = () => opts.onStart?.();
     u.onboundary = (e) => opts.onBoundary?.(e.charIndex);
     u.onend = finish;
@@ -214,7 +291,7 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     if (wait > 0) startTimer = window.setTimeout(go, wait);
     else go();
     // Safety net: some browsers never fire onend
-    armGuard(2500 + (text.length * 450) / (rate || 1));
+    armGuard(2500 + (text.length * 450) / (u.rate || 1));
   };
 
   const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
