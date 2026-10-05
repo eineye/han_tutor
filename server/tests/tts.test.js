@@ -71,3 +71,30 @@ test('each character in a scene gets a different AI voice', () => {
   assert.equal(new Set(Object.values(v)).size, 4);
   assert.equal(geminiVoiceFor(DEFAULT_TTS, { pitch: 0.8, voice: v['태오'] }).voice, v['태오']);
 });
+
+test('/tts: short syllables get a firm instruction, a failed call is retried with the bare text', async () => {
+  const db = { settings: { classCodes: ['DEMO'] }, sessions: [{ token: 'tok', role: 'student', studentId: 's1' }], students: [{ id: 's1' }] };
+  const files = new Map();
+  const prompts = [];
+  let fail = true;
+  const core = createCore({
+    db: () => db, save: () => {}, id: (p = '') => p + Math.random().toString(16).slice(2), now: () => new Date().toISOString(),
+    hashPin: (x) => x, checkPin: () => true, resetContent: () => {}, adminPassword: () => 'x', hasKey: () => true,
+    generate: async (opts) => {
+      prompts.push(opts.contents[0].parts[0].text);
+      if (fail) {
+        fail = false;
+        throw new Error('Gemini returned no audio (OTHER).');
+      }
+      return { data: btoa('\x01\x00'), mimeType: 'audio/L16;rate=24000' };
+    },
+    audio: { put: async (id, d) => void files.set(id, d), get: async (id) => files.get(id) ?? null, remove: async () => {} },
+  });
+  const r = await core.handle('POST', '/tts', { token: 'tok', body: { text: '아' } });
+  assert.equal(r.status, 200);
+  assert.match(prompts[0], /exactly once/);
+  assert.equal(prompts[1], '아', 'retry with the bare text');
+  fail = true;
+  const bad = await core.handle('POST', '/tts', { token: 'tok', body: { text: '가' } });
+  assert.equal(bad.status, 200, 'one failure is recovered by the retry');
+});

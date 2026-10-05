@@ -929,13 +929,32 @@ export function createCore(deps) {
     const used = u && u.day === today ? u.n : 0;
     if (used >= TTS_DAILY_LIMIT) throw new HttpError(429, '오늘 AI 음성 사용량을 모두 썼습니다', 'tts_limit');
     ttsUsage.set(session.token, { day: today, n: used + 1 });
-    const out = await deps.generate({
-      model: t.model,
-      contents: [{ role: 'user', parts: [{ text: `${style}, pronouncing every Korean syllable clearly: ${text}` }] }],
-      temperature: 1,
-      config: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
-      audio: true,
-    });
+    // Very short items (한글 연구소: 아, 가, 기역 …) need a firmer instruction, otherwise the model
+    // may answer with text instead of audio. If a request fails, retry once with the bare text.
+    const syllables = (text.match(/[가-힣]/g) || []).length;
+    const prompts = [
+      syllables <= 3
+        ? `${style}. Read this short Korean text aloud exactly once, slowly and clearly, exactly as written, and say nothing else: ${text}`
+        : `${style}, pronouncing every Korean syllable clearly: ${text}`,
+      text,
+    ];
+    let out = null;
+    let lastErr = null;
+    for (const prompt of prompts) {
+      try {
+        out = await deps.generate({
+          model: t.model,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          temperature: 1,
+          config: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+          audio: true,
+        });
+        if (out?.data) break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!out?.data) throw new HttpError(502, `AI 음성을 만들지 못했습니다${lastErr ? `: ${String(lastErr.message || lastErr).slice(0, 200)}` : ''}`, 'tts_failed');
     if (!out?.data) throw new HttpError(502, 'AI 음성을 만들지 못했습니다');
     const data = /wav|wave/i.test(out.mimeType) ? out.data : pcmToWavBase64(out.data, out.mimeType);
     if (deps.audio) {

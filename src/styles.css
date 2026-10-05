@@ -2901,3 +2901,9 @@ label.inline select {
   gap: 10px;
   margin-bottom: 12px;
 }
+.voice-check {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}

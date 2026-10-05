@@ -218,29 +218,36 @@ export interface SpeakOptions {
 
 // ---- AI voice (Gemini TTS through the API, cached on the server and here) ----
 const aiUrls = new Map<string, Promise<string>>();
-let aiOffUntil = 0; // after an error, use the browser voice for a while
+const aiFailed = new Map<string, number>(); // request key → retry after (ms)
+let aiOffUntil = 0; // no key / daily limit: browser voice until reload
+let lastAiError = '';
 
 /** Let the teacher's settings screen enable the AI voice right after a key is set. */
 export function setAiAvailable(v: boolean) {
   aiAvailable = v;
   aiOffUntil = 0;
+  aiFailed.clear();
+}
+
+/** Last AI voice error (shown on the teacher's settings screen). */
+export const getLastAiError = () => lastAiError;
+
+function aiBody(text: string, opts: SpeakOptions) {
+  const body: Record<string, unknown> = { text };
+  if (opts.pitch != null) Object.assign(body, { pitch: opts.pitch, hint: opts.voiceHint || '', voice: opts.aiVoice || undefined });
+  else if (opts.style) Object.assign(body, { preset: opts.style.preset, voice: opts.style.geminiVoice || undefined });
+  return body;
 }
 
 function wantsAi(text: string, opts: SpeakOptions) {
   const engine = (opts.style || classTts).engine;
-  return engine === 'gemini' && aiAvailable && Date.now() > aiOffUntil && Boolean(getToken()) && /[가-힣]/.test(text);
-}
-
-/** True when speak() will play an audio file (teacher recording or AI voice) that may take a moment to load. */
-export function usesAudioFile(text: string, opts: SpeakOptions = {}) {
-  const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
-  return (opts.useRecording !== false && Boolean(findRecording(...extra, text))) || wantsAi(text, opts);
+  if (engine !== 'gemini' || !aiAvailable || Date.now() < aiOffUntil || !getToken() || !/[가-힣]/.test(text)) return false;
+  // one failed sentence falls back on its own, without switching every other sound to the browser voice
+  return (aiFailed.get(JSON.stringify(aiBody(text, opts))) || 0) < Date.now();
 }
 
 function aiUrl(text: string, opts: SpeakOptions): Promise<string> {
-  const body: Record<string, unknown> = { text };
-  if (opts.pitch != null) Object.assign(body, { pitch: opts.pitch, hint: opts.voiceHint || '', voice: opts.aiVoice || undefined });
-  else if (opts.style) Object.assign(body, { preset: opts.style.preset, voice: opts.style.geminiVoice || undefined });
+  const body = aiBody(text, opts);
   const key = JSON.stringify(body);
   let p = aiUrls.get(key);
   if (!p) {
@@ -250,14 +257,21 @@ function aiUrl(text: string, opts: SpeakOptions): Promise<string> {
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       return URL.createObjectURL(new Blob([bytes], { type: mime }));
     });
-    p.catch((e: { status?: number; code?: string }) => {
+    p.catch((e: { status?: number; code?: string; message?: string }) => {
       aiUrls.delete(key);
-      // no key / daily limit: browser voice until reload; other errors: retry after a minute
-      aiOffUntil = Date.now() + (e?.code === 'no_key' || e?.status === 429 ? 1e12 : 60000);
+      lastAiError = e?.message || 'error';
+      if (e?.code === 'no_key' || e?.status === 429) aiOffUntil = Date.now() + 1e12;
+      else aiFailed.set(key, Date.now() + 5 * 60000);
     });
     aiUrls.set(key, p);
   }
   return p;
+}
+
+/** True when speak() will play an audio file (teacher recording or AI voice) that may take a moment to load. */
+export function usesAudioFile(text: string, opts: SpeakOptions = {}) {
+  const extra = opts.recordingText == null ? [] : Array.isArray(opts.recordingText) ? opts.recordingText : [opts.recordingText];
+  return (opts.useRecording !== false && Boolean(findRecording(...extra, text))) || wantsAi(text, opts);
 }
 
 let speakSeq = 0;

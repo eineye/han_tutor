@@ -12,6 +12,7 @@ export default function VoiceSettings({ initial, ai, onSaved }: { initial: TtsSe
   const [base, setBase] = useState<TtsSettings>(initial);
   const [voices, setVoices] = useState(listKoreanVoices);
   const [saving, setSaving] = useState(false);
+  const [check, setCheck] = useState('');
   const dirty = JSON.stringify(t) !== JSON.stringify(base);
 
   useEffect(() => {
@@ -26,6 +27,21 @@ export default function VoiceSettings({ initial, ai, onSaved }: { initial: TtsSe
   }, []);
 
   const preview = (style: TtsSettings) => speak(SAMPLE, { style, useRecording: false });
+
+  /** Make AI voice for a short syllable and a sentence (like the Hangeul Lab) and report the result. */
+  const runCheck = async () => {
+    setCheck('시험 중…');
+    const out: string[] = [];
+    for (const text of ['아', '기역, 가.', '안녕하세요. 만나서 반가워요.']) {
+      try {
+        const r = await api<{ voice: string; cached: boolean }>('/tts', { body: { text, preset: t.preset, voice: t.geminiVoice || undefined } });
+        out.push(`✓ 「${text}」 ${r.voice}${r.cached ? ' (저장된 소리)' : ''}`);
+      } catch (e) {
+        out.push(`✗ 「${text}」 ${(e as Error).message}`);
+      }
+    }
+    setCheck(out.join('  ·  '));
+  };
   const hasMale = voices.some((v) => v.gender === 'male');
   const gem = t.engine === 'gemini';
 
@@ -172,7 +188,13 @@ export default function VoiceSettings({ initial, ai, onSaved }: { initial: TtsSe
         <button type="button" className="btn" onClick={save} disabled={!dirty || saving}>
           💾 음색 저장
         </button>
+        {gem && (
+          <button type="button" className="btn btn--ghost" onClick={runCheck} disabled={!ai}>
+            🔍 AI 음성 시험 (한글 연구소 소리)
+          </button>
+        )}
       </div>
+      {check && <p className="small voice-check">{check}</p>}
     </section>
   );
 }
