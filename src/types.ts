@@ -15,7 +15,7 @@ export interface Letter {
   roman: string;
   name?: string;
   tip_en: string;
-  example: { ko: string; roman: string; en: string };
+  example: { ko: string; roman: string; en: string; emoji?: string };
 }
 export interface GrammarPoint {
   pattern: string;

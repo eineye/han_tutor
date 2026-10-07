@@ -1192,9 +1192,25 @@ label.inline select {
   line-height: 1;
 }
 .letters__example {
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 1.15rem;
+  margin: 12px 0;
+}
+.letters__example p {
+  margin: 0;
+}
+.letters__pic {
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
 }
 @media (max-width: 600px) {
+  .letters__example {
+    flex-direction: column;
+  }
   .letters__detail {
     grid-template-columns: 1fr;
     text-align: center;

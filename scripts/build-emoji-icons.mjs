@@ -23,6 +23,7 @@ const add = (s) => typeof s === 'string' && graphemes(s).forEach((g) => used.add
 const lessons = [...seedLessons, ...(bonusLessons || [])];
 for (const l of lessons) {
   (l.vocab || []).forEach((v) => add(v.emoji));
+  (l.letters || []).forEach((x) => add(x.example?.emoji));
   for (const q of l.quiz || []) {
     add(q.prompt);
     (q.options || []).forEach(add);

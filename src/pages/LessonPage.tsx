@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import type { Lesson, Progress } from '../types';
 import { ErrorBox, Loading, SpeakButton } from '../components/ui';
 import PicIcon from '../components/PicIcon';
+import { WORD_EMOJI } from '../../server/emojiFixes.js';
 import QuizRunner from '../components/QuizRunner';
 import PronunciationPractice from '../components/PronunciationPractice';
 import DialogueView from '../components/DialogueView';
@@ -260,6 +261,8 @@ function LettersSection({ lesson }: { lesson: Lesson }) {
     mascot.say(text, { rate: 0.7 });
   };
   const exampleViseme = visemesFor(letter.example.ko[0]).find((x) => x !== 'M') || 'A';
+  // picture for the example word: its own, or the same word's picture in this lesson's vocabulary
+  const exampleEmoji = letter.example.emoji || lesson.vocab.find((v) => v.ko.split('→')[0].trim() === letter.example.ko)?.emoji || WORD_EMOJI[letter.example.ko as keyof typeof WORD_EMOJI] || '';
   return (
     <div className="letters">
       <div className="letters__grid">
@@ -290,9 +293,13 @@ function LettersSection({ lesson }: { lesson: Lesson }) {
               🔊 {letter.example.ko}
             </button>
           </div>
-          <p className="letters__example">
-            <b lang="ko">{letter.example.ko}</b> <span className="roman">{letter.example.roman}</span> — {letter.example.en}
-          </p>
+          <div className="letters__example">
+            {exampleEmoji && <PicIcon emoji={exampleEmoji} word={letter.example.ko} size={104} className="letters__pic" />}
+            <p>
+              <b lang="ko">{letter.example.ko}</b> <span className="roman">{letter.example.roman}</span>
+              {letter.example.en && <> — {letter.example.en}</>}
+            </p>
+          </div>
           <p className="muted small">👄 {t(`viseme.${exampleViseme}` as UIKey)}</p>
         </div>
       </div>

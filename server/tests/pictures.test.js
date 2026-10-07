@@ -14,6 +14,7 @@ test('every lesson picture has a bundled drawing', () => {
   const check = (word, s) => [...seg.segment(fixEmoji(word, s || ''))].map((x) => x.segment).filter((g) => PIC.test(g)).forEach((g) => svgs[g] || missing.add(`${g} (${word})`));
   for (const l of seedLessons) {
     for (const v of l.vocab || []) check(v.ko, v.emoji);
+    for (const x of l.letters || []) check(x.example.ko, x.example.emoji);
     for (const q of l.quiz || []) [q.prompt, ...(q.options || [])].forEach((s) => check('', s));
   }
   assert.deepEqual([...missing], [], 'run: node scripts/build-emoji-icons.mjs');

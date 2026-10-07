@@ -10,12 +10,13 @@
 import { bonusLessons } from './bonus.js';
 
 const v = (ko, roman, en, emoji = '', pron = '') => ({ ko, roman, en, emoji, ...(pron ? { pron } : {}) });
-const L = (char, roman, tip_en, exKo, exRoman, exEn, name = '') => ({
+// exEmoji: picture for the example word when it is not in the lesson's vocabulary
+const L = (char, roman, tip_en, exKo, exRoman, exEn, name = '', exEmoji = '') => ({
   char,
   roman,
   name,
   tip_en,
-  example: { ko: exKo, roman: exRoman, en: exEn },
+  example: exEmoji ? { ko: exKo, roman: exRoman, en: exEn, emoji: exEmoji } : { ko: exKo, roman: exRoman, en: exEn },
 });
 const line = (speaker, ko, roman, en) => ({ speaker, ko, roman, en });
 const p = (text, roman, tip_en = '') => ({ text, roman, tip_en });
@@ -47,9 +48,9 @@ const lessons = [
     objectives: ['Know a few symbols of Korean culture: hanbok, hansik, hanok', 'Understand why and how King Sejong created Hangeul', 'Understand the design principles of vowels and consonants'],
     warmup: { emoji: '👑', question_en: 'Before 1443, most Koreans could not read or write, because writing used difficult Chinese characters. What would you do if you were king?' },
     letters: [
-      L('·', 'sky', 'A round dot for the round sky. (Today it lives on as the short stroke in ㅏ, ㅓ, ㅗ, ㅜ.)', '하늘', 'haneul', 'sky', '천 (heaven)'),
-      L('ㅡ', 'earth', 'A flat line for the flat earth.', '땅', 'ttang', 'ground', '지 (earth)'),
-      L('ㅣ', 'person', 'A standing line for a person standing up.', '사람', 'saram', 'person', '인 (human)'),
+      L('·', 'sky', 'A round dot for the round sky. (Today it lives on as the short stroke in ㅏ, ㅓ, ㅗ, ㅜ.)', '하늘', 'haneul', 'sky', '천 (heaven)', '⛅'),
+      L('ㅡ', 'earth', 'A flat line for the flat earth.', '땅', 'ttang', 'ground', '지 (earth)', '🌍'),
+      L('ㅣ', 'person', 'A standing line for a person standing up.', '사람', 'saram', 'person', '인 (human)', '🧍'),
       L('ㄱ', 'g/k', 'The back of the tongue rises and blocks the throat — look at the shape from the side.', '가', 'ga', '', '혀뿌리 (tongue root)'),
       L('ㄴ', 'n', 'The tongue tip touches the gum ridge behind the upper teeth.', '나', 'na', '', '혀끝 (tongue tip)'),
       L('ㅁ', 'm', 'The square shows the closed lips.', '마', 'ma', '', '입술 (lips)'),
@@ -110,7 +111,7 @@ const lessons = [
     warmup: { emoji: '🚇', question_en: 'Look at any Korean sign or K-pop album cover. Can you find letters shaped like ㅏ, ㅗ or ㅣ?' },
     letters: [
       L('ㅏ', 'a', 'Open your mouth wide, as in “father”.', '아이', 'ai', 'child'),
-      L('ㅓ', 'eo', 'Drop the jaw, lips relaxed and NOT round — like the “u” in “up”, but deeper.', '어', 'eo', 'uh? (sound)'),
+      L('ㅓ', 'eo', 'Drop the jaw, lips relaxed and NOT round — like the “u” in “up”, but deeper.', '어', 'eo', 'uh? (sound)', '', '🤔'),
       L('ㅗ', 'o', 'Round your lips into a small circle. Keep it pure — no “w” at the end.', '오', 'o', 'five'),
       L('ㅜ', 'u', 'Round your lips and push them forward, as in “moon”.', '아우', 'au', 'younger sibling'),
       L('ㅡ', 'eu', 'Lips flat and spread, teeth almost closed, tongue pulled back. No rounding!', '으', 'eu', '(the sound itself)'),

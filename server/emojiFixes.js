@@ -14,3 +14,6 @@ export const EMOJI_FIXES = {
 };
 
 export const fixEmoji = (word, emoji) => EMOJI_FIXES[`${word}|${emoji}`] || emoji;
+
+/** Pictures for letter-example words that are not in a lesson's vocabulary (for lessons saved earlier). */
+export const WORD_EMOJI = { 하늘: '⛅', 땅: '🌍', 사람: '🧍', 어: '🤔' };
