@@ -31,6 +31,17 @@ export default function DramaPlayer() {
   const [practice, setPractice] = useState<Line | null>(null);
   const playingAll = useRef(false);
   const player = useRef<VideoHandle>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const scriptRef = useRef<HTMLOListElement>(null);
+  // keep the video on screen while the script scrolls (remembered per browser)
+  const [pinned, setPinned] = useState(() => {
+    try {
+      return localStorage.getItem('hantutor.drama.pin') !== '0';
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     api(`/videos/${id}`).then(setVideo).catch(setError);
@@ -60,6 +71,47 @@ export default function DramaPlayer() {
     },
     [video, loop, current],
   );
+
+  // Tell CSS how tall the sticky header and video are, so a highlighted line is never hidden under them
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const update = () => {
+      const top = (document.querySelector('.topbar') as HTMLElement | null)?.offsetHeight ?? 60;
+      root.style.setProperty('--drama-top', `${top}px`);
+      root.style.setProperty('--drama-sticky', `${top + (pinned && window.innerWidth < 980 ? leftRef.current?.offsetHeight ?? 0 : 0) + 8}px`);
+    };
+    update();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    if (leftRef.current) ro?.observe(leftRef.current);
+    window.addEventListener('resize', update);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [pinned, video]);
+
+  // Keyboard: ← → previous/next line, R replays (ignored while typing)
+  const navRef = useRef<(key: string) => void>(() => {});
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.altKey || e.ctrlKey || e.metaKey || (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) || el?.isContentEditable) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        navRef.current(e.key);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Follow the line being played in the script, without jumping the page around
+  useEffect(() => {
+    if (current < 0 || tab !== 'script') return;
+    const li = scriptRef.current?.children[current] as HTMLElement | undefined;
+    li?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [current, tab]);
 
   if (error) return <ErrorBox error={error} />;
   if (!video) return <Loading />;
@@ -106,6 +158,27 @@ export default function DramaPlayer() {
     ttsLine(0, true);
   };
 
+  const goLine = (i: number) => {
+    if (i < 0 || i >= video.lines.length) return;
+    playLine(i);
+  };
+  navRef.current = (key) => {
+    if (tab !== 'script' || practice) return;
+    if (key === 'ArrowLeft') goLine(current - 1);
+    else if (key === 'ArrowRight') goLine(current + 1);
+    else goLine(Math.max(0, current));
+  };
+  const togglePin = () => {
+    setPinned((p) => {
+      try {
+        localStorage.setItem('hantutor.drama.pin', p ? '0' : '1');
+      } catch {
+        /* ignore */
+      }
+      return !p;
+    });
+  };
+
   const cur = current >= 0 ? video.lines[current] : null;
 
   const subtitle = (l: Line | null) =>
@@ -120,7 +193,7 @@ export default function DramaPlayer() {
     ) : null;
 
   return (
-    <div className="drama">
+    <div className="drama" ref={rootRef}>
       <Link to="/drama" className="muted small">
         ← {tr('nav.drama')}
       </Link>
@@ -129,6 +202,8 @@ export default function DramaPlayer() {
       </h1>
       <p className="muted">{video.description_en}</p>
 
+      <div className={`drama__layout ${pinned ? 'is-pinned' : ''}`}>
+      <div className="drama__left" ref={leftRef}>
       <div className="drama__screen">
         {hasVideo ? (
           <>
@@ -160,8 +235,8 @@ export default function DramaPlayer() {
           </button>
         )}
         <label className="inline">
-          {tr('drama.subtitles')}
-          <select value={sub} onChange={(e) => setSub(e.target.value as SubMode)}>
+          <span className="drama__barlabel">{tr('drama.subtitles')}</span>
+          <select value={sub} aria-label={tr('drama.subtitles')} onChange={(e) => setSub(e.target.value as SubMode)}>
             <option value="ko">{tr('drama.sub.ko')}</option>
             <option value="ko+roman">{tr('drama.sub.roman')}</option>
             <option value="all">{tr('drama.sub.all')}</option>
@@ -173,7 +248,27 @@ export default function DramaPlayer() {
           <span className="toggle__track" />
           <span>{tr('drama.repeat')}</span>
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={pinned} onChange={togglePin} />
+          <span className="toggle__track" />
+          <span>📌 {tr('drama.pin')}</span>
+        </label>
       </div>
+      <div className="drama__nav" title={tr('drama.keys')}>
+        <button className="btn btn--ghost btn--small" onClick={() => goLine(current - 1)} disabled={current <= 0} aria-label={tr('drama.prev')}>
+          ⏮ <span className="drama__navlabel">{tr('drama.prev')}</span>
+        </button>
+        <button className="btn btn--small" onClick={() => goLine(Math.max(0, current))} aria-label={tr('drama.replay')}>
+          🔁 <span className="drama__navlabel">{tr('drama.replay')}</span>
+        </button>
+        <button className="btn btn--ghost btn--small" onClick={() => goLine(current + 1)} disabled={current >= video.lines.length - 1} aria-label={tr('drama.next')}>
+          <span className="drama__navlabel">{tr('drama.next')}</span> ⏭
+        </button>
+        <span className="drama__pos">{current >= 0 ? `${current + 1} / ${video.lines.length}` : `– / ${video.lines.length}`}</span>
+      </div>
+      </div>
+
+      <div className="drama__right">
 
       <div className="tabs tabs--wide">
         {(['script', 'expressions', 'roleplay', 'quiz'] as Tab[]).map((t) => (
@@ -183,9 +278,9 @@ export default function DramaPlayer() {
         ))}
       </div>
 
-      <div className="card">
+      <div className="card drama__panel">
         {tab === 'script' && (
-          <ol className="script">
+          <ol className="script" ref={scriptRef}>
             {video.lines.map((l, i) => (
               <li key={i} className={`script__line ${current === i ? 'is-current' : ''}`} onClick={() => playLine(i)}>
                 <span className="avatar" style={{ background: castOf(l.speaker).color }}>
@@ -244,6 +339,9 @@ export default function DramaPlayer() {
             }
           />
         )}
+      </div>
+
+      </div>
       </div>
 
       <Modal open={!!practice} onClose={() => setPractice(null)} title={tr('dialogue.shadowing')} wide>

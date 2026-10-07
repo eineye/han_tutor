@@ -2964,3 +2964,93 @@ label.inline select {
   margin-top: 10px;
   font-size: 0.7rem;
 }
+
+/* ───────── Drama player: video stays visible while studying the script ───────── */
+.drama__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.drama__pos {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.script__line {
+  scroll-margin-top: calc(var(--drama-sticky, 80px) + 10px);
+  scroll-margin-bottom: 16px;
+}
+@media (min-width: 980px) {
+  .drama__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .drama__layout.is-pinned .drama__left {
+    position: sticky;
+    top: calc(var(--drama-top, 60px) + 12px);
+  }
+  /* the script scrolls inside its own panel next to the video */
+  .drama__layout.is-pinned .drama__panel {
+    max-height: calc(100vh - var(--drama-top, 60px) - 96px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .drama__layout.is-pinned .script__line {
+    scroll-margin-top: 8px;
+  }
+}
+@media (max-width: 979px) {
+  /* phones/tablets: video sticks under the top bar, the script scrolls beneath it */
+  .drama__layout.is-pinned .drama__left {
+    position: sticky;
+    top: var(--drama-top, 60px);
+    z-index: 15;
+    background: var(--bg);
+    padding-top: 6px;
+    box-shadow: 0 8px 12px -10px rgba(0, 0, 0, 0.25);
+  }
+  .drama__layout.is-pinned .drama__screen {
+    max-width: calc(36vh * 16 / 9);
+    margin: 0 auto 8px;
+  }
+  /* one compact, sideways-scrolling row of controls so the script keeps most of the screen */
+  .drama__layout.is-pinned .drama__bar {
+    position: relative; /* keeps the toggles' hidden checkboxes inside the scrolling row */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 2px;
+    font-size: 0.82rem;
+    scrollbar-width: none;
+  }
+  .drama__layout.is-pinned .drama__bar .btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    flex: none;
+  }
+  .drama__layout.is-pinned .drama__bar select {
+    max-width: 170px;
+    padding: 4px 8px;
+  }
+  .drama__layout.is-pinned .drama__barlabel {
+    display: none;
+  }
+  .drama__layout.is-pinned .drama__nav {
+    margin-bottom: 6px;
+  }
+}
+@media (max-width: 600px) {
+  .drama__navlabel {
+    display: none;
+  }
+}
+
+.drama__right .tabs {
+  flex-wrap: wrap;
+}
