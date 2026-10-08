@@ -5,7 +5,7 @@ import { seedUnits, seedLessons } from '../../server/seed/curriculum.js';
 import { seedVideos } from '../../server/seed/videos.js';
 import { callGemini, uploadGeminiFile } from '../../server/geminiClient.js';
 import { getBrowserGeminiKey } from './browserKey';
-import { clearDemoAudio, idbAudioStore } from './audioStore';
+import { clearDemoAudio, idbAudioStore, idbMediaStore } from './audioStore';
 
 const KEY = 'hantutor.demo.db.v2'; // bump when the seed curriculum changes
 
@@ -115,6 +115,7 @@ const core = createCore({
   uploadFile: (opts: any) => uploadGeminiFile({ ...opts, apiKey: getBrowserGeminiKey() }),
   adminPassword: () => DEMO_ADMIN_PASSWORD,
   audio: idbAudioStore,
+  media: idbMediaStore,
 });
 
 export async function mockFetch(method: string, path: string, token: string | null, body: unknown) {

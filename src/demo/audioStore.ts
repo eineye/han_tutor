@@ -59,3 +59,21 @@ export function clearDemoAudio() {
     /* ignore */
   }
 }
+
+// ---- teacher video files in the demo (Blobs in the same IndexedDB store, key "media:<id>") ----
+const blobs = new Map<string, Blob>();
+export const idbMediaStore = {
+  async putBlob(id: string, blob: Blob) {
+    blobs.set(id, blob);
+    await run('readwrite', (s) => s.put(blob, `media:${id}`)).catch(() => {});
+  },
+  async getBlob(id: string): Promise<Blob | null> {
+    if (blobs.has(id)) return blobs.get(id)!;
+    const v = await run<Blob>('readonly', (s) => s.get(`media:${id}`)).catch(() => undefined);
+    return v ?? null;
+  },
+  async remove(id: string) {
+    blobs.delete(id);
+    await run('readwrite', (s) => s.delete(`media:${id}`)).catch(() => {});
+  },
+};

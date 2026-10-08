@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { isMediaSrc, resolveMediaSrc } from '../lib/media';
 
 export interface VideoHandle {
   play(): void;
@@ -43,6 +44,20 @@ const VideoSurface = forwardRef<VideoHandle, { type: 'youtube' | 'file' | 'audio
   const host = useRef<HTMLDivElement>(null);
   const yt = useRef<any>(null);
   const vid = useRef<HTMLVideoElement & HTMLAudioElement>(null);
+  // teacher-uploaded files are stored as "media:<id>" and resolved to a playable URL
+  const [fileSrc, setFileSrc] = useState(() => (type !== 'youtube' && !isMediaSrc(src) ? src : ''));
+  const [fileErr, setFileErr] = useState('');
+  useEffect(() => {
+    if (type === 'youtube') return;
+    let alive = true;
+    setFileErr('');
+    resolveMediaSrc(src)
+      .then((u) => alive && setFileSrc(u))
+      .catch((e) => alive && (setFileSrc(''), setFileErr((e as Error).message)));
+    return () => {
+      alive = false;
+    };
+  }, [type, src]);
 
   useEffect(() => {
     if (type !== 'youtube' || !src) return;
@@ -87,8 +102,13 @@ const VideoSurface = forwardRef<VideoHandle, { type: 'youtube' | 'file' | 'audio
     time: () => (type === 'youtube' ? yt.current?.getCurrentTime?.() || 0 : vid.current?.currentTime || 0),
   }));
 
-  if (type === 'audio') return <audio ref={vid} src={src} controls className="audio-surface" />;
-  return <div className="video-surface">{type === 'youtube' ? <div ref={host} className="video-surface__yt" /> : <video ref={vid} src={src} controls playsInline />}</div>;
+  if (type === 'audio') return <audio ref={vid} src={fileSrc || undefined} controls className="audio-surface" />;
+  return (
+    <div className="video-surface">
+      {type === 'youtube' ? <div ref={host} className="video-surface__yt" /> : <video ref={vid} src={fileSrc || undefined} controls playsInline preload="metadata" />}
+      {fileErr && <div className="video-surface__err">{fileErr}</div>}
+    </div>
+  );
 });
 
 export default VideoSurface;

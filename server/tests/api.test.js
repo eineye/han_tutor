@@ -173,3 +173,36 @@ test('teacher voice style (TTS 음색): default, save with clamping, public to s
   assert.equal(bad.data.tts.preset, 'bright', 'unknown style falls back to the default');
   assert.deepEqual(bad.data.classCodes, ['DEMO'], 'other settings untouched');
 });
+
+test('teacher video files: upload, list, stream with Range, protect in-use files, delete', async () => {
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  const bytes = Buffer.from(Array.from({ length: 2000 }, (_, i) => i % 256));
+  const upload = (token, type = 'video/mp4') =>
+    fetch(base + '/admin/media', { method: 'POST', headers: { 'Content-Type': type, 'X-Filename': encodeURIComponent('우리 반 드라마.mp4'), ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: bytes });
+  assert.equal((await upload(null)).status, 403, 'teachers only');
+  assert.equal((await upload(admin, 'text/plain')).status, 400, 'video files only');
+  const up = await upload(admin);
+  assert.equal(up.status, 200);
+  const item = await up.json();
+  assert.match(item.id, /^md_/);
+  assert.equal(item.name, '우리 반 드라마.mp4');
+  assert.equal(item.size, 2000);
+  assert.ok((await call('/admin/media', { token: admin })).data.some((m) => m.id === item.id));
+
+  const full = await fetch(`${base}/media/${item.id}`);
+  assert.equal(full.status, 200);
+  assert.equal(full.headers.get('content-type'), 'video/mp4');
+  assert.equal(Buffer.from(await full.arrayBuffer()).length, 2000);
+  const part = await fetch(`${base}/media/${item.id}`, { headers: { Range: 'bytes=100-199' } });
+  assert.equal(part.status, 206, 'seeking works');
+  assert.deepEqual(Buffer.from(await part.arrayBuffer()), bytes.subarray(100, 200));
+
+  // a drama scene that uses the file cannot lose it
+  const videos = (await call('/admin/videos', { token: admin })).data;
+  const v = { ...videos[0], source: { type: 'file', url: `media:${item.id}`, youtubeId: '' } };
+  await call(`/admin/videos/${v.id}`, { token: admin, method: 'PUT', body: v });
+  assert.equal((await call(`/admin/media/${item.id}`, { token: admin, method: 'DELETE' })).status, 409);
+  await call(`/admin/videos/${v.id}`, { token: admin, method: 'PUT', body: { ...v, source: { type: 'none', url: '', youtubeId: '' } } });
+  assert.equal((await call(`/admin/media/${item.id}`, { token: admin, method: 'DELETE' })).status, 200);
+  assert.equal((await fetch(`${base}/media/${item.id}`)).status, 404);
+});

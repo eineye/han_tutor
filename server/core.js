@@ -58,6 +58,7 @@ export function lessonSections(lesson) {
  * @param {() => string} deps.adminPassword
  * @param {() => string} [deps.defaultModel]
  * @param {{put(id: string, base64: string): Promise<void>, get(id: string): Promise<string|null>, remove(id: string): Promise<void>}} [deps.audio]  recording file storage
+ * @param {{remove(id: string): Promise<void>}} [deps.media]  teacher video files (deleted with their list entry)
  * @param {(opts: {bytes: Uint8Array, mimeType: string, name?: string}) => Promise<{uri: string, mimeType: string}|null>} [deps.uploadFile]  Gemini File API upload for large media
  */
 export function createCore(deps) {
@@ -618,6 +619,36 @@ export function createCore(deps) {
     });
     const out = Array.isArray(result?.translations) ? result.translations : [];
     return { items: batch.map((en, i) => ({ en, text: typeof out[i] === 'string' ? out[i] : '' })) };
+  });
+
+  // ---- teacher video files (self-made drama scenes) ----
+  // The file itself is uploaded/streamed by the HTTP layer (server/index.js) or kept in the
+  // browser (demo); the core keeps the list. A video uses it as source.url = "media:<id>".
+  const mediaList = () => (db().media ||= []);
+  route('GET', '/admin/media', 'admin', () => mediaList());
+  route('POST', '/admin/media/meta', 'admin', ({ body }) => {
+    const id = String(body.id || '');
+    if (!/^md_[a-f0-9]{8,32}$/.test(id)) throw new HttpError(400, 'bad media id');
+    const mime = String(body.mime || '').toLowerCase();
+    if (!/^(video|audio)\//.test(mime)) throw new HttpError(400, '영상(또는 소리) 파일만 올릴 수 있습니다');
+    const item = { id, name: String(body.name || 'video').slice(0, 120), mime, size: Number(body.size) || 0, at: now() };
+    const list = mediaList();
+    const i = list.findIndex((m) => m.id === id);
+    if (i >= 0) list[i] = item;
+    else list.push(item);
+    save();
+    return item;
+  });
+  route('DELETE', '/admin/media/:id', 'admin', async ({ params }) => {
+    const users = db().videos.filter((v) => v.source?.url === `media:${params.id}`);
+    if (users.length) throw new HttpError(409, `이 영상을 쓰는 드라마가 있습니다: ${users.map((v) => `${v.id} ${v.title?.ko || ''}`).join(', ')}`);
+    const list = mediaList();
+    const i = list.findIndex((m) => m.id === params.id);
+    if (i < 0) throw new HttpError(404, '영상을 찾을 수 없습니다');
+    list.splice(i, 1);
+    await deps.media?.remove(params.id);
+    save();
+    return { ok: true };
   });
 
   // ---- teacher recordings (native-speaker audio used instead of browser TTS) ----

@@ -3054,3 +3054,72 @@ label.inline select {
 .drama__right .tabs {
   flex-wrap: wrap;
 }
+
+/* ───────── Teacher video upload (드라마 영상 › 영상 소스) ───────── */
+.vfile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+}
+.vfile__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.vfile__progress {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.vfile__progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--primary);
+  transition: width 0.2s;
+}
+.vfile__progress small {
+  position: relative;
+  display: block;
+  text-align: center;
+  line-height: 22px;
+  font-weight: 700;
+}
+.vfile__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vfile__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.vfile__item > span:first-child {
+  font-weight: 600;
+  flex: 1 1 200px;
+}
+.vfile__item.is-active {
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+.video-surface__err {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 0.85rem;
+}

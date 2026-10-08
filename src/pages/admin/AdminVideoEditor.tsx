@@ -6,6 +6,7 @@ import VideoSurface, { parseYouTubeId, type VideoHandle } from '../../components
 import type { Line, Video } from '../../types';
 import { JsonEditor, QuizEditor, RowsEditor } from './editors';
 import SubtitleImport from './SubtitleImport';
+import VideoFilePicker from './VideoFilePicker';
 
 type Tab = 'basic' | 'source' | 'cast' | 'lines' | 'expr' | 'quiz' | 'json';
 
@@ -146,7 +147,7 @@ export default function AdminVideoEditor() {
               <select value={v.source.type} onChange={(e) => up({ source: { ...v.source, type: e.target.value as Video['source']['type'] } })}>
                 <option value="none">오디오 드라마 (영상 없음, TTS 음성)</option>
                 <option value="youtube">YouTube 임베드</option>
-                <option value="file">영상 파일 URL (자체 제작/라이선스 보유)</option>
+                <option value="file">영상 파일 (직접 만든 영상 올리기 · URL)</option>
               </select>
             </label>
             {v.source.type === 'youtube' && (
@@ -163,12 +164,7 @@ export default function AdminVideoEditor() {
                 <small className="muted">인식된 ID: {v.source.youtubeId || '–'}</small>
               </label>
             )}
-            {v.source.type === 'file' && (
-              <label>
-                영상 파일 URL (mp4/webm)
-                <input value={v.source.url} onChange={(e) => up({ source: { ...v.source, url: e.target.value } })} placeholder="https://.../scene1.mp4" />
-              </label>
-            )}
+            {v.source.type === 'file' && <VideoFilePicker url={v.source.url} onChange={(url) => up({ source: { ...v.source, url } })} />}
             {hasPlayer && <VideoSurface type={v.source.type as 'youtube' | 'file'} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} />}
           </>
         )}
