@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, download, IS_DEMO } from '../../api';
 import { getBrowserGeminiKey, setBrowserGeminiKey } from '../../demo/browserKey';
 import { ErrorBox, Loading } from '../../components/ui';
@@ -61,7 +62,12 @@ export default function AdminSettings() {
 
   return (
     <div>
-      <h1>설정</h1>
+      <div className="page-head">
+        <h1>설정</h1>
+        <Link to="/sound-check" className="btn btn--ghost btn--small">
+          🔊 소리 점검 (휴대폰에서 소리가 안 날 때)
+        </Link>
+      </div>
       {msg && <div className="alert alert--info">{msg}</div>}
       <section className="card form">
         <h3>반 코드</h3>

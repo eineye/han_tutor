@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { BrandIcon, BrandName } from '../components/Brand';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import InstallApp from '../components/InstallApp';
 import { api, ApiError, IS_DEMO } from '../api';
 import { useAuth } from '../auth';
@@ -167,6 +167,9 @@ export default function Login() {
         )}
         {IS_DEMO && <DemoNotice />}
         <InstallApp />
+        <Link to="/sound-check" className="muted small">
+          🔊 {t('nav.soundCheck')}
+        </Link>
       </form>
     </div>
   );

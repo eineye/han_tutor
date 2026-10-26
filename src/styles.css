@@ -3936,3 +3936,18 @@ label.inline select {
     max-width: 15em;
   }
 }
+
+/* 소리 점검 · Sound check */
+.soundcheck__buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.soundcheck__log {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-height: 50vh;
+  overflow-y: auto;
+}

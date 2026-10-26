@@ -172,6 +172,8 @@ export function warmUp() {
 let audioCtx: AudioContext | null = null;
 let idleTimer: number | null = null;
 export function keepAudioAwake() {
+  // Android app: the phone's own speech engine handles its audio; a silent WebView loop could only get in its way
+  if (appTts()) return;
   try {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;

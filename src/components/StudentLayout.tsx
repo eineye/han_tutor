@@ -111,6 +111,12 @@ export default function StudentLayout() {
               🌐 <LangSwitcher compact />
             </div>
             <InstallApp />
+            <NavLink to="/sound-check" className="drawer__link" tabIndex={menu ? 0 : -1}>
+              <span aria-hidden className="drawer__icon">
+                🔊
+              </span>
+              {t('nav.soundCheck')}
+            </NavLink>
             <button type="button" className="btn btn--ghost btn--block" onClick={doLogout} tabIndex={menu ? 0 : -1}>
               {t('nav.logout')}
             </button>

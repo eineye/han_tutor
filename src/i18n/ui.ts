@@ -18,6 +18,7 @@ export const UI = {
   'nav.me': e('Me', '나', 'म'),
   'nav.logout': e('Log out', '로그아웃', 'लग आउट'),
   'talk.settings': e('Scenario & settings', '상황·설정', 'परिस्थिति र सेटिङ'),
+  'nav.soundCheck': e('Sound check', '소리 점검', 'आवाज जाँच'),
   'nav.menu': e('Menu', '메뉴', 'मेनु'),
   'common.close': e('Close', '닫기', 'बन्द गर्नुहोस्'),
   'install.button': e('Install app', '앱 설치', 'एप इन्स्टल गर्नुहोस्'),

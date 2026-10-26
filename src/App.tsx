@@ -25,6 +25,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import AdminTranslations from './pages/admin/AdminTranslations';
 import AdminRecordings from './pages/admin/AdminRecordings';
 import TopikHome from './pages/TopikHome';
+import SoundCheck from './pages/SoundCheck';
 import TopikTest from './pages/TopikTest';
 import AdminTopik from './pages/admin/AdminTopik';
 import AdminTopikEditor from './pages/admin/AdminTopikEditor';
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/sound-check" element={<SoundCheck />} />
       <Route
         element={
           <RequireRole role="student">
