@@ -20,6 +20,7 @@ import {
   TRANSLATE_SCHEMA,
   translatePrompt,
 } from './transcripts.js';
+import { seedTopikSets } from './seed/topik.js';
 import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
@@ -424,6 +425,7 @@ export function createCore(deps) {
       chatLogs: mine('chatLogs'),
       evaluations: mine('evaluations'),
       assignments: mine('assignments'),
+      topikResults: (db().topikResults || []).filter((x) => x.studentId === s.id),
     };
   });
 
@@ -564,13 +566,14 @@ export function createCore(deps) {
 
   route('GET', '/admin/content/export', 'admin', () => {
     const { units, lessons, videos } = db();
-    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos, translations: translations() } };
+    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos, topikSets: topikSets(), translations: translations() } };
   });
 
   route('POST', '/admin/content/import', 'admin', ({ body }) => {
     const { units, lessons, videos } = body;
     if (!Array.isArray(units) || !Array.isArray(lessons) || !Array.isArray(videos)) throw new HttpError(400, 'units, lessons, videos 배열이 필요합니다.');
     Object.assign(db(), { units, lessons, videos });
+    if (Array.isArray(body.topikSets)) db().topikSets = body.topikSets;
     if (body.translations && typeof body.translations === 'object') {
       for (const lang of TRANSLATION_LANGS) Object.assign(translations()[lang], body.translations[lang] || {});
     }
@@ -619,6 +622,97 @@ export function createCore(deps) {
     });
     const out = Array.isArray(result?.translations) ? result.translations : [];
     return { items: batch.map((en, i) => ({ en, text: typeof out[i] === 'string' ? out[i] : '' })) };
+  });
+
+  // ---- TOPIK I practice tests (student: solve; teacher: edit) ----
+  const cloneSeed = () => JSON.parse(JSON.stringify(seedTopikSets));
+  const topikSets = () => (db().topikSets ||= cloneSeed());
+  const topikResults = () => (db().topikResults ||= []);
+  const maxScore = (set) => (set.questions || []).reduce((a, q) => a + (Number(q.points) || 0), 0);
+  const topikSummary = (set) => ({
+    id: set.id,
+    order: set.order,
+    level: set.level,
+    section: set.section,
+    title: set.title,
+    description_en: set.description_en,
+    timeLimitMin: set.timeLimitMin,
+    questionCount: (set.questions || []).length,
+    maxScore: maxScore(set),
+    status: set.status,
+  });
+
+  route('GET', '/topik', 'student', ({ student }) => {
+    const mine = topikResults().filter((r) => r.studentId === student.id);
+    return topikSets()
+      .filter(published)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((set) => {
+        const rs = mine.filter((r) => r.setId === set.id);
+        return { ...topikSummary(set), attempts: rs.length, best: rs.length ? Math.max(...rs.map((r) => r.score)) : null, last: rs.at(-1) || null };
+      });
+  });
+
+  route('GET', '/topik/:id', 'student', ({ params }) => {
+    const set = topikSets().find((x) => x.id === params.id && published(x));
+    if (!set) throw new HttpError(404, 'not found');
+    return set;
+  });
+
+  // Scored on the server from the stored answer key
+  route('POST', '/topik/results', 'student', ({ body, student }) => {
+    const set = topikSets().find((x) => x.id === body.setId && published(x));
+    if (!set) throw new HttpError(404, 'not found');
+    const answers = Array.isArray(body.answers) ? body.answers : [];
+    let score = 0;
+    let correct = 0;
+    const detail = set.questions.map((q, i) => {
+      const a = Number.isInteger(answers[i]) ? answers[i] : null;
+      const ok = a === q.answer;
+      if (ok) (score += Number(q.points) || 0), correct++;
+      return a;
+    });
+    const result = { id: deps.id('tp_'), studentId: student.id, setId: set.id, section: set.section, mode: body.mode === 'exam' ? 'exam' : 'practice', score, maxScore: maxScore(set), correct, total: set.questions.length, answers: detail, seconds: Math.max(0, Math.round(Number(body.seconds) || 0)), at: now() };
+    topikResults().push(result);
+    touchStudy(student, 10 + correct);
+    save();
+    return { result, student: publicStudent(student) };
+  });
+
+  route('GET', '/admin/topik', 'admin', () => topikSets());
+  route('POST', '/admin/topik', 'admin', ({ body }) => {
+    const item = { questions: [], status: 'draft', level: 'TOPIK I', section: 'listening', timeLimitMin: 40, ...body, id: body?.id?.trim() || deps.id('T') };
+    if (topikSets().some((x) => x.id === item.id)) throw new HttpError(409, '이미 존재하는 ID입니다.');
+    item.updatedAt = now();
+    topikSets().push(item);
+    save();
+    return item;
+  });
+  route('PUT', '/admin/topik/:id', 'admin', ({ params, body }) => {
+    const i = topikSets().findIndex((x) => x.id === params.id);
+    if (i < 0) throw new HttpError(404, 'not found');
+    if (!Array.isArray(body.questions)) throw new HttpError(400, 'questions 배열이 필요합니다');
+    body.questions.forEach((q, k) => {
+      if (!Array.isArray(q.options) || q.options.length < 2) throw new HttpError(400, `${k + 1}번째 문제: 보기가 2개 이상 필요합니다`);
+      if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) throw new HttpError(400, `${k + 1}번째 문제: 정답을 골라 주세요`);
+    });
+    topikSets()[i] = { ...body, id: params.id, updatedAt: now() };
+    save();
+    return topikSets()[i];
+  });
+  route('DELETE', '/admin/topik/:id', 'admin', ({ params }) => {
+    db().topikSets = topikSets().filter((x) => x.id !== params.id);
+    save();
+    return { ok: true };
+  });
+  route('POST', '/admin/topik/reset', 'admin', () => {
+    db().topikSets = cloneSeed();
+    save();
+    return db().topikSets;
+  });
+  route('GET', '/admin/topik-results', 'admin', () => {
+    const name = new Map(db().students.map((s) => [s.id, s.name]));
+    return topikResults().map(({ answers: _a, ...r }) => ({ ...r, studentName: name.get(r.studentId) || '?' }));
   });
 
   // ---- teacher video files (self-made drama scenes) ----

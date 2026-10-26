@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api';
 import { ErrorBox, Loading, ScoreBadge, fmtDate, fmtDateTime } from '../../components/ui';
 import { AssignModal } from './AdminStudents';
-import type { Assignment, Evaluation, Lesson, Progress, PronRecord, QuizResult, Student, StudentStats } from '../../types';
+import type { Assignment, Evaluation, Lesson, Progress, PronRecord, QuizResult, Student, StudentStats, TopikResult } from '../../types';
 
 interface Detail {
   student: Student;
@@ -14,6 +14,7 @@ interface Detail {
   chatLogs: { id: string; scenario: string; messages: { role: string; text: string; at: string; correction?: { corrected: string } | null }[]; updatedAt: string }[];
   evaluations: Evaluation[];
   assignments: Assignment[];
+  topikResults?: TopikResult[];
 }
 
 interface Report {
@@ -25,7 +26,7 @@ interface Report {
   demo?: boolean;
 }
 
-type Tab = 'progress' | 'pron' | 'chat' | 'eval' | 'assign';
+type Tab = 'progress' | 'pron' | 'chat' | 'eval' | 'assign' | 'topik';
 
 const CATEGORIES = ['종합', '말하기', '듣기', '읽기', '쓰기', '발음', '태도/참여'];
 
@@ -233,6 +234,7 @@ export default function AdminStudentDetail() {
                 ['chat', 'AI 대화'],
                 ['eval', '평가'],
                 ['assign', '과제'],
+                ['topik', 'TOPIK'],
               ] as [Tab, string][]
             ).map(([k, l]) => (
               <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>
@@ -241,6 +243,41 @@ export default function AdminStudentDetail() {
             ))}
           </div>
 
+          {tab === 'topik' &&
+            (d.topikResults?.length ? (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>세트</th>
+                    <th>방식</th>
+                    <th>점수</th>
+                    <th>정답</th>
+                    <th>걸린 시간</th>
+                    <th>날짜</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...d.topikResults].reverse().map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        {r.setId} {r.section === 'listening' ? '🎧 듣기' : '📖 읽기'}
+                      </td>
+                      <td>{r.mode === 'exam' ? '실전' : '연습'}</td>
+                      <td>
+                        <b>{r.score}</b> / {r.maxScore}
+                      </td>
+                      <td>
+                        {r.correct} / {r.total}
+                      </td>
+                      <td>{Math.round(r.seconds / 60)}분</td>
+                      <td>{fmtDateTime(r.at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="muted">아직 TOPIK 응시 기록이 없습니다.</p>
+            ))}
           {tab === 'progress' && (
             <table className="table">
               <thead>

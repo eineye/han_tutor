@@ -206,3 +206,31 @@ test('teacher video files: upload, list, stream with Range, protect in-use files
   assert.equal((await call(`/admin/media/${item.id}`, { token: admin, method: 'DELETE' })).status, 200);
   assert.equal((await fetch(`${base}/media/${item.id}`)).status, 404);
 });
+
+test('TOPIK practice tests: list, solve (scored on the server), teacher edits', async () => {
+  const reg = await call('/auth/student/register', { body: { name: 'Topik Kim', classCode: 'DEMO', pin: '2468' } });
+  const token = reg.data.token;
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  const list = (await call('/topik', { token })).data;
+  assert.deepEqual(list.map((s) => [s.id, s.questionCount, s.maxScore]), [['T1L', 30, 100], ['T1R', 40, 100]]);
+  const set = (await call('/topik/T1R', { token })).data;
+  assert.equal(set.questions[0].no, 31);
+  // answer the first 3 correctly, leave the rest blank
+  const answers = set.questions.map((q, i) => (i < 3 ? q.answer : null));
+  const r = await call('/topik/results', { token, body: { setId: 'T1R', mode: 'exam', answers, seconds: 120 } });
+  assert.equal(r.data.result.correct, 3);
+  assert.equal(r.data.result.score, set.questions.slice(0, 3).reduce((a, q) => a + q.points, 0));
+  assert.equal((await call('/topik', { token })).data.find((s) => s.id === 'T1R').best, r.data.result.score);
+  // teacher edits a question; invalid answer index is rejected
+  const edited = { ...set, questions: set.questions.map((q, i) => (i === 0 ? { ...q, options: ['가', '나', '다', '라'], answer: 3 } : q)) };
+  assert.equal((await call('/admin/topik/T1R', { token: admin, method: 'PUT', body: edited })).status, 200);
+  assert.equal((await call('/topik/T1R', { token })).data.questions[0].answer, 3);
+  const bad = { ...set, questions: [{ ...set.questions[0], answer: 9 }] };
+  assert.equal((await call('/admin/topik/T1R', { token: admin, method: 'PUT', body: bad })).status, 400);
+  // drafts are hidden from students; reset restores the sample sets
+  await call('/admin/topik/T1R', { token: admin, method: 'PUT', body: { ...edited, status: 'draft' } });
+  assert.equal((await call('/topik/T1R', { token })).status, 404);
+  assert.equal((await call('/admin/topik/reset', { token: admin, body: {} })).status, 200);
+  assert.equal((await call('/topik/T1R', { token })).data.questions[0].answer, set.questions[0].answer);
+  assert.ok((await call('/admin/topik-results', { token: admin })).data.some((x) => x.studentName === 'Topik Kim'));
+});

@@ -3123,3 +3123,360 @@ label.inline select {
   color: #fff;
   font-size: 0.85rem;
 }
+
+/* ───────── TOPIK practice (학생) ───────── */
+.topik__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.topik__total {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.topik-card h3 {
+  margin: 8px 0 4px;
+}
+.topik-card--listening {
+  border-top: 5px solid var(--accent);
+}
+.topik-card--reading {
+  border-top: 5px solid var(--primary);
+}
+.topik-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.topik-card__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.topik-card__modes .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  white-space: normal;
+}
+.topik-card__modes small {
+  font-weight: 500;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.topik-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.topik-bar h1 {
+  margin: 4px 8px 4px 0;
+  font-size: 1.5rem;
+}
+.topik-timer {
+  margin-left: auto;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.topik-timer.is-low {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.topik-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0 12px;
+}
+.topik-nav__n {
+  min-width: 34px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.topik-nav__n.is-done {
+  background: var(--surface-2);
+}
+.topik-nav__n.is-ok {
+  background: var(--good-soft);
+  border-color: var(--good);
+}
+.topik-nav__n.is-bad {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+}
+.topik-nav__n.is-current {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.topik-q__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topik-q__inst {
+  font-weight: 700;
+  margin: 6px 0 10px;
+}
+.topik-q__question {
+  font-weight: 700;
+  margin: 12px 0 6px;
+  white-space: pre-wrap;
+}
+.topik-listen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+}
+.topik-passage {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+.topik-passage--box {
+  padding: 12px 16px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.topik-script {
+  padding: 10px 14px;
+  border-left: 4px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 8px;
+  margin: 8px 0;
+}
+.topik-script p {
+  margin: 4px 0;
+}
+.topik-opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.topik-opts--pics {
+  grid-template-columns: repeat(4, 1fr);
+}
+.topik-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.05rem;
+  text-align: left;
+  cursor: pointer;
+}
+.topik-opt--pic {
+  flex-direction: column;
+  justify-content: center;
+}
+.topik-opt__mark {
+  font-weight: 800;
+  color: var(--muted);
+}
+.topik-opt.is-picked {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.topik-opt.is-correct {
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+.topik-opt.is-wrong {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+.topik-explain {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--ok-soft);
+}
+.topik-q__foot {
+  margin-top: 14px;
+}
+.topik-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 28px;
+}
+.topik-result__score b {
+  font-size: 3rem;
+  color: var(--primary);
+}
+.topik-result__score span {
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+.topik-review {
+  margin-bottom: 10px;
+  border-left: 5px solid var(--good);
+}
+.topik-review.is-bad {
+  border-left-color: var(--bad);
+}
+@media (max-width: 600px) {
+  .topik-opts,
+  .topik-card__modes {
+    grid-template-columns: 1fr;
+  }
+  .topik-opts--pics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ───────── TOPIK editor (교사) ───────── */
+.topik-editor__layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.topik-editor__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  position: sticky;
+  top: 80px;
+}
+.topik-editor__item {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.topik-editor__item span {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topik-editor__item span span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85rem;
+}
+.topik-editor__item:hover {
+  background: var(--surface-2);
+}
+.topik-editor__item.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.topik-editor__script,
+.topik-editor__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.topik-editor__line,
+.topik-editor__opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topik-editor__line select {
+  width: 80px;
+}
+.topik-editor__line textarea,
+.topik-editor__opt input:not([type='radio']) {
+  flex: 1;
+}
+.topik-editor__opt .radio {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.topik-editor__opt.is-answer input:not([type='radio']) {
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+@media (max-width: 900px) {
+  .topik-editor__layout {
+    grid-template-columns: 1fr;
+  }
+  .topik-editor__list {
+    position: static;
+    max-height: 260px;
+  }
+}
+.form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* top bar: keep 8 menu items + user box on one line on laptop screens */
+@media (max-width: 1440px) and (min-width: 901px) {
+  .topbar {
+    gap: 10px;
+  }
+  .topnav__link {
+    padding: 8px 8px;
+    font-size: 0.92rem;
+  }
+  .topbar__user {
+    gap: 4px;
+  }
+}
+@media (max-width: 1200px) and (min-width: 901px) {
+  .topnav__link {
+    padding: 8px 6px;
+    font-size: 0.85rem;
+  }
+  .topbar .brand__name {
+    display: none;
+  }
+}
+/* small laptops/tablets in landscape: icons only (the label shows as a tooltip) */
+@media (max-width: 1100px) and (min-width: 901px) {
+  .topnav__label {
+    display: none;
+  }
+  .topnav__link {
+    font-size: 1.15rem;
+    padding: 6px 9px;
+  }
+}
+/* phones: 8 menu items in the bottom bar */
+@media (max-width: 900px) {
+  .bottomnav__link small {
+    font-size: 0.62rem;
+  }
+}

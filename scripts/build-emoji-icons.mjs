@@ -6,6 +6,7 @@ import path from 'node:path';
 import { seedLessons } from '../server/seed/curriculum.js';
 import { bonusLessons } from '../server/seed/bonus.js';
 import { EMOJI_FIXES } from '../server/emojiFixes.js';
+import { seedTopikSets } from '../server/seed/topik.js';
 
 const DIR = path.resolve('node_modules/@twemoji/svg');
 const PIC = /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]️?⃣/u;
@@ -30,6 +31,7 @@ for (const l of lessons) {
   }
 }
 Object.values(EMOJI_FIXES).forEach(add);
+for (const set of seedTopikSets) for (const tq of set.questions) tq.options.forEach(add);
 
 const out = {};
 const missing = [];

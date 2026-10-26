@@ -19,3 +19,4 @@ Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md
 1. `npx tsc -b && npm test && npm run build:demo` — all must pass.
 2. Commit with a clear message and push to `HanTutor` (the default branch; formerly `claude/korean-learning-webapp-kq0wm3`).
 3. The push triggers `.github/workflows/pages.yml`, which redeploys https://eineye.github.io/han_tutor/ — check the run succeeds and report the result.
+- TOPIK I 대비: 문제 `server/seed/topik.js`(실제 시험 형식으로 새로 쓴 문제 — 실제 기출문제를 옮겨 넣지 말 것), 학생 화면 `src/pages/TopikHome.tsx`·`TopikTest.tsx`, 교사 화면 `src/pages/admin/AdminTopik.tsx`·`AdminTopikEditor.tsx`. 그림 보기(이모지)를 새로 쓰면 `node scripts/build-emoji-icons.mjs`.

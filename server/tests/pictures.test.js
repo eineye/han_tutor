@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { seedLessons } from '../seed/curriculum.js';
 import { fixEmoji } from '../emojiFixes.js';
+import { seedTopikSets } from '../seed/topik.js';
 
 // Vocabulary/quiz pictures are drawn from src/lib/emojiIcons.json (built by
 // scripts/build-emoji-icons.mjs). A new emoji in the seed needs that script to be run again.
@@ -17,5 +18,6 @@ test('every lesson picture has a bundled drawing', () => {
     for (const x of l.letters || []) check(x.example.ko, x.example.emoji);
     for (const q of l.quiz || []) [q.prompt, ...(q.options || [])].forEach((s) => check('', s));
   }
+  for (const set of seedTopikSets) for (const tq of set.questions) tq.options.forEach((o) => check('', o));
   assert.deepEqual([...missing], [], 'run: node scripts/build-emoji-icons.mjs');
 });

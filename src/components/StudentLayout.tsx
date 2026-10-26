@@ -11,6 +11,7 @@ const NAV: { to: string; icon: string; key: UIKey }[] = [
   { to: '/speak', icon: '🎤', key: 'nav.speak' },
   { to: '/talk', icon: '💬', key: 'nav.talk' },
   { to: '/drama', icon: '🎬', key: 'nav.drama' },
+  { to: '/topik', icon: '🎯', key: 'nav.topik' },
   { to: '/me', icon: '📈', key: 'nav.me' },
 ];
 
@@ -27,8 +28,8 @@ export default function StudentLayout() {
         </NavLink>
         <nav className="topnav">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} className="topnav__link">
-              <span aria-hidden>{n.icon}</span> {t(n.key)}
+            <NavLink key={n.to} to={n.to} className="topnav__link" title={t(n.key)}>
+              <span aria-hidden>{n.icon}</span> <span className="topnav__label">{t(n.key)}</span>
             </NavLink>
           ))}
         </nav>

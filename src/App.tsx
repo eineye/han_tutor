@@ -24,6 +24,10 @@ import AdminVideoEditor from './pages/admin/AdminVideoEditor';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminTranslations from './pages/admin/AdminTranslations';
 import AdminRecordings from './pages/admin/AdminRecordings';
+import TopikHome from './pages/TopikHome';
+import TopikTest from './pages/TopikTest';
+import AdminTopik from './pages/admin/AdminTopik';
+import AdminTopikEditor from './pages/admin/AdminTopikEditor';
 import AdminTranscripts from './pages/admin/AdminTranscripts';
 import AdminTranscriptEditor from './pages/admin/AdminTranscriptEditor';
 
@@ -55,6 +59,8 @@ export default function App() {
         <Route path="/talk" element={<TalkPage />} />
         <Route path="/drama" element={<DramaList />} />
         <Route path="/drama/:id" element={<DramaPlayer />} />
+        <Route path="/topik" element={<TopikHome />} />
+        <Route path="/topik/:id" element={<TopikTest />} />
         <Route path="/me" element={<MyProgress />} />
       </Route>
       <Route
@@ -74,6 +80,8 @@ export default function App() {
         <Route path="videos/:id" element={<AdminVideoEditor />} />
         <Route path="translations" element={<AdminTranslations />} />
         <Route path="recordings" element={<AdminRecordings />} />
+        <Route path="topik" element={<AdminTopik />} />
+        <Route path="topik/:id" element={<AdminTopikEditor />} />
         <Route path="transcripts" element={<AdminTranscripts />} />
         <Route path="transcripts/:id" element={<AdminTranscriptEditor />} />
         <Route path="settings" element={<AdminSettings />} />

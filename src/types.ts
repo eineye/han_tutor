@@ -186,3 +186,53 @@ export interface ChatReply {
   suggestions_ko?: string[];
   demo?: boolean;
 }
+
+// ---- TOPIK practice tests ----
+export interface TopikQuestion {
+  no: number;
+  type: string;
+  points: number;
+  instruction: string;
+  /** listening: lines read aloud (speaker: 남자 / 여자 / any name) */
+  script?: { speaker: string; text: string }[];
+  /** reading: text, notice or message (line breaks kept) */
+  passage?: string;
+  question?: string;
+  options: string[];
+  answer: number;
+  explanation_ko?: string;
+  explanation_en?: string;
+}
+
+export interface TopikSet {
+  id: string;
+  order?: number;
+  level: string;
+  section: 'listening' | 'reading';
+  title: string;
+  description_en?: string;
+  timeLimitMin: number;
+  status?: 'draft' | 'published';
+  questions: TopikQuestion[];
+}
+
+export interface TopikSummary extends Omit<TopikSet, 'questions'> {
+  questionCount: number;
+  maxScore: number;
+  attempts: number;
+  best: number | null;
+}
+
+export interface TopikResult {
+  id: string;
+  setId: string;
+  section: string;
+  mode: 'practice' | 'exam';
+  score: number;
+  maxScore: number;
+  correct: number;
+  total: number;
+  answers: (number | null)[];
+  seconds: number;
+  at: string;
+}

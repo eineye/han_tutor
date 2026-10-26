@@ -1,0 +1,164 @@
+// TOPIK I (1–2급) practice tests. The question ORDER, TYPES and POINTS follow the real TOPIK I
+// paper (듣기 1–30, 읽기 31–70, 100 points each), but every question, dialogue and passage below
+// is ORIGINAL — real past papers (기출문제) are copyrighted by NIIED and are not copied here.
+// Teachers can add or edit sets (including past papers they have the right to use) in the admin.
+
+/** Standard instructions per question type (functional exam wording). */
+export const TOPIK_TYPES = {
+  // 듣기
+  answer: { section: 'listening', label: '알맞은 대답 (1–4)', instruction: '다음을 듣고 물음에 맞는 대답을 고르십시오.' },
+  next: { section: 'listening', label: '이어지는 말 (5–6)', instruction: '다음을 듣고 이어지는 말을 고르십시오.' },
+  place: { section: 'listening', label: '장소 (7–10)', instruction: '여기는 어디입니까? 알맞은 것을 고르십시오.' },
+  topicL: { section: 'listening', label: '화제 (11–14)', instruction: '다음은 무엇에 대해 말하고 있습니까? 알맞은 것을 고르십시오.' },
+  picture: { section: 'listening', label: '알맞은 그림 (15–16)', instruction: '다음 대화를 듣고 알맞은 그림을 고르십시오.' },
+  sameL: { section: 'listening', label: '대화 내용과 같은 것 (17–21)', instruction: '다음을 듣고 대화 내용과 같은 것을 고르십시오.' },
+  mainL: { section: 'listening', label: '중심 생각 (22–24)', instruction: '다음을 듣고 여자의 중심 생각을 고르십시오.' },
+  setL: { section: 'listening', label: '듣고 물음에 답하기 (25–30)', instruction: '다음을 듣고 물음에 답하십시오.' },
+  // 읽기
+  topicR: { section: 'reading', label: '무엇에 대한 내용 (31–33)', instruction: '무엇에 대한 이야기입니까? 알맞은 것을 고르십시오.' },
+  blank: { section: 'reading', label: '빈칸 채우기 (34–39)', instruction: '(   )에 들어갈 가장 알맞은 것을 고르십시오.' },
+  notTrue: { section: 'reading', label: '맞지 않는 것 (40–42)', instruction: '다음을 읽고 맞지 않는 것을 고르십시오.' },
+  sameR: { section: 'reading', label: '내용과 같은 것 (43–45)', instruction: '다음의 내용과 같은 것을 고르십시오.' },
+  mainR: { section: 'reading', label: '중심 생각 (46–48)', instruction: '다음을 읽고 중심 생각을 고르십시오.' },
+  order: { section: 'reading', label: '순서대로 나열 (57–58)', instruction: '다음을 순서대로 맞게 나열한 것을 고르십시오.' },
+  setR: { section: 'reading', label: '읽고 물음에 답하기 (49–70)', instruction: '다음을 읽고 물음에 답하십시오.' },
+};
+
+let n = 0;
+/** One question. script: [[speaker, text], …] for listening; passage: text for reading. */
+const q = (type, points, { script, passage, question = '', options, answer, ko, en }) => ({
+  no: ++n,
+  type,
+  points,
+  instruction: TOPIK_TYPES[type].instruction,
+  ...(script ? { script: script.map(([speaker, text]) => ({ speaker, text })) } : {}),
+  ...(passage ? { passage } : {}),
+  question,
+  options,
+  answer,
+  explanation_ko: ko,
+  explanation_en: en,
+});
+
+const listening = [
+  q('answer', 4, { script: [['남자', '가방이 있어요?']], options: ['네, 가방이 있어요.', '네, 가방이 커요.', '아니요, 가방이 싸요.', '아니요, 가방을 사요.'], answer: 0, ko: '「있어요?」로 물었으니 「있어요/없어요」로 대답합니다.', en: 'The question asks “Do you have…?”, so the answer uses 있어요 / 없어요.' }),
+  q('answer', 4, { script: [['여자', '학생이에요?']], options: ['네, 학생이 많아요.', '네, 학생이에요.', '아니요, 학생이 없어요.', '아니요, 학교에 가요.'], answer: 1, ko: '「학생이에요?」에는 「네, 학생이에요」 또는 「아니요, 학생이 아니에요」로 대답합니다.', en: '“Are you a student?” → “Yes, I am a student.”' }),
+  q('answer', 3, { script: [['남자', '어디에서 친구를 만나요?']], options: ['내일 만나요.', '친구가 만나요.', '커피숍에서 만나요.', '친구하고 만나요.'], answer: 2, ko: '「어디에서」는 장소를 묻는 말입니다.', en: '어디에서 asks “where”, so the answer is a place.' }),
+  q('answer', 3, { script: [['여자', '언제 한국에 왔어요?']], options: ['비행기로 왔어요.', '작년에 왔어요.', '혼자 왔어요.', '미국에서 왔어요.'], answer: 1, ko: '「언제」는 시간을 묻는 말입니다.', en: '언제 asks “when”, so the answer is a time.' }),
+  q('next', 4, { script: [['남자', '생일 축하해요.']], options: ['괜찮아요.', '고마워요.', '반가워요.', '미안해요.'], answer: 1, ko: '축하를 받으면 「고마워요」라고 합니다.', en: 'When someone congratulates you, say “Thank you”.' }),
+  q('next', 3, { script: [['여자', '여보세요, 거기 민수 씨 집이지요?']], options: ['네, 잘 먹겠습니다.', '네, 그런데요.', '아니요, 괜찮습니다.', '아니요, 처음 뵙겠습니다.'], answer: 1, ko: '전화에서 「○○ 집이지요?」에는 「네, 그런데요」라고 대답합니다.', en: 'On the phone, “Is this Minsu’s home?” → “Yes, it is.” (네, 그런데요).' }),
+  q('place', 3, { script: [['여자', '이 사과 얼마예요?'], ['남자', '한 개에 천 원이에요.']], options: ['은행', '시장', '병원', '학교'], answer: 1, ko: '과일 값을 묻고 있으니 시장입니다.', en: 'They talk about the price of apples — a market.' }),
+  q('place', 3, { script: [['남자', '어디가 아프세요?'], ['여자', '어제부터 머리가 아파요.']], options: ['약국', '공항', '병원', '서점'], answer: 2, ko: '의사가 환자에게 묻는 말입니다.', en: 'A doctor asks where it hurts — a hospital.' }),
+  q('place', 3, { script: [['여자', '이 책을 빌리고 싶어요.'], ['남자', '학생증을 보여 주세요.']], options: ['도서관', '식당', '우체국', '백화점'], answer: 0, ko: '책을 빌리는 곳은 도서관입니다.', en: 'You borrow books at a library.' }),
+  q('place', 4, { script: [['남자', '서울역까지 가 주세요.'], ['여자', '네, 안전벨트를 매 주세요.']], options: ['택시', '극장', '호텔', '미용실'], answer: 0, ko: '목적지를 말하고 안전벨트를 매는 곳은 택시입니다.', en: 'Telling the destination and fastening a seat belt — a taxi.' }),
+  q('topicL', 3, { script: [['여자', '형제가 있어요?'], ['남자', '네, 누나가 한 명 있어요.']], options: ['가족', '나이', '이름', '직업'], answer: 0, ko: '형제, 누나 → 가족 이야기입니다.', en: 'Siblings and an older sister — family.' }),
+  q('topicL', 3, { script: [['남자', '주말에 보통 뭐 해요?'], ['여자', '공원에서 자전거를 타요.']], options: ['날씨', '쇼핑', '취미', '음식'], answer: 2, ko: '주말에 하는 일(자전거) → 취미입니다.', en: 'What you usually do at the weekend — a hobby.' }),
+  q('topicL', 3, { script: [['여자', '오늘 정말 덥네요.'], ['남자', '네, 내일은 비가 온대요.']], options: ['계절', '날씨', '여행', '시간'], answer: 1, ko: '덥다, 비가 오다 → 날씨입니다.', en: 'Hot today, rain tomorrow — the weather.' }),
+  q('topicL', 3, { script: [['남자', '이 바지 좀 입어 봐도 돼요?'], ['여자', '네, 저쪽에서 입어 보세요.']], options: ['옷', '집', '책', '차'], answer: 0, ko: '바지를 입어 보는 이야기 → 옷입니다.', en: 'Trying on trousers — clothes.' }),
+  q('picture', 4, { script: [['남자', '손님, 어떻게 오셨어요?'], ['여자', '머리를 짧게 자르고 싶어요.']], options: ['💇', '🍜', '📖', '🛒'], answer: 0, ko: '머리를 자르는 장면(미용실)입니다.', en: 'She wants a haircut — the hair salon picture.' }),
+  q('picture', 4, { script: [['여자', '우산 있어요? 비가 많이 와요.'], ['남자', '저는 우산이 없어요. 같이 써요.']], options: ['☀️', '☔', '⛄', '🏖️'], answer: 1, ko: '비가 오고 우산을 같이 쓰는 장면입니다.', en: 'It is raining and they share an umbrella.' }),
+  q('sameL', 3, { script: [['남자', '수미 씨, 어제 영화 봤어요?'], ['여자', '아니요, 어제는 일이 많아서 못 봤어요. 오늘 저녁에 볼 거예요.']], options: ['여자는 어제 영화를 봤습니다.', '여자는 오늘 영화를 볼 겁니다.', '남자는 일이 많습니다.', '남자는 영화를 안 좋아합니다.'], answer: 1, ko: '「오늘 저녁에 볼 거예요」라고 했습니다.', en: 'She says she will watch it this evening.' }),
+  q('sameL', 3, { script: [['여자', '이 식당은 김치찌개가 맛있어요.'], ['남자', '그래요? 그럼 저도 김치찌개를 먹을게요.'], ['여자', '여기 김치찌개 두 개 주세요.']], options: ['남자는 이 식당에 자주 옵니다.', '두 사람은 김치찌개를 먹을 겁니다.', '여자는 김치찌개를 안 좋아합니다.', '남자는 비빔밥을 주문했습니다.'], answer: 1, ko: '김치찌개 두 개를 주문했습니다.', en: 'She orders two kimchi stews — both will eat it.' }),
+  q('sameL', 3, { script: [['남자', '다음 주 토요일에 이사해요.'], ['여자', '그래요? 제가 도와줄까요?'], ['남자', '고마워요. 그럼 아침 아홉 시까지 와 주세요.']], options: ['남자는 이번 주에 이사합니다.', '여자는 이사를 도와줄 겁니다.', '남자는 혼자 이사할 겁니다.', '여자는 오후에 갈 겁니다.'], answer: 1, ko: '여자가 도와주겠다고 했고 아침 아홉 시에 갑니다.', en: 'She offers to help and will come at 9 a.m.' }),
+  q('sameL', 3, { script: [['여자', '실례지만, 지하철역이 어디에 있어요?'], ['남자', '이 길로 쭉 가세요. 은행 옆에 있어요.'], ['여자', '걸어서 갈 수 있어요?'], ['남자', '네, 오 분쯤 걸려요.']], options: ['지하철역은 은행 옆에 있습니다.', '지하철역은 아주 멉니다.', '남자는 지하철역에 갑니다.', '여자는 버스를 탈 겁니다.'], answer: 0, ko: '「은행 옆에 있어요」, 걸어서 오 분입니다.', en: 'The station is next to the bank, a 5-minute walk.' }),
+  q('sameL', 3, { script: [['남자', '요즘 한국어를 배워요?'], ['여자', '네, 일주일에 두 번 한국어 학원에 다녀요.'], ['남자', '어렵지 않아요?'], ['여자', '조금 어렵지만 재미있어요.']], options: ['여자는 매일 학원에 갑니다.', '여자는 한국어 공부가 재미있습니다.', '남자는 한국어를 가르칩니다.', '여자는 한국어를 그만둘 겁니다.'], answer: 1, ko: '「조금 어렵지만 재미있어요」라고 했습니다.', en: 'She says it is a little hard but fun. (Twice a week, not every day.)' }),
+  q('mainL', 3, { script: [['남자', '주말에 같이 등산 갈래요?'], ['여자', '저는 등산보다 집에서 쉬는 게 좋아요. 주말에는 푹 자고 싶어요.']], options: ['주말에 등산을 가고 싶습니다.', '주말에는 집에서 쉬고 싶습니다.', '남자와 같이 운동하고 싶습니다.', '평일에 일찍 자고 싶습니다.'], answer: 1, ko: '여자는 주말에 집에서 쉬고 싶어 합니다.', en: 'Her main idea: she wants to rest at home at the weekend.' }),
+  q('mainL', 3, { script: [['여자', '민수 씨, 아침을 안 먹었어요?'], ['남자', '네, 시간이 없어서요.'], ['여자', '아침을 먹어야 공부도 잘할 수 있어요. 조금이라도 먹고 오세요.']], options: ['아침을 꼭 먹는 것이 좋습니다.', '공부는 아침에 하는 것이 좋습니다.', '학교에 일찍 와야 합니다.', '남자와 같이 아침을 먹고 싶습니다.'], answer: 0, ko: '아침을 먹어야 공부를 잘할 수 있다고 생각합니다.', en: 'She thinks you should eat breakfast to study well.' }),
+  q('mainL', 3, { script: [['남자', '이 옷 인터넷에서 샀어요?'], ['여자', '네, 그런데 사진하고 색이 달라요. 앞으로 옷은 가게에 가서 직접 보고 살 거예요.']], options: ['인터넷 쇼핑은 싸서 좋습니다.', '옷은 직접 보고 사는 것이 좋습니다.', '사진을 잘 찍어야 합니다.', '옷을 자주 사지 않습니다.'], answer: 1, ko: '앞으로 옷은 직접 보고 사겠다고 했습니다.', en: 'Her main idea: it is better to see clothes in person before buying.' }),
+];
+
+const festival = [['여자', '학생 여러분, 안내 말씀드리겠습니다. 이번 주 금요일에 학교 축제가 있습니다. 축제는 오후 두 시부터 운동장에서 시작합니다. 노래 대회와 음식 판매가 있습니다. 노래 대회에 나가고 싶은 학생은 수요일까지 교무실에 이름을 써 주십시오. 많이 와 주십시오.']];
+const busan = [['남자', '지아 씨, 다음 달에 부산에 여행 간다고 했지요?'], ['여자', '네, 친구하고 기차로 가요. 바다도 보고 시장 구경도 할 거예요.'], ['남자', '부산에 가면 해산물을 꼭 드셔 보세요. 정말 신선해요.'], ['여자', '좋아요. 맛있는 식당 좀 알려 주세요.'], ['남자', '제가 메시지로 보내 드릴게요.']];
+const teacher = [['여자', '선생님, 어떻게 한국어 선생님이 되셨어요?'], ['남자', '대학교 때 외국 친구들에게 한국어를 가르쳐 주는 봉사 활동을 했어요. 그때 친구들이 한국어를 잘하게 되는 것을 보고 정말 기뻤어요. 그래서 한국어 선생님이 되고 싶었어요.'], ['여자', '지금도 그 친구들을 만나세요?'], ['남자', '네, 일 년에 한 번 같이 여행을 가요.']];
+
+listening.push(
+  q('setL', 3, { script: festival, question: '여자가 왜 이 이야기를 하고 있는지 고르십시오.', options: ['축제를 소개하려고', '노래를 가르치려고', '음식을 팔려고', '교무실 위치를 알려 주려고'], answer: 0, ko: '학교 축제를 안내하는 방송입니다.', en: 'It is an announcement introducing the school festival.' }),
+  q('setL', 4, { script: festival, question: '들은 내용과 같은 것을 고르십시오.', options: ['축제는 오전에 시작합니다.', '축제는 강당에서 합니다.', '노래 대회 신청은 수요일까지입니다.', '음식은 팔지 않습니다.'], answer: 2, ko: '수요일까지 교무실에 이름을 쓰라고 했습니다.', en: 'Sign up for the singing contest by Wednesday. (It starts at 2 p.m. on the sports field.)' }),
+  q('setL', 3, { script: busan, question: '두 사람이 무엇에 대해 이야기하고 있는지 고르십시오.', options: ['부산 여행', '기차 예약', '친구 소개', '시장 위치'], answer: 0, ko: '여자의 부산 여행 이야기입니다.', en: 'They talk about her trip to Busan.' }),
+  q('setL', 4, { script: busan, question: '들은 내용과 같은 것을 고르십시오.', options: ['여자는 혼자 부산에 갑니다.', '여자는 비행기를 탈 겁니다.', '남자가 식당을 알려 줄 겁니다.', '남자는 해산물을 안 좋아합니다.'], answer: 2, ko: '남자가 식당을 메시지로 보내 주겠다고 했습니다.', en: 'He will send her restaurant names by message.' }),
+  q('setL', 4, { script: teacher, question: '남자가 한국어 선생님이 된 이유를 고르십시오.', options: ['외국에서 살고 싶어서', '친구들을 가르칠 때 기뻐서', '여행을 좋아해서', '대학교 선생님이 추천해서'], answer: 1, ko: '친구들이 한국어를 잘하게 되는 것을 보고 기뻤기 때문입니다.', en: 'He was happy to see his friends get better at Korean.' }),
+  q('setL', 4, { script: teacher, question: '들은 내용과 같은 것을 고르십시오.', options: ['남자는 대학교 때 봉사 활동을 했습니다.', '남자는 외국 친구가 없습니다.', '남자는 매달 친구들과 여행을 갑니다.', '남자는 지금 대학생입니다.'], answer: 0, ko: '대학교 때 봉사 활동을 했습니다. 여행은 일 년에 한 번입니다.', en: 'He volunteered at university; they travel once a year, not monthly.' }),
+);
+
+n = 30;
+const P = {
+  dinner: '저는 지난주에 한국 친구 집에 초대를 받았습니다. 친구 어머니께서 불고기와 잡채를 만들어 주셨습니다. 음식이 정말 맛있어서 많이 먹었습니다. 식사 후에 친구 가족과 같이 ( ㉠ ) 이야기를 했습니다. 다음에는 제가 친구 가족을 우리 집에 초대하고 싶습니다.',
+  tteok: '한국에서는 이사를 하면 이웃에게 떡을 나누어 줍니다. 떡을 받은 이웃은 새 이웃을 반갑게 맞아 줍니다. 이렇게 떡을 나누면 이웃과 ( ㉠ ) 지낼 수 있습니다. 요즘은 떡 대신 작은 선물을 주는 사람도 있습니다.',
+  cat: "저는 고양이 한 마리를 키웁니다. 이름은 '나비'입니다. 나비는 낮에는 창문 옆에서 잠을 잡니다. 제가 회사에서 집에 오면 문 앞까지 나와서 저를 ( ㉠ ). 나비 덕분에 혼자 살아도 외롭지 않습니다.",
+  bike: '요즘 자전거로 출근하는 사람이 많아졌습니다. 자전거를 타면 돈이 들지 않고 운동도 됩니다. ( ㉠ ) 비가 오거나 너무 추운 날에는 자전거를 타기 어렵습니다. 그래서 그런 날에는 지하철을 타는 사람이 많습니다.',
+  kimchi: '저는 지난 토요일에 처음으로 김치를 만들었습니다. ( ㉠ ) 한국 친구 집에서 친구 어머니께 배웠습니다. ( ㉡ ) 배추를 소금에 절이는 것이 제일 힘들었습니다. ( ㉢ ) 그래도 직접 만든 김치를 먹으니까 아주 맛있었습니다. ( ㉣ ) 다음에는 혼자 만들어 보고 싶습니다.',
+  phone: '저는 매주 수요일 저녁에 동네 복지관에서 할머니, 할아버지들께 스마트폰 사용법을 가르쳐 드립니다. 처음에는 사진 보내는 것도 어려워하셨지만 지금은 손주들과 영상 통화도 하십니다. ( ㉠ ) 저도 기분이 좋습니다. 할머니, 할아버지들은 수업이 끝나면 저에게 과일이나 떡을 주십니다.',
+  room: '받는 사람: 한국어반 학생들\n제목: 수업 장소 변경 안내\n\n안녕하세요. 한국어반 담당 박지은입니다. 다음 주 월요일부터 교실 공사가 있습니다. 그래서 월요일과 화요일 수업은 2층 201호 대신 5층 502호에서 합니다. 수요일부터는 다시 201호에서 수업합니다. 엘리베이터는 학생회관 쪽에 있습니다.',
+  soup: '한국 사람들은 생일에 미역국을 먹습니다. 미역국은 아기를 낳은 어머니가 몸을 건강하게 하려고 먹는 음식입니다. 그래서 생일에 미역국을 먹으면서 ( ㉠ ) 생각합니다. 그런데 시험을 보는 날에는 미역국을 먹지 않습니다. 미역이 미끄러워서 시험에 떨어질 것 같다고 생각하기 때문입니다.',
+  water: '사람들은 보통 물을 하루에 여덟 잔쯤 마시는 것이 좋다고 합니다. 물을 충분히 마시면 피부도 좋아지고 피곤함도 덜 느낍니다. 하지만 한꺼번에 많이 마시는 것보다 ( ㉠ ) 마시는 것이 더 좋습니다. 그리고 식사 중에 물을 너무 많이 마시면 소화가 잘 안 될 수 있습니다.',
+  art: '저는 어렸을 때 그림 그리는 것을 아주 좋아했습니다. 하지만 고등학생이 되고 공부가 바빠서 그림을 그리지 못했습니다. 작년에 회사에 들어간 후에 주말마다 그림 수업을 듣기 시작했습니다. 다시 그림을 그리니까 ( ㉠ ) 어릴 때로 돌아간 것 같습니다. 올해 말에는 친구들과 작은 전시회도 열 겁니다.',
+};
+const ORDER = ['㉠', '㉡', '㉢', '㉣'];
+
+const reading = [
+  q('topicR', 2, { passage: '사과가 있습니다. 배도 있습니다.', options: ['과일', '운동', '나라', '날씨'], answer: 0, ko: '사과, 배 → 과일입니다.', en: 'Apples and pears — fruit.' }),
+  q('topicR', 2, { passage: '저는 스물한 살입니다. 동생은 열여덟 살입니다.', options: ['이름', '나이', '주소', '날짜'], answer: 1, ko: '「○ 살」은 나이입니다.', en: '“… years old” — age.' }),
+  q('topicR', 2, { passage: '여름에는 바다에 갑니다. 겨울에는 스키를 탑니다.', options: ['계절', '쇼핑', '공부', '음식'], answer: 0, ko: '여름, 겨울 → 계절입니다.', en: 'Summer and winter — seasons.' }),
+  q('blank', 2, { passage: '목이 마릅니다. (   )을 마십니다.', options: ['빵', '물', '책', '옷'], answer: 1, ko: '목이 마르면 물을 마십니다.', en: 'When you are thirsty you drink water.' }),
+  q('blank', 2, { passage: '백화점에 갑니다. 옷을 (   ).', options: ['삽니다', '잡니다', '씻습니다', '배웁니다'], answer: 0, ko: '백화점에서 옷을 삽니다.', en: 'You buy clothes at a department store.' }),
+  q('blank', 2, { passage: '저는 영화를 좋아합니다. 주말에 (   )에 갑니다.', options: ['은행', '극장', '약국', '우체국'], answer: 1, ko: '영화는 극장에서 봅니다.', en: 'You watch films at a cinema (극장).' }),
+  q('blank', 3, { passage: '동생은 키가 큽니다. 저는 키가 (   ).', options: ['많습니다', '작습니다', '깁니다', '좋습니다'], answer: 1, ko: '「크다」의 반대는 「작다」입니다.', en: 'The opposite of 크다 (tall) is 작다 (short).' }),
+  q('blank', 3, { passage: '비가 옵니다. 우산을 (   ) 나갑니다.', options: ['쓰고', '먹고', '읽고', '듣고'], answer: 0, ko: '우산은 「쓰다」와 함께 씁니다.', en: 'With an umbrella the verb is 쓰다.' }),
+  q('blank', 2, { passage: '오늘은 일요일입니다. 회사에 (   ) 갑니다.', options: ['자주', '안', '다시', '아주'], answer: 1, ko: '일요일에는 회사에 안 갑니다.', en: 'On Sunday you do not (안) go to work.' }),
+  q('notTrue', 3, { passage: '〈한국어 말하기 대회〉\n날짜: 10월 15일 (토) 오후 2시\n장소: 학생회관 3층\n신청: 10월 10일까지 이메일로\n상품: 1등 – 한국 왕복 비행기표', options: ['대회는 토요일에 합니다.', '학생회관에서 대회를 합니다.', '10월 15일까지 신청해야 합니다.', '1등은 비행기표를 받습니다.'], answer: 2, ko: '신청은 10월 10일까지입니다.', en: 'Applications close on 10 October, not the 15th.' }),
+  q('notTrue', 3, { passage: '〈김밥나라〉 메뉴\n김밥 3,000원\n라면 4,000원\n떡볶이 4,500원\n※ 월요일은 쉽니다.', options: ['김밥이 제일 쌉니다.', '떡볶이는 4,500원입니다.', '월요일에 문을 닫습니다.', '라면이 제일 비쌉니다.'], answer: 3, ko: '제일 비싼 것은 떡볶이입니다.', en: 'Tteokbokki is the most expensive, not ramen.' }),
+  q('notTrue', 3, { passage: '민수 씨, 오늘 수업이 끝나고 도서관 앞에서 만나요. 같이 저녁 먹어요. 제가 6시까지 갈게요.\n– 지아', options: ['지아 씨가 메시지를 보냈습니다.', '두 사람은 도서관 앞에서 만납니다.', '두 사람은 같이 점심을 먹을 겁니다.', '지아 씨는 6시까지 갈 겁니다.'], answer: 2, ko: '점심이 아니라 저녁을 먹습니다.', en: 'They will have dinner, not lunch.' }),
+  q('sameR', 3, { passage: '저는 아침마다 공원에서 달리기를 합니다. 오늘은 비가 와서 집에서 운동했습니다. 내일은 다시 공원에 갈 겁니다.', options: ['저는 매일 저녁에 운동합니다.', '오늘 공원에서 달리기를 했습니다.', '오늘은 집에서 운동했습니다.', '내일은 집에서 쉴 겁니다.'], answer: 2, ko: '비가 와서 오늘은 집에서 운동했습니다.', en: 'It rained, so today I exercised at home.' }),
+  q('sameR', 2, { passage: '제 친구 링링 씨는 중국 사람입니다. 한국 회사에서 일합니다. 한국어를 아주 잘합니다.', options: ['링링 씨는 한국 사람입니다.', '링링 씨는 회사원입니다.', '링링 씨는 학생입니다.', '링링 씨는 한국어를 못합니다.'], answer: 1, ko: '한국 회사에서 일하니까 회사원입니다.', en: 'She works at a Korean company — an office worker.' }),
+  q('sameR', 3, { passage: '어제 친구 생일 파티가 있었습니다. 저는 친구에게 꽃을 선물했습니다. 친구가 아주 좋아했습니다.', options: ['오늘 친구 생일입니다.', '친구에게 책을 줬습니다.', '친구가 선물을 좋아했습니다.', '저는 파티에 못 갔습니다.'], answer: 2, ko: '친구가 꽃 선물을 아주 좋아했습니다.', en: 'My friend loved the flowers.' }),
+  q('mainR', 3, { passage: '저는 매일 한국 드라마를 봅니다. 드라마를 보면 한국어 공부가 재미있습니다. 새로운 단어도 많이 배웁니다.', options: ['드라마로 한국어를 공부하면 좋습니다.', '드라마를 너무 많이 보면 안 됩니다.', '단어를 매일 외워야 합니다.', '한국에서 살고 싶습니다.'], answer: 0, ko: '드라마로 공부하면 재미있고 단어도 배운다는 생각입니다.', en: 'Main idea: studying Korean with dramas is good.' }),
+  q('mainR', 3, { passage: '우리 동네에 새 도서관이 생겼습니다. 집에서 가깝고 조용합니다. 저는 앞으로 주말마다 거기에서 공부하고 싶습니다.', options: ['도서관에서 공부하고 싶습니다.', '동네가 시끄러워서 싫습니다.', '새 집으로 이사하고 싶습니다.', '주말에는 쉬어야 합니다.'], answer: 0, ko: '주말마다 새 도서관에서 공부하고 싶어 합니다.', en: 'Main idea: I want to study at the new library.' }),
+  q('mainR', 2, { passage: '저는 요리를 잘 못합니다. 그래서 요즘 요리 학원에 다닙니다. 빨리 배워서 가족에게 맛있는 음식을 만들어 주고 싶습니다.', options: ['요리 학원은 비쌉니다.', '가족에게 음식을 만들어 주고 싶습니다.', '외식을 자주 하고 싶습니다.', '요리는 어렵지 않습니다.'], answer: 1, ko: '요리를 배워서 가족에게 만들어 주고 싶습니다.', en: 'Main idea: I want to cook for my family.' }),
+  q('setR', 2, { passage: P.dinner, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['과일을 먹으면서', '운동을 하면서', '청소를 하면서', '숙제를 하면서'], answer: 0, ko: '식사 후에 가족과 이야기를 하는 자연스러운 상황입니다.', en: 'After dinner, chatting while eating fruit is natural.' }),
+  q('setR', 3, { passage: P.dinner, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['저는 친구 집에서 음식을 만들었습니다.', '친구 어머니께서 요리를 하셨습니다.', '음식이 맛이 없었습니다.', '친구 가족이 우리 집에 왔습니다.'], answer: 1, ko: '친구 어머니께서 불고기와 잡채를 만들어 주셨습니다.', en: 'My friend’s mother cooked bulgogi and japchae.' }),
+  q('setR', 3, { passage: P.tteok, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['친하게', '바쁘게', '조용하게', '늦게'], answer: 0, ko: '떡을 나누면 이웃과 친하게 지낼 수 있습니다.', en: 'Sharing rice cake helps you get close (친하게) to neighbours.' }),
+  q('setR', 2, { passage: P.tteok, question: '무엇에 대한 이야기인지 고르십시오.', options: ['떡 만드는 방법', '이사할 때 떡을 나누는 문화', '좋은 집을 찾는 방법', '선물 가게 소개'], answer: 1, ko: '이사하면 이웃에게 떡을 나누는 문화를 설명합니다.', en: 'It explains the custom of sharing rice cake after moving.' }),
+  q('setR', 2, { passage: P.cat, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['반겨 줍니다', '가르쳐 줍니다', '빌려 줍니다', '바꿔 줍니다'], answer: 0, ko: '집에 오면 문 앞까지 나와서 반겨 줍니다.', en: 'The cat comes to the door to welcome (반겨 주다) me.' }),
+  q('setR', 3, { passage: P.cat, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['나비는 강아지입니다.', '나비는 밤에만 잡니다.', '저는 혼자 삽니다.', '저는 고양이가 두 마리 있습니다.'], answer: 2, ko: '「혼자 살아도 외롭지 않습니다」에서 혼자 사는 것을 알 수 있습니다.', en: '“Even though I live alone…” — I live alone.' }),
+  q('setR', 2, { passage: P.bike, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['그리고', '그래서', '하지만', '그러면'], answer: 2, ko: '좋은 점 뒤에 어려운 점이 나오니까 「하지만」입니다.', en: 'Good points, then a difficulty → 하지만 (but).' }),
+  q('setR', 3, { passage: P.bike, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['자전거를 타면 돈이 많이 듭니다.', '자전거로 출근하는 사람이 줄었습니다.', '비가 오는 날에는 자전거를 타기 어렵습니다.', '추운 날에는 모두 걸어서 갑니다.'], answer: 2, ko: '비가 오거나 추운 날에는 타기 어렵습니다.', en: 'Riding is hard on rainy or very cold days.' }),
+  q('order', 3, { passage: '(가) 그래서 오늘 우산을 하나 샀습니다.\n(나) 아침에는 날씨가 맑았습니다.\n(다) 그런데 오후에 갑자기 비가 왔습니다.\n(라) 저는 우산이 없었습니다.', options: ['(나)-(다)-(라)-(가)', '(나)-(가)-(다)-(라)', '(다)-(나)-(가)-(라)', '(라)-(다)-(나)-(가)'], answer: 0, ko: '맑은 아침 → 오후에 비 → 우산이 없음 → 그래서 샀음.', en: 'Sunny morning → rain in the afternoon → no umbrella → so I bought one.' }),
+  q('order', 2, { passage: '(가) 먼저 물을 끓입니다.\n(나) 라면과 수프를 넣습니다.\n(다) 3분 후에 그릇에 담아서 먹습니다.\n(라) 오늘은 라면 끓이는 방법을 소개하겠습니다.', options: ['(가)-(나)-(라)-(다)', '(라)-(가)-(나)-(다)', '(라)-(나)-(가)-(다)', '(가)-(라)-(다)-(나)'], answer: 1, ko: '소개하는 말 → 먼저 물 → 라면 넣기 → 3분 후 먹기.', en: 'Introduction → first boil water → add noodles → eat after 3 minutes.' }),
+  q('setR', 2, { passage: P.kimchi, question: '다음 문장이 들어갈 곳을 고르십시오.\n「생각보다 시간이 많이 걸렸습니다.」', options: ORDER, answer: 1, ko: '시간이 많이 걸렸다 → 배추를 절이는 것이 제일 힘들었다로 이어집니다.', en: '“It took longer than I thought” leads into “salting the cabbage was hardest”.' }),
+  q('setR', 3, { passage: P.kimchi, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['저는 김치를 자주 만듭니다.', '친구 어머니께서 김치 만드는 법을 가르쳐 주셨습니다.', '김치가 맛이 없었습니다.', '저는 혼자 김치를 만들었습니다.'], answer: 1, ko: '친구 어머니께 배웠습니다.', en: 'I learned from my friend’s mother. (It was my first time.)' }),
+  q('setR', 2, { passage: P.phone, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['그분들이 기뻐하시면', '날씨가 추우면', '수업이 길어지면', '손주가 오면'], answer: 0, ko: '할머니, 할아버지들이 기뻐하시면 저도 기분이 좋습니다.', en: 'When they are happy, I feel good too.' }),
+  q('setR', 3, { passage: P.phone, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['저는 매일 복지관에 갑니다.', '할머니, 할아버지들이 지금은 영상 통화를 하십니다.', '저는 스마트폰을 배우고 있습니다.', '수업 후에 제가 과일을 드립니다.'], answer: 1, ko: '지금은 손주들과 영상 통화도 하십니다.', en: 'Now they even make video calls with their grandchildren.' }),
+  q('setR', 2, { passage: P.room, question: '왜 윗글을 썼는지 맞는 것을 고르십시오.', options: ['수업 장소가 바뀐 것을 알리려고', '공사를 부탁하려고', '엘리베이터를 고치려고', '새 선생님을 소개하려고'], answer: 0, ko: '공사 때문에 수업 장소가 바뀐 것을 알리는 글입니다.', en: 'It announces a change of classroom because of construction.' }),
+  q('setR', 3, { passage: P.room, question: '윗글의 내용과 같은 것을 고르십시오.', options: ['다음 주에는 수업이 없습니다.', '월요일 수업은 502호에서 합니다.', '수요일 수업도 502호에서 합니다.', '엘리베이터가 고장 났습니다.'], answer: 1, ko: '월요일과 화요일 수업은 502호에서 합니다.', en: 'Monday and Tuesday classes are in room 502.' }),
+  q('setR', 2, { passage: P.soup, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['어머니께 감사하는 마음을', '시험을 잘 보는 방법을', '맛있는 음식을', '새해 계획을'], answer: 0, ko: '미역국은 어머니가 먹는 음식이니 생일에 어머니께 감사합니다.', en: 'Seaweed soup reminds you to thank your mother on your birthday.' }),
+  q('setR', 3, { passage: P.soup, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['시험 날에 미역국을 꼭 먹습니다.', '생일에 미역국을 먹습니다.', '미역국은 아이들만 먹습니다.', '미역국은 아주 맵습니다.'], answer: 1, ko: '한국 사람들은 생일에 미역국을 먹습니다.', en: 'Koreans eat seaweed soup on birthdays (but not on exam days).' }),
+  q('setR', 3, { passage: P.water, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['조금씩 자주', '아주 빨리', '차갑게 많이', '밤에만'], answer: 0, ko: '「한꺼번에 많이」와 반대되는 말은 「조금씩 자주」입니다.', en: 'The opposite of “a lot at once” is “a little, often”.' }),
+  q('setR', 2, { passage: P.water, question: '이 글의 내용과 같은 것을 고르십시오.', options: ['물을 하루에 한 잔 마셔야 합니다.', '물을 많이 마시면 더 피곤합니다.', '식사 중에 물을 너무 많이 마시면 좋지 않습니다.', '물을 한꺼번에 마시는 것이 좋습니다.'], answer: 2, ko: '식사 중에 너무 많이 마시면 소화가 잘 안 될 수 있습니다.', en: 'Too much water during meals can upset digestion.' }),
+  q('setR', 2, { passage: P.art, question: '㉠에 들어갈 알맞은 것을 고르십시오.', options: ['마치', '아직', '벌써', '별로'], answer: 0, ko: '「마치 ~ 것 같다」는 함께 쓰는 표현입니다.', en: '마치 … 것 같다 = “as if …”.' }),
+  q('setR', 3, { passage: P.art, question: '이 글의 내용으로 알 수 있는 것을 고르십시오.', options: ['저는 고등학교 때 그림을 많이 그렸습니다.', '저는 지금 회사에 다닙니다.', '저는 전시회를 벌써 열었습니다.', '저는 그림을 싫어합니다.'], answer: 1, ko: '작년에 회사에 들어갔으니 지금 회사에 다닙니다.', en: 'I joined a company last year, so I work there now.' }),
+];
+
+export const seedTopikSets = [
+  {
+    id: 'T1L',
+    order: 1,
+    level: 'TOPIK I',
+    section: 'listening',
+    title: 'TOPIK I 모의고사 1회 · 듣기',
+    description_en: 'Listening, questions 1–30 (40 minutes, 100 points). Original practice items in the real TOPIK I format.',
+    timeLimitMin: 40,
+    status: 'published',
+    questions: listening,
+  },
+  {
+    id: 'T1R',
+    order: 2,
+    level: 'TOPIK I',
+    section: 'reading',
+    title: 'TOPIK I 모의고사 1회 · 읽기',
+    description_en: 'Reading, questions 31–70 (60 minutes, 100 points). Original practice items in the real TOPIK I format.',
+    timeLimitMin: 60,
+    status: 'published',
+    questions: reading,
+  },
+];
