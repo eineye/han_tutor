@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { seedLessons, seedUnits } from '../seed/curriculum.js';
 import { seedVideos } from '../seed/videos.js';
+import { bonusLessons } from '../seed/bonus.js';
 import { demoChatReply } from '../demo.js';
 import { collectStudentStrings } from '../i18nStrings.js';
 
@@ -17,6 +18,17 @@ for (const lang of ['ne', 'ko']) {
     assert.deepEqual(missing.slice(0, 10), [], `${missing.length} untranslated sentence(s) for ${lang}`);
   });
 }
+
+// Nepali is the priority language: draft lessons are translated too, so publishing one needs no extra work
+test('Nepali covers draft lessons (incl. vocabulary meanings) and has real translations', () => {
+  const dict = JSON.parse(fs.readFileSync(new URL('../../src/i18n/content.ne.json', import.meta.url), 'utf8'));
+  const all = [...collectStudentStrings({ units: seedUnits, lessons: [...seedLessons, ...bonusLessons], videos: seedVideos }, { includeDrafts: true }).keys()];
+  const missing = all.filter((s) => !dict[s]);
+  assert.deepEqual(missing.slice(0, 10), [], `${missing.length} untranslated sentence(s) for ne`);
+  const vocab = [...seedLessons, ...bonusLessons].flatMap((l) => l.vocab || []);
+  const notNepali = vocab.filter((v) => !/[\u0900-\u097F]/.test(dict[v.en] || ''));
+  assert.deepEqual(notNepali.map((v) => `${v.ko} = ${v.en}`), []);
+});
 
 test('demo AI replies follow the chosen language', () => {
   const ne = demoChatReply([{ role: 'user', text: 'hello' }], 'Nepali');
