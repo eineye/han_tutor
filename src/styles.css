@@ -3480,3 +3480,17 @@ label.inline select {
     font-size: 0.62rem;
   }
 }
+
+/* Installed app (Android app / home-screen app): keep the top bar and login below the phone's status bar */
+.topbar {
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+.login {
+  padding-top: calc(24px + env(safe-area-inset-top));
+}
+.admin {
+  padding-top: env(safe-area-inset-top);
+}
+.install-app__help {
+  margin-top: 8px;
+}

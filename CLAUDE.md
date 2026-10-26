@@ -1,7 +1,7 @@
 # Han Tutor — working notes for Claude
 
 Korean learning web app for teens abroad (React + Vite front end, Express API, Gemini).
-Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md
+Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md · 앱(PWA·Android): docs/ANDROID.md
 
 ## 소통 언어 (소유자 요청)
 - 소유자에게 보내는 모든 답변·보고·설명은 **한국어**로 작성한다. 영어 용어는 꼭 필요할 때만 괄호로 덧붙인다.
@@ -20,3 +20,4 @@ Design: docs/DESIGN.md · Deployment: docs/DEPLOY.md
 2. Commit with a clear message and push to `HanTutor` (the default branch; formerly `claude/korean-learning-webapp-kq0wm3`).
 3. The push triggers `.github/workflows/pages.yml`, which redeploys https://eineye.github.io/han_tutor/ — check the run succeeds and report the result.
 - TOPIK I 대비: 문제 `server/seed/topik.js`(실제 시험 형식으로 새로 쓴 문제 — 실제 기출문제를 옮겨 넣지 말 것), 학생 화면 `src/pages/TopikHome.tsx`·`TopikTest.tsx`, 교사 화면 `src/pages/admin/AdminTopik.tsx`·`AdminTopikEditor.tsx`. 그림 보기(이모지)를 새로 쓰면 `node scripts/build-emoji-icons.mjs`.
+- 앱 배포: PWA(`public/manifest.webmanifest`, `public/sw.js`, `src/components/InstallApp.tsx`)와 Android 앱(Capacitor: `capacitor.config.ts`, `android/`, 휴대폰 음성은 `src/lib/native.ts`). `.github/workflows/android.yml`이 HanTutor 푸시마다 APK를 빌드해 `android-latest` 릴리스에 올린다 — 이 실행도 성공했는지 확인할 것. 로고를 바꾸면 `python3 scripts/build-app-icons.py`.

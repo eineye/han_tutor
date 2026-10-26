@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BrandIcon, BrandName } from './Brand';
+import InstallApp from './InstallApp';
 import { useAuth } from '../auth';
 import { LangSwitcher, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
@@ -35,6 +36,7 @@ export default function StudentLayout() {
         </nav>
         <div className="topbar__user">
           <LangSwitcher compact />
+          <InstallApp compact />
           <span className="pill" title="XP">⭐ {student?.xp ?? 0}</span>
           <span className="pill" title={t('home.streak')}>🔥 {student?.streak ?? 0}</span>
           <button

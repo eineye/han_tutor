@@ -1,6 +1,7 @@
 import { findRecording, recordingUrl } from './recordings';
 import { api, getToken } from '../api';
 import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
+import { isNativeApp, nativeStt, nativeTts } from './native';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -127,8 +128,11 @@ if ('speechSynthesis' in window) {
   window.speechSynthesis.getVoices(); // starts loading the voice list early
 }
 
-export const ttsSupported = () => 'speechSynthesis' in window;
-export const hasKoreanVoice = () => Boolean(koreanVoice());
+const browserTts = () => 'speechSynthesis' in window;
+/** Android app: the device's speech engine through a native plugin (the WebView has no speechSynthesis) */
+const appTts = () => !browserTts() && isNativeApp();
+export const ttsSupported = () => browserTts() || appTts();
+export const hasKoreanVoice = () => appTts() || Boolean(koreanVoice());
 
 /**
  * Prepares the speech engine and audio output on the first tap/click, so the first real
@@ -137,7 +141,7 @@ export const hasKoreanVoice = () => Boolean(koreanVoice());
  */
 let warmedUp = false;
 export function warmUp() {
-  if (warmedUp || !ttsSupported()) return;
+  if (warmedUp || !browserTts()) return;
   warmedUp = true;
   try {
     const synth = window.speechSynthesis;
@@ -282,7 +286,13 @@ let currentAudio: HTMLAudioElement | null = null;
 
 /** cancel() that remembers whether it cut off playing audio (see the gap in speak()) */
 function cancelSynth() {
-  if (!ttsSupported()) return;
+  if (appTts()) {
+    nativeTts()
+      .then((t) => t.stop())
+      .catch(() => {});
+    return;
+  }
+  if (!browserTts()) return;
   const synth = window.speechSynthesis;
   if (synth.speaking || synth.pending) lastBusyCancel = performance.now();
   synth.cancel();
@@ -324,6 +334,7 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
   const tts = () => {
     if (seq !== speakSeq) return;
     if (!ttsSupported()) return finish();
+    if (appTts()) return appSpeak();
     const synth = window.speechSynthesis;
     // Starting right after cancel() makes Chrome clip or crackle the first sound,
     // so leave a short gap whenever something was still playing.
@@ -360,6 +371,19 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     else go();
     // Safety net: some browsers never fire onend
     armGuard(2500 + (text.length * 450) / (u.rate || 1));
+  };
+
+  /** Android app: same voice style (pitch/rate), spoken by the device engine */
+  const appSpeak = () => {
+    const st = opts.style || classTts;
+    const p = presetById(st.preset);
+    const pitch = opts.pitch ?? Math.min(2, Math.max(0.1, (p.fallbackPitch ?? p.pitch) + (st.pitchAdj || 0)));
+    const r = opts.pitch != null ? rate : Math.min(2, Math.max(0.3, rate * p.rate * (st.rateAdj || 1)));
+    opts.onStart?.();
+    armGuard(4000 + (text.length * 500) / r);
+    nativeTts()
+      .then((t) => t.speak({ text, lang: 'ko-KR', rate: r, pitch, volume: 1 }))
+      .then(finish, finish);
   };
 
   /** Play an audio URL (teacher recording or AI voice); on any failure use the browser voice. */
@@ -447,7 +471,7 @@ type SR = {
 };
 
 export const recognitionSupported = () =>
-  Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) || isNativeApp();
 
 export interface Recognizer {
   stop(): void;
@@ -464,6 +488,7 @@ export function listenKorean(handlers: {
   onEnd?: () => void;
 }): Recognizer | null {
   const Ctor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!Ctor && isNativeApp()) return listenKoreanApp(handlers);
   if (!Ctor) return null;
   const rec: SR = new Ctor();
   rec.lang = 'ko-KR';
@@ -490,4 +515,27 @@ export function listenKorean(handlers: {
   };
   rec.start();
   return { stop: () => rec.stop(), abort: () => rec.abort() };
+}
+
+/** Android app: the device's speech recognizer (asks for the microphone permission the first time). */
+function listenKoreanApp(handlers: Parameters<typeof listenKorean>[0]): Recognizer {
+  let alts: string[] = [];
+  nativeStt()
+    .then(async (sr) => {
+      const perm = await sr.requestPermissions();
+      if (perm.speechRecognition !== 'granted') throw new Error('not-allowed');
+      const r = await sr.start({ language: 'ko-KR', maxResults: 3, partialResults: false, popup: false });
+      alts = (r?.matches || []).filter(Boolean);
+    })
+    .catch((e: { message?: string }) => handlers.onError?.(/permission|not-allowed/i.test(e?.message || '') ? 'not-allowed' : 'no-speech'))
+    .finally(() => {
+      handlers.onResult((alts[0] || '').trim(), alts);
+      handlers.onEnd?.();
+    });
+  const stop = () => {
+    nativeStt()
+      .then((sr) => sr.stop())
+      .catch(() => {});
+  };
+  return { stop, abort: stop };
 }

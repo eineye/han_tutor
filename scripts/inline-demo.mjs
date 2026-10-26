@@ -45,6 +45,7 @@ fs.writeFileSync(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
 ${out.slice(0, out.indexOf('<div id="root">'))}</head>
 <body>
 <div id="root"></div>
@@ -55,4 +56,7 @@ ${out.slice(0, out.indexOf('<div id="root">'))}</head>
 </html>
 `,
 );
-console.log('dist-demo/site/index.html');
+// Installable app (PWA) files next to the page: manifest, icons and the offline service worker.
+// vite copies public/ into dist-demo/; sw.js already has its build id from vite.config.ts.
+for (const f of ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'sw.js']) fs.copyFileSync(path.join(dir, f), path.join(site, f));
+console.log('dist-demo/site/index.html (+ manifest, icons, sw.js)');

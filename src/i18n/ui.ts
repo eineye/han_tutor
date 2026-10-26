@@ -17,6 +17,9 @@ export const UI = {
   'nav.topik': e('TOPIK', 'TOPIK', 'TOPIK'),
   'nav.me': e('Me', '나', 'म'),
   'nav.logout': e('Log out', '로그아웃', 'लग आउट'),
+  'install.button': e('Install app', '앱 설치', 'एप इन्स्टल गर्नुहोस्'),
+  'install.apk': e('Android app (APK)', '안드로이드 앱 (APK)', 'एन्ड्रोइड एप (APK)'),
+  'install.ios': e('Tap the Share button ⬆️ in Safari, then “Add to Home Screen”.', 'Safari 아래쪽 공유 버튼 ⬆️ → 「홈 화면에 추가」를 누르세요.', 'Safari मा सेयर बटन ⬆️ थिच्नुहोस्, अनि “Add to Home Screen” (होम स्क्रिनमा थप्नुहोस्) छान्नुहोस्।'),
 
   // common
   'common.back': e('Back', '이전', 'पछाडि'),

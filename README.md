@@ -13,6 +13,7 @@
 - 🎙️ **교사 녹음** — 교사 화면 「녹음 관리」에서 원어민 녹음을 올리거나 바로 녹음하면, 학생 화면에서 같은 글자·문장을 읽을 때 브라우저 음성 대신 재생
 - 🎞️ **자막·가사 추출기** — 교사 화면 「자막·가사 추출」에서 YouTube 링크·동영상 파일로 대화와 화면 자막을, 음악 파일로 가사를 AI(Gemini)가 시간과 함께 받아 적고 요약·정리. 영상과 함께 보며 편집하고, 20개 언어로 번역해 SRT·VTT·SBV·LRC·TXT·Markdown·HTML(Word·PDF용)·CSV·JSON으로 내보내기
 - 🌐 **학생 화면 언어 선택** — 한국어 / English / नेपाली(네팔어) (화면 문구, 교재 설명, 드라마 해석, AI 설명까지). 교사 화면 「번역 관리」에서 번역을 직접 고치고 채울 수 있음 (AI 초안 지원)
+- 📲 **앱으로 설치** — 설치형 웹앱(PWA, 오프라인 실행)과 Android 앱(APK 자동 빌드: https://github.com/eineye/han_tutor/releases/download/android-latest/hangeulon.apk, Google Play용 AAB). 자세한 내용은 [docs/ANDROID.md](docs/ANDROID.md)
 
 설계 문서: [docs/DESIGN.md](docs/DESIGN.md)
 

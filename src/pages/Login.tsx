@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { BrandIcon, BrandName } from '../components/Brand';
 import { Navigate, useNavigate } from 'react-router-dom';
+import InstallApp from '../components/InstallApp';
 import { api, ApiError, IS_DEMO } from '../api';
 import { useAuth } from '../auth';
 import Mascot from '../components/Mascot';
@@ -165,6 +166,7 @@ export default function Login() {
           </p>
         )}
         {IS_DEMO && <DemoNotice />}
+        <InstallApp />
       </form>
     </div>
   );
