@@ -3494,3 +3494,445 @@ label.inline select {
 .install-app__help {
   margin-top: 8px;
 }
+
+/* ───────── App layout: hamburger menu (phones, tablets, Android app) ───────── */
+.topbar__menu,
+.topbar__title,
+.drawer {
+  display: none;
+}
+.topbar__desktop {
+  display: contents;
+}
+@media (max-width: 900px) {
+  .topbar {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+    justify-content: flex-start;
+  }
+  .topbar__menu {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    font-size: 1.45rem;
+    cursor: pointer;
+  }
+  .topbar__menu:active {
+    background: var(--line);
+  }
+  .topbar .brand {
+    flex: none;
+  }
+  .topbar .brand .brand__name {
+    display: none;
+  }
+  .topbar .brand .brand__icon {
+    height: 32px;
+  }
+  .topbar__title {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    font-weight: 800;
+    font-size: 1.02rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar__user {
+    margin-left: auto;
+    gap: 4px;
+    flex: none;
+  }
+  .topbar__user .pill {
+    padding: 3px 8px;
+    font-size: 0.85rem;
+  }
+  .topbar__desktop,
+  .topbar__logout {
+    display: none !important;
+  }
+  .bottomnav {
+    display: none !important;
+  }
+  .main {
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  /* side menu */
+  .drawer {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .drawer__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 12, 4, 0.45);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .drawer__panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(300px, 84vw);
+    background: var(--surface);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+    transform: translateX(-104%);
+    transition: transform 0.22s ease;
+    display: flex;
+    flex-direction: column;
+    padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .drawer.is-open {
+    pointer-events: auto;
+  }
+  .drawer.is-open .drawer__backdrop {
+    opacity: 1;
+  }
+  .drawer.is-open .drawer__panel {
+    transform: none;
+  }
+  .drawer__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .drawer__head .brand__icon {
+    height: 40px;
+  }
+  .drawer__head > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .drawer__close {
+    border: 0;
+    background: transparent;
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .drawer__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 0;
+  }
+  .drawer__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    color: var(--text);
+    font-weight: 700;
+    text-decoration: none !important;
+  }
+  .drawer__link.active {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    color: var(--primary);
+  }
+  .drawer__icon {
+    font-size: 1.25rem;
+    width: 28px;
+    text-align: center;
+  }
+  .drawer__foot {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .drawer__lang {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .drawer__lang .lang-select {
+    flex: 1;
+  }
+  .drawer__foot .install-app {
+    align-self: flex-start;
+  }
+
+  /* denser content for small screens */
+  .card {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 1.35rem;
+  }
+}
+
+/* ───────── Phone screens (app-style) ───────── */
+.talk__moreBtn,
+.composer__sendIcon {
+  display: none;
+}
+@media (max-width: 760px) {
+  /* login: language + form first, smaller Bori and logo */
+  .login {
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+    min-height: 100dvh;
+    align-content: start;
+  }
+  .login > * {
+    min-width: 0;
+  }
+  .login__lang {
+    text-align: center;
+  }
+  .lang-switch {
+    justify-content: center;
+  }
+  .lang-switch__btn {
+    padding: 6px 12px;
+    font-size: 0.92rem;
+  }
+  .login__hero p {
+    margin: 4px 0;
+    font-size: 0.92rem;
+  }
+  .login__hero .muted {
+    display: none;
+  }
+  .login__mascot svg,
+  .login__mascot .mascot {
+    width: 110px !important;
+    height: auto !important;
+  }
+  .login__brand .brand__icon,
+  .login__brand .brand__name {
+    height: 44px;
+  }
+  .login__card .tabs button {
+    padding: 8px 6px;
+    font-size: 0.9rem;
+  }
+
+  /* home */
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: center;
+  }
+  .hero__mascot svg,
+  .hero__mascot .mascot {
+    width: 120px !important;
+    height: auto !important;
+  }
+  .hero__stats {
+    justify-content: center;
+  }
+
+  /* lesson: all steps visible as a grid instead of a sideways-scrolling row */
+  .stepper {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  .step {
+    min-width: 0;
+    padding: 6px 2px;
+    border-radius: 12px;
+  }
+  .step small {
+    font-size: 0.66rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lesson__footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    margin: 16px -14px -14px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  /* tabs (Hangeul lab, drama…): wrap instead of hiding tabs off-screen */
+  .tabs,
+  .tabs--wide {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .tabs button,
+  .tabs--wide button {
+    flex: 1 1 auto;
+    padding: 8px 8px;
+    font-size: 0.88rem;
+    white-space: normal;
+  }
+
+  /* AI talk: chat first, scenario details fold away */
+  .talk {
+    gap: 10px;
+  }
+  .talk__side {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 12px;
+    align-items: center;
+  }
+  .talk__side .mascot,
+  .talk__side svg {
+    width: 64px !important;
+    height: auto !important;
+  }
+  .talk__side > label {
+    margin: 0;
+  }
+  .talk__moreBtn {
+    display: inline-flex;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .talk__more {
+    display: none;
+    grid-column: 1 / -1;
+  }
+  .talk__more.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .talk__chat {
+    min-height: 0;
+  }
+  .chat {
+    max-height: none;
+    min-height: 45dvh;
+  }
+  .msg__bubble {
+    max-width: 86%;
+  }
+  .composer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    padding: 8px 0 calc(4px + env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+  .composer input {
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 1rem;
+  }
+  .composer__send {
+    flex: none;
+    padding: 10px 14px;
+  }
+  .composer__sendText {
+    display: none;
+  }
+  .composer__sendIcon {
+    display: inline;
+  }
+
+  /* drama: script uses the full width */
+  .script__line {
+    gap: 8px;
+    padding: 8px 4px;
+  }
+  .drama__bar {
+    gap: 8px 12px;
+    font-size: 0.88rem;
+  }
+  .drama__bar select {
+    max-width: 100%;
+  }
+  .drama__panel {
+    padding: 8px;
+  }
+
+  /* generic: nothing wider than the screen */
+  .main img,
+  .main video,
+  .main iframe,
+  .main table {
+    max-width: 100%;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+}
+
+/* teacher screens on phones: same top bar + side menu as the student app */
+.admin__topbar {
+  display: none;
+}
+@media (max-width: 900px) {
+  .admin {
+    padding-top: 0;
+  }
+  .admin__topbar {
+    display: flex;
+  }
+  .admin__topbar .brand__icon {
+    height: 30px;
+  }
+  .admin__side {
+    display: none;
+  }
+  .admin__main {
+    padding: 12px;
+  }
+  .admin__drawer nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 0;
+  }
+  .admin__drawer .admin__link {
+    padding: 11px 12px;
+  }
+}
+@media (max-width: 760px) {
+  /* drama controls wrap onto two short rows instead of running off the screen */
+  .drama__layout.is-pinned .drama__bar {
+    flex-wrap: wrap;
+    overflow: visible;
+    white-space: normal;
+  }
+}
+@media (max-width: 760px) {
+  /* wide teacher tables scroll sideways inside their card instead of squeezing words letter by letter */
+  .admin__main :has(> table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin__main table {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+  .admin__main th,
+  .admin__main td {
+    max-width: 15em;
+  }
+}

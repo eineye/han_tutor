@@ -119,6 +119,8 @@ export default function TalkPage() {
     });
   };
 
+  // phones: scenario details and switches fold away so the chat gets the screen
+  const [more, setMore] = useState(false);
   const last = [...msgs].reverse().find((m) => m.role === 'assistant')?.reply;
 
   return (
@@ -135,25 +137,30 @@ export default function TalkPage() {
             ))}
           </select>
         </label>
-        <p className="small">{showScenario}</p>
-        <p className="small muted">🎯 {showGoal}</p>
-        {scenario.vocab.length > 0 && (
-          <div className="chips">
-            {scenario.vocab.map((v) => (
-              <button key={v} className="chip" onClick={() => setInput((i) => (i ? i + ' ' : '') + v)} lang="ko">
-                {v}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="talk__toggles">
-          <Toggle checked={autoSpeak} onChange={setAutoSpeak} label={t('talk.autoSpeak')} />
-          <Toggle checked={showRoman} onChange={setShowRoman} label={t('common.romanization')} />
-          <Toggle checked={showEn} onChange={setShowEn} label={t('common.translation')} />
-        </div>
-        <button className="btn btn--ghost btn--small" onClick={() => setMsgs((m) => m.slice(0, 1))}>
-          ↻ {t('talk.restart')}
+        <button type="button" className="btn btn--ghost btn--small talk__moreBtn" onClick={() => setMore(!more)} aria-expanded={more}>
+          ⚙️ {t('talk.settings')} {more ? '▲' : '▼'}
         </button>
+        <div className={`talk__more ${more ? 'is-open' : ''}`}>
+          <p className="small">{showScenario}</p>
+          <p className="small muted">🎯 {showGoal}</p>
+          {scenario.vocab.length > 0 && (
+            <div className="chips">
+              {scenario.vocab.map((v) => (
+                <button key={v} className="chip" onClick={() => setInput((i) => (i ? i + ' ' : '') + v)} lang="ko">
+                  {v}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="talk__toggles">
+            <Toggle checked={autoSpeak} onChange={setAutoSpeak} label={t('talk.autoSpeak')} />
+            <Toggle checked={showRoman} onChange={setShowRoman} label={t('common.romanization')} />
+            <Toggle checked={showEn} onChange={setShowEn} label={t('common.translation')} />
+          </div>
+          <button className="btn btn--ghost btn--small" onClick={() => setMsgs((m) => m.slice(0, 1))}>
+            ↻ {t('talk.restart')}
+          </button>
+        </div>
       </div>
 
       <div className="talk__chat card">
@@ -222,8 +229,11 @@ export default function TalkPage() {
             </button>
           )}
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={lang === 'ko' ? '한국어로 말해 보세요…' : `한국어로 말해 보세요… (${t('talk.placeholder')})`} lang="ko" maxLength={300} />
-          <button className="btn" disabled={busy || !input.trim()}>
-            {t('talk.send')}
+          <button className="btn composer__send" disabled={busy || !input.trim()} aria-label={t('talk.send')}>
+            <span className="composer__sendText">{t('talk.send')}</span>
+            <span className="composer__sendIcon" aria-hidden>
+              ➤
+            </span>
           </button>
         </form>
       </div>
