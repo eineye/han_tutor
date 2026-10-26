@@ -1,7 +1,7 @@
 import { findRecording, recordingUrl } from './recordings';
 import { api, getToken } from '../api';
 import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
-import { isNativeApp, nativeStt, nativeTts } from './native';
+import { isNativeApp, nativeStt, nativeTts, offerKoreanVoiceInstall } from './native';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -129,8 +129,11 @@ if ('speechSynthesis' in window) {
 }
 
 const browserTts = () => 'speechSynthesis' in window;
-/** Android app: the device's speech engine through a native plugin (the WebView has no speechSynthesis) */
-const appTts = () => !browserTts() && isNativeApp();
+/**
+ * Android app: the phone's speech engine through a native plugin. The app's WebView may expose
+ * speechSynthesis, but it stays silent there — so the app never uses it.
+ */
+const appTts = () => isNativeApp();
 export const ttsSupported = () => browserTts() || appTts();
 export const hasKoreanVoice = () => appTts() || Boolean(koreanVoice());
 
@@ -141,7 +144,7 @@ export const hasKoreanVoice = () => appTts() || Boolean(koreanVoice());
  */
 let warmedUp = false;
 export function warmUp() {
-  if (warmedUp || !browserTts()) return;
+  if (warmedUp || !browserTts() || appTts()) return;
   warmedUp = true;
   try {
     const synth = window.speechSynthesis;
@@ -379,11 +382,28 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     const p = presetById(st.preset);
     const pitch = opts.pitch ?? Math.min(2, Math.max(0.1, (p.fallbackPitch ?? p.pitch) + (st.pitchAdj || 0)));
     const r = opts.pitch != null ? rate : Math.min(2, Math.max(0.3, rate * p.rate * (st.rateAdj || 1)));
-    opts.onStart?.();
-    armGuard(4000 + (text.length * 500) / r);
-    nativeTts()
-      .then((t) => t.speak({ text, lang: 'ko-KR', rate: r, pitch, volume: 1 }))
-      .then(finish, finish);
+    armGuard(6000 + (text.length * 500) / r);
+    let started = false;
+    const attempt = (n: number) => {
+      if (seq !== speakSeq) return;
+      nativeTts()
+        .then((t) => {
+          if (!started) (started = true), opts.onStart?.();
+          return t.speak({ text, lang: 'ko-KR', rate: r, pitch, volume: 1 });
+        })
+        .then(finish, (e: { message?: string }) => {
+          const msg = e?.message || String(e);
+          // the engine needs a moment after the app starts
+          if (/initiali[sz]ed|not available/i.test(msg) && n < 6) {
+            armGuard(6000 + (text.length * 500) / r);
+            window.setTimeout(() => attempt(n + 1), 500);
+            return;
+          }
+          offerKoreanVoiceInstall(/language/i.test(msg) ? 'language' : 'engine');
+          finish();
+        });
+    };
+    attempt(0);
   };
 
   /** Play an audio URL (teacher recording or AI voice); on any failure use the browser voice. */
@@ -487,8 +507,9 @@ export function listenKorean(handlers: {
   onError?: (err: string) => void;
   onEnd?: () => void;
 }): Recognizer | null {
+  // Android app: always the phone's recognizer (the WebView one does not work)
+  if (isNativeApp()) return listenKoreanApp(handlers);
   const Ctor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!Ctor && isNativeApp()) return listenKoreanApp(handlers);
   if (!Ctor) return null;
   const rec: SR = new Ctor();
   rec.lang = 'ko-KR';
