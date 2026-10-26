@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { isNativeApp, nativeTts } from '../lib/native';
+import { isNativeApp, withTts } from '../lib/native';
 import { speak } from '../lib/speech';
 
 // 소리 점검 · Sound check: finds out where sound stops on a phone (app audio, phone speech engine, Korean voice).
@@ -76,13 +76,14 @@ export default function SoundCheck() {
   const engineInfo = async () => {
     if (!isNativeApp()) return add('③ 휴대폰 음성 엔진: 앱에서만 점검할 수 있어요 (app only)');
     try {
-      const t = await nativeTts();
-      const ko = await t.isLanguageSupported({ lang: 'ko-KR' }).catch((e) => ({ supported: `오류 ${errText(e)}` }));
-      const en = await t.isLanguageSupported({ lang: 'en-US' }).catch((e) => ({ supported: `오류 ${errText(e)}` }));
-      const langs = await t.getSupportedLanguages().catch(() => ({ languages: [] as string[] }));
-      const voices = await t.getSupportedVoices().catch(() => ({ voices: [] as unknown[] }));
-      const koLangs = langs.languages.filter((l) => l.toLowerCase().startsWith('ko'));
-      add(`③ 엔진: 한국어 지원=${ko.supported}, 영어 지원=${en.supported}, 언어 ${langs.languages.length}개 (한국어: ${koLangs.join(', ') || '없음'}), 음성 ${voices.voices.length}개`);
+      await withTts(async (t) => {
+        const ko = await t.isLanguageSupported({ lang: 'ko-KR' }).catch((e) => ({ supported: `오류 ${errText(e)}` }));
+        const en = await t.isLanguageSupported({ lang: 'en-US' }).catch((e) => ({ supported: `오류 ${errText(e)}` }));
+        const langs = await t.getSupportedLanguages().catch(() => ({ languages: [] as string[] }));
+        const voices = await t.getSupportedVoices().catch(() => ({ voices: [] as unknown[] }));
+        const koLangs = langs.languages.filter((l) => l.toLowerCase().startsWith('ko'));
+        add(`③ 엔진: 한국어 지원=${ko.supported}, 영어 지원=${en.supported}, 언어 ${langs.languages.length}개 (한국어: ${koLangs.join(', ') || '없음'}), 음성 ${voices.voices.length}개`);
+      });
     } catch (e) {
       add(`③ 엔진 정보 오류: ${errText(e)}`);
     }
@@ -92,9 +93,8 @@ export default function SoundCheck() {
     if (!isNativeApp()) return add(`${label}: 앱에서만 점검할 수 있어요 (app only)`);
     const t0 = performance.now();
     try {
-      const t = await nativeTts();
       add(`${label}: 말하기 요청 / speaking…`);
-      await t.speak({ text, lang, rate: 1, pitch: 1, volume: 1 });
+      await withTts((t) => t.speak({ text, lang, rate: 1, pitch: 1, volume: 1 }));
       add(`${label}: 끝 (${Math.round(performance.now() - t0)}ms) — 들렸나요?`);
     } catch (e) {
       add(`${label}: 실패 — ${errText(e)}`);
@@ -111,8 +111,7 @@ export default function SoundCheck() {
   };
 
   const openInstall = () =>
-    nativeTts()
-      .then((t) => t.openInstall())
+    withTts((t) => t.openInstall())
       .then(() => add('⑦ 음성 데이터 설치 화면 열기 요청'))
       .catch((e) => add(`⑦ 열기 실패: ${errText(e)}`));
 
@@ -122,20 +121,37 @@ export default function SoundCheck() {
         ← 돌아가기 / Back
       </Link>
       <h1>🔊 소리 점검 · Sound check</h1>
-      <p className="muted small">위에서부터 차례로 눌러 보세요. 들린 것과 안 들린 것, 아래 기록 화면을 캡처해서 선생님께 보내 주세요. / Tap each button from the top and send a screenshot of the log.</p>
+      <p className="muted small">
+        위에서부터 차례로 눌러 보세요. 들린 것과 안 들린 것, 아래 기록 화면을 캡처해서 선생님께 보내 주세요. / Tap each button from the top and send a screenshot of the log.
+      </p>
       <div className="card soundcheck__buttons">
-        <button className="btn" onClick={beepAudio}>① 삐 소리 (Audio)</button>
-        <button className="btn" onClick={beepWebAudio}>② 삐 소리 (Web Audio)</button>
-        <button className="btn btn--ghost" onClick={engineInfo}>③ 휴대폰 음성 엔진 정보</button>
-        <button className="btn" onClick={() => engineSpeak('Hello, this is a sound test.', 'en-US', '④ 영어 음성 (English)')}>④ 영어 음성 (English)</button>
-        <button className="btn" onClick={() => engineSpeak('안녕하세요. 소리 점검입니다.', 'ko-KR', '⑤ 한국어 음성 (Korean)')}>⑤ 한국어 음성 (Korean)</button>
-        <button className="btn" onClick={appSpeak}>⑥ 보리 목소리 (앱 설정대로)</button>
+        <button className="btn" onClick={beepAudio}>
+          ① 삐 소리 (Audio)
+        </button>
+        <button className="btn" onClick={beepWebAudio}>
+          ② 삐 소리 (Web Audio)
+        </button>
+        <button className="btn btn--ghost" onClick={engineInfo}>
+          ③ 휴대폰 음성 엔진 정보
+        </button>
+        <button className="btn" onClick={() => engineSpeak('Hello, this is a sound test.', 'en-US', '④ 영어 음성 (English)')}>
+          ④ 영어 음성 (English)
+        </button>
+        <button className="btn" onClick={() => engineSpeak('안녕하세요. 소리 점검입니다.', 'ko-KR', '⑤ 한국어 음성 (Korean)')}>
+          ⑤ 한국어 음성 (Korean)
+        </button>
+        <button className="btn" onClick={appSpeak}>
+          ⑥ 보리 목소리 (앱 설정대로)
+        </button>
         {isNativeApp() && (
-          <button className="btn btn--ghost" onClick={openInstall}>⑦ 한국어 음성 데이터 설치 화면</button>
+          <button className="btn btn--ghost" onClick={openInstall}>
+            ⑦ 한국어 음성 데이터 설치 화면
+          </button>
         )}
       </div>
       <div className="alert alert--info small">
-        ①②가 안 들리면: 휴대폰 <b>미디어 볼륨</b>(음량 버튼 → 미디어), 무음·방해 금지 모드, 블루투스 연결을 확인하세요. ④는 들리고 ⑤만 안 들리면: 설정 › 텍스트 음성 변환 › Google 엔진 › 음성 데이터 설치 › 한국어.
+        ①②가 안 들리면: 휴대폰 <b>미디어 볼륨</b>(음량 버튼 → 미디어), 무음·방해 금지 모드, 블루투스 연결을 확인하세요. ④는 들리고 ⑤만 안 들리면: 설정 › 텍스트 음성 변환 › Google 엔진 › 음성 데이터
+        설치 › 한국어.
       </div>
       <pre className="card soundcheck__log">{log.join('\n')}</pre>
     </div>

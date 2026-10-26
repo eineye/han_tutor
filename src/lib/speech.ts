@@ -1,7 +1,7 @@
 import { findRecording, recordingUrl } from './recordings';
 import { api, getToken } from '../api';
 import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
-import { isNativeApp, nativeStt, nativeTts, offerKoreanVoiceInstall } from './native';
+import { isNativeApp, offerKoreanVoiceInstall, withStt, withTts } from './native';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -292,9 +292,7 @@ let currentAudio: HTMLAudioElement | null = null;
 /** cancel() that remembers whether it cut off playing audio (see the gap in speak()) */
 function cancelSynth() {
   if (appTts()) {
-    nativeTts()
-      .then((t) => t.stop())
-      .catch(() => {});
+    withTts((t) => t.stop()).catch(() => {});
     return;
   }
   if (!browserTts()) return;
@@ -388,22 +386,20 @@ export function speak(text: string, opts: SpeakOptions = {}): () => void {
     let started = false;
     const attempt = (n: number) => {
       if (seq !== speakSeq) return;
-      nativeTts()
-        .then((t) => {
-          if (!started) (started = true), opts.onStart?.();
-          return t.speak({ text, lang: 'ko-KR', rate: r, pitch, volume: 1 });
-        })
-        .then(finish, (e: { message?: string }) => {
-          const msg = e?.message || String(e);
-          // the engine needs a moment after the app starts
-          if (/initiali[sz]ed|not available/i.test(msg) && n < 6) {
-            armGuard(6000 + (text.length * 500) / r);
-            window.setTimeout(() => attempt(n + 1), 500);
-            return;
-          }
-          offerKoreanVoiceInstall(/language/i.test(msg) ? 'language' : 'engine');
-          finish();
-        });
+      withTts((t) => {
+        if (!started) (started = true), opts.onStart?.();
+        return t.speak({ text, lang: 'ko-KR', rate: r, pitch, volume: 1 });
+      }).then(finish, (e: { message?: string }) => {
+        const msg = e?.message || String(e);
+        // the engine needs a moment after the app starts
+        if (/initiali[sz]ed|not available/i.test(msg) && n < 6) {
+          armGuard(6000 + (text.length * 500) / r);
+          window.setTimeout(() => attempt(n + 1), 500);
+          return;
+        }
+        offerKoreanVoiceInstall(/language/i.test(msg) ? 'language' : 'engine');
+        finish();
+      });
     };
     attempt(0);
   };
@@ -543,22 +539,19 @@ export function listenKorean(handlers: {
 /** Android app: the device's speech recognizer (asks for the microphone permission the first time). */
 function listenKoreanApp(handlers: Parameters<typeof listenKorean>[0]): Recognizer {
   let alts: string[] = [];
-  nativeStt()
-    .then(async (sr) => {
-      const perm = await sr.requestPermissions();
-      if (perm.speechRecognition !== 'granted') throw new Error('not-allowed');
-      const r = await sr.start({ language: 'ko-KR', maxResults: 3, partialResults: false, popup: false });
-      alts = (r?.matches || []).filter(Boolean);
-    })
+  withStt(async (sr) => {
+    const perm = await sr.requestPermissions();
+    if (perm.speechRecognition !== 'granted') throw new Error('not-allowed');
+    const r = await sr.start({ language: 'ko-KR', maxResults: 3, partialResults: false, popup: false });
+    alts = (r?.matches || []).filter(Boolean);
+  })
     .catch((e: { message?: string }) => handlers.onError?.(/permission|not-allowed/i.test(e?.message || '') ? 'not-allowed' : 'no-speech'))
     .finally(() => {
       handlers.onResult((alts[0] || '').trim(), alts);
       handlers.onEnd?.();
     });
   const stop = () => {
-    nativeStt()
-      .then((sr) => sr.stop())
-      .catch(() => {});
+    withStt((sr) => sr.stop()).catch(() => {});
   };
   return { stop, abort: stop };
 }

@@ -5,8 +5,19 @@ type CapacitorGlobal = { isNativePlatform?: () => boolean };
 
 export const isNativeApp = () => Boolean((window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor?.isNativePlatform?.());
 
-export const nativeTts = () => import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech);
-export const nativeStt = () => import('@capacitor-community/speech-recognition').then((m) => m.SpeechRecognition);
+// Never resolve a promise WITH a plugin object: Capacitor plugins answer every property, including
+// `then`, so the promise takes the plugin for a thenable and waits forever. Pass a callback instead.
+type TtsPlugin = typeof import('@capacitor-community/text-to-speech').TextToSpeech;
+type SttPlugin = typeof import('@capacitor-community/speech-recognition').SpeechRecognition;
+
+export async function withTts<T>(fn: (tts: TtsPlugin) => Promise<T>): Promise<T> {
+  const { TextToSpeech } = await import('@capacitor-community/text-to-speech');
+  return fn(TextToSpeech);
+}
+export async function withStt<T>(fn: (stt: SttPlugin) => Promise<T>): Promise<T> {
+  const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
+  return fn(SpeechRecognition);
+}
 
 /**
  * The phone could not speak Korean: no Korean voice data (most common) or no speech engine at all.
@@ -26,9 +37,7 @@ export function offerKoreanVoiceInstall(reason: 'language' | 'engine') {
     `이 휴대폰에 한국어 음성이 없어요. 설치 화면을 열까요?\nKorean voice is not installed on this phone. Open the install screen?\nयो फोनमा कोरियाली आवाज छैन। इन्स्टल गर्ने स्क्रिन खोल्ने?\n\n${steps}`,
   );
   if (ok)
-    nativeTts()
-      .then((t) => t.openInstall())
-      .catch(() => {});
+    withTts((t) => t.openInstall()).catch(() => {});
 }
 
 /** Android back button: go back a screen, and leave the app only from the first screen. */
