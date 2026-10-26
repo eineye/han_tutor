@@ -3951,3 +3951,66 @@ label.inline select {
   max-height: 50vh;
   overflow-y: auto;
 }
+
+/* ───────── Phones: smaller base text, nothing wider than the screen ───────── */
+.talk-intro > div {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  html,
+  body {
+    font-size: 15px;
+    overflow-x: hidden;
+  }
+  body {
+    overflow-wrap: break-word;
+  }
+  h1 {
+    font-size: 1.25rem;
+  }
+  h2 {
+    font-size: 1.12rem;
+  }
+  h3 {
+    font-size: 1rem;
+  }
+  .talk-intro {
+    flex-direction: column;
+    text-align: center;
+  }
+  .talk-intro .mascot {
+    width: 90px;
+    height: auto;
+  }
+}
+@media (max-width: 380px) {
+  html,
+  body {
+    font-size: 14px;
+  }
+}
+@media (max-width: 760px) {
+  .filters {
+    flex-wrap: wrap;
+  }
+  .filters input,
+  .filters select {
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+}
+@media (max-width: 760px) {
+  /* two word cards per row on phones */
+  .vocab-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .vocab-card {
+    padding: 10px 6px;
+  }
+  .vocab-card__pic {
+    width: 60px !important;
+    height: 60px !important;
+  }
+}

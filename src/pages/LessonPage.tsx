@@ -196,7 +196,7 @@ export default function LessonPage() {
             <div>
               <h3>{t('lesson.roleplay')}</h3>
               <p>{tc(lesson.chat.scenario)}</p>
-              <p className="muted">🎯 {t('lesson.goal')}: {lesson.chat.goal_en}</p>
+              <p className="muted">🎯 {t('lesson.goal')}: {tc(lesson.chat.goal_en)}</p>
               <Link className="btn" to={`/talk?lesson=${lesson.id}`}>
                 {t('lesson.startTalk')} →
               </Link>
