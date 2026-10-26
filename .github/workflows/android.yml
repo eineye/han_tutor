@@ -38,7 +38,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest already has the Android SDK (ANDROID_HOME); Gradle fetches any missing platform itself
 
       - run: npm ci
       - run: npm run build:demo
