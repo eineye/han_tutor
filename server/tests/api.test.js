@@ -234,3 +234,37 @@ test('TOPIK practice tests: list, solve (scored on the server), teacher edits', 
   assert.equal((await call('/topik/T1R', { token })).data.questions[0].answer, set.questions[0].answer);
   assert.ok((await call('/admin/topik-results', { token: admin })).data.some((x) => x.studentName === 'Topik Kim'));
 });
+
+test('account deletion: in the app (DELETE /me) and from the web page (name + class + PIN)', async () => {
+  const a = await call('/auth/student/register', { body: { name: 'Del One', classCode: 'DEMO', pin: '1111' } });
+  assert.equal(a.status, 200);
+  await call('/progress', { token: a.data.token, body: { lessonId: 'L00', section: 'intro' } });
+  const del = await call('/me', { token: a.data.token, method: 'DELETE' });
+  assert.equal(del.status, 200);
+  assert.equal((await call('/me', { token: a.data.token })).status, 401, 'session is gone');
+  assert.equal((await call('/auth/student/login', { body: { name: 'Del One', classCode: 'DEMO', pin: '1111' } })).status, 401, 'account is gone');
+
+  await call('/auth/student/register', { body: { name: 'Del Two', classCode: 'DEMO', pin: '2222' } });
+  assert.equal((await call('/account/delete', { body: { name: 'Del Two', classCode: 'DEMO', pin: '9999' } })).status, 401, 'wrong PIN does not delete');
+  assert.equal((await call('/account/delete', { body: { name: 'del two', classCode: 'demo', pin: '2222' } })).status, 200);
+  assert.equal((await call('/auth/student/login', { body: { name: 'Del Two', classCode: 'DEMO', pin: '2222' } })).status, 401);
+});
+
+test('too many wrong PINs pause that account for a while; the right PIN works for others', async () => {
+  await call('/auth/student/register', { body: { name: 'Guess Me', classCode: 'DEMO', pin: '4321' } });
+  for (let i = 0; i < 8; i++) assert.equal((await call('/auth/student/login', { body: { name: 'Guess Me', classCode: 'DEMO', pin: '0000' } })).status, 401);
+  const blocked = await call('/auth/student/login', { body: { name: 'Guess Me', classCode: 'DEMO', pin: '4321' } });
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.data.code, 'too_many_tries');
+  await call('/auth/student/register', { body: { name: 'Other Kid', classCode: 'DEMO', pin: '5555' } });
+  assert.equal((await call('/auth/student/login', { body: { name: 'Other Kid', classCode: 'DEMO', pin: '5555' } })).status, 200);
+});
+
+test('CORS: the Android app origin may call the API, other sites may not', async () => {
+  const pre = await fetch(base + '/curriculum', { method: 'OPTIONS', headers: { Origin: 'https://localhost', 'Access-Control-Request-Method': 'GET' } });
+  assert.equal(pre.status, 204);
+  assert.equal(pre.headers.get('access-control-allow-origin'), 'https://localhost');
+  const evil = await fetch(base + '/curriculum', { method: 'OPTIONS', headers: { Origin: 'https://evil.example', 'Access-Control-Request-Method': 'GET' } });
+  assert.equal(evil.status, 403);
+  assert.equal(evil.headers.get('access-control-allow-origin'), null);
+});

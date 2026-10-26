@@ -1,15 +1,17 @@
 name: Android app (APK / AAB)
 
-# Builds the Android app on every push to HanTutor and publishes the APK on the "android-latest" release
-# (anyone can download it: https://github.com/eineye/han_tutor/releases/latest).
-# With the signing secrets set, it also builds a signed AAB for Google Play (see docs/ANDROID.md).
+# Builds the student app on every push to HanTutor and publishes the APK (+ version.json for the in-app
+# update notice) on the "android-latest" release: https://github.com/eineye/han_tutor/releases/latest
+# With the signing secrets set it also builds a signed AAB for Google Play (no update notice inside).
+# Class server: set the repository variable HANTUTOR_SERVER_URL (or type it when running by hand);
+# without it the app is the self-contained trial app. See docs/ANDROID.md.
 on:
   push:
     branches: [HanTutor]
   workflow_dispatch:
     inputs:
       server_url:
-        description: '수업 서버 주소 (비우면 오프라인 단독 앱)'
+        description: '수업 서버 주소 https://… (비우면 서버 없는 시범 앱)'
         required: false
         default: ''
 
@@ -41,30 +43,35 @@ jobs:
       # ubuntu-latest already has the Android SDK (ANDROID_HOME); Gradle fetches any missing platform itself
 
       - run: npm ci
-      - run: npm run build:demo
-      - run: npx cap sync android
 
-      - name: Debug APK (install directly on phones)
-        working-directory: android
-        run: ./gradlew --no-daemon assembleDebug
+      - name: APK for direct install (with update notice)
+        env:
+          VITE_UPDATE_CHECK: apk
+        run: |
+          npm run build:app
+          npx cap sync android
+          cd android && ./gradlew --no-daemon assembleDebug
 
-      - name: Signed release AAB (Google Play)
+      - name: Signed AAB for Google Play (no self-update — Play installs updates)
         if: ${{ env.HAS_KEYSTORE == 'true' }}
-        working-directory: android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          npm run build:app
+          npx cap sync android
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.jks"
-          ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks" ./gradlew --no-daemon bundleRelease assembleRelease
+          cd android && ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks" ./gradlew --no-daemon bundleRelease
 
       - name: Collect files
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/debug/app-debug.apk out/hangeulon.apk
           if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then cp android/app/build/outputs/bundle/release/app-release.aab out/hangeulon-release.aab; fi
-          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then cp android/app/build/outputs/apk/release/app-release.apk out/hangeulon-release.apk; fi
+          printf '{"versionCode": %s, "versionName": "%s", "apk": "https://github.com/%s/releases/download/android-latest/hangeulon.apk", "builtAt": "%s"}\n' \
+            "$APP_VERSION_CODE" "$APP_VERSION_NAME" "$GITHUB_REPOSITORY" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > out/version.json
+          cat out/version.json
           ls -la out
 
       - uses: actions/upload-artifact@v4
@@ -78,5 +85,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view android-latest >/dev/null 2>&1 || gh release create android-latest --title "한글온 Android 앱 (최신)" --notes "HanTutor 브랜치가 바뀔 때마다 자동으로 다시 만들어지는 Android 앱입니다. 휴대폰에서 hangeulon.apk 를 내려받아 설치하세요." --latest
+          # APK first, version.json last: the update notice appears only once the new APK is downloadable
           gh release upload android-latest out/hangeulon.apk --clobber
+          gh release upload android-latest out/version.json --clobber
           git push origin "+HEAD:refs/tags/android-latest"

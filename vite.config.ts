@@ -4,6 +4,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const demo = process.env.VITE_DEMO === '1';
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+// App version shown in the menu; CI sets APP_VERSION_NAME / APP_VERSION_CODE from the run number
+const appVersion = process.env.APP_VERSION_NAME || pkg.version;
+const appVersionCode = process.env.APP_VERSION_CODE || '0';
 
 /** Gives public/sw.js a new cache name on every build, so installed apps pick up the update. */
 const swBuildId = (): Plugin => {
@@ -21,6 +25,10 @@ const swBuildId = (): Plugin => {
 
 export default defineConfig({
   plugins: [react(), swBuildId()],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+    'import.meta.env.VITE_APP_VERSION_CODE': JSON.stringify(appVersionCode),
+  },
   server: {
     port: 5173,
     proxy: { '/api': 'http://localhost:8787' },

@@ -45,3 +45,13 @@ JSON 파일 DB는 한 학교·수십~수백 명 규모의 시범 운영용입니
 - 올린 영상은 `DATA_DIR/media/`에 저장되고 `/api/media/<id>`로 재생됩니다(구간 이동 지원). 한 파일 최대 500MB이며 `MEDIA_MAX_MB` 환경 변수로 바꿀 수 있습니다.
 - 영상은 용량이 크므로 디스크 여유 공간과 백업을 확인하세요.
 - **Google Cloud Run은 요청 하나의 크기가 약 32MB로 제한**되어 그보다 큰 영상은 앱에서 바로 올릴 수 없습니다. 큰 영상은 Cloud Storage 등에 올린 뒤 「인터넷 영상 주소(URL)」로 연결하거나, 요청 크기 제한이 없는 서버(Render, 자체 서버 등)를 사용하세요.
+
+## Android 앱과 연결
+
+- 학생 앱은 이 서버의 API만 사용합니다. 교사 관리 화면은 이 서버를 PC 브라우저로 열어서 씁니다.
+- 앱 빌드 설정: 저장소 Variables에 `HANTUTOR_SERVER_URL=https://<서버 주소>`를 넣고 푸시합니다. 자세한 내용은 `docs/ANDROID.md`를 보세요.
+- `CORS_ORIGINS`(선택): 이 서버의 API를 부를 수 있는 다른 출처 목록(쉼표 구분)입니다. 기본값으로 Android 앱(`https://localhost`)이 허용되어 있습니다.
+- Google Play에 등록할 주소:
+  - 개인정보처리방침: `https://<서버 주소>/privacy.html`
+  - 계정 삭제: `https://<서버 주소>/account-deletion.html`
+

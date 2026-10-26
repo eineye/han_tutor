@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from './auth';
+import { IS_APP } from './api';
 import { Loading } from './components/ui';
 import StudentLayout from './components/StudentLayout';
 import AdminLayout from './components/AdminLayout';
@@ -65,29 +66,32 @@ export default function App() {
         <Route path="/topik/:id" element={<TopikTest />} />
         <Route path="/me" element={<MyProgress />} />
       </Route>
-      <Route
-        path="/admin"
-        element={
-          <RequireRole role="admin">
-            <AdminLayout />
-          </RequireRole>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="students" element={<AdminStudents />} />
-        <Route path="students/:id" element={<AdminStudentDetail />} />
-        <Route path="content" element={<AdminContent />} />
-        <Route path="lessons/:id" element={<AdminLessonEditor />} />
-        <Route path="videos" element={<AdminVideos />} />
-        <Route path="videos/:id" element={<AdminVideoEditor />} />
-        <Route path="translations" element={<AdminTranslations />} />
-        <Route path="recordings" element={<AdminRecordings />} />
-        <Route path="topik" element={<AdminTopik />} />
-        <Route path="topik/:id" element={<AdminTopikEditor />} />
-        <Route path="transcripts" element={<AdminTranscripts />} />
-        <Route path="transcripts/:id" element={<AdminTranscriptEditor />} />
-        <Route path="settings" element={<AdminSettings />} />
-      </Route>
+      {/* teacher screens are not part of the student app */}
+      {!IS_APP && (
+        <Route
+          path="/admin"
+          element={
+            <RequireRole role="admin">
+              <AdminLayout />
+            </RequireRole>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="students" element={<AdminStudents />} />
+          <Route path="students/:id" element={<AdminStudentDetail />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="lessons/:id" element={<AdminLessonEditor />} />
+          <Route path="videos" element={<AdminVideos />} />
+          <Route path="videos/:id" element={<AdminVideoEditor />} />
+          <Route path="translations" element={<AdminTranslations />} />
+          <Route path="recordings" element={<AdminRecordings />} />
+          <Route path="topik" element={<AdminTopik />} />
+          <Route path="topik/:id" element={<AdminTopikEditor />} />
+          <Route path="transcripts" element={<AdminTranscripts />} />
+          <Route path="transcripts/:id" element={<AdminTranscriptEditor />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+      )}
       <Route path="*" element={<Navigate to={auth.role === 'admin' ? '/admin' : auth.role === 'student' ? '/home' : '/login'} replace />} />
     </Routes>
   );

@@ -129,6 +129,46 @@ export function createCore(deps) {
     return d.translations;
   };
 
+  /** Removes a student and everything recorded about them (teacher delete, the student's own account deletion). */
+  const deleteStudentData = (sid) => {
+    const d = db();
+    d.students = d.students.filter((s) => s.id !== sid);
+    for (const k of ['progress', 'quizResults', 'pronunciation', 'chatLogs', 'evaluations', 'assignments', 'topikResults']) if (Array.isArray(d[k])) d[k] = d[k].filter((x) => x.studentId !== sid);
+    d.sessions = d.sessions.filter((x) => x.studentId !== sid);
+    save();
+  };
+
+  // Too many wrong PINs / passwords: pause that account (or the teacher login) for a while.
+  // In memory — enough for one server; resets when the server restarts.
+  const failures = new Map(); // key → { count, until }
+  const LIMIT = 8;
+  const WINDOW_MS = 15 * 60 * 1000;
+  const checkLimit = (key) => {
+    const f = failures.get(key);
+    if (f && f.count >= LIMIT && Date.now() < f.until)
+      throw new HttpError(429, 'Too many wrong tries. Wait 15 minutes and try again. 잘못 입력한 횟수가 많아 15분 동안 잠시 막혔습니다. 잠시 후 다시 시도하세요.', 'too_many_tries');
+  };
+  const failed = (key) => {
+    const f = failures.get(key);
+    const fresh = !f || Date.now() >= f.until;
+    failures.set(key, { count: fresh ? 1 : f.count + 1, until: fresh ? Date.now() + WINDOW_MS : f.until });
+  };
+  const studentKey = (name, code) => `s:${String(code || '').trim().toUpperCase()}:${String(name || '').trim().toLowerCase()}`;
+
+  /** The student with this name + class code + PIN, or a 401 (counts towards the limit). */
+  const verifyStudent = async (body) => {
+    const code = String(body.classCode || '').trim().toUpperCase();
+    const key = studentKey(body.name, code);
+    checkLimit(key);
+    const s = db().students.find((x) => x.name.toLowerCase() === String(body.name || '').trim().toLowerCase() && x.classCode === code);
+    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) {
+      failed(key);
+      throw new HttpError(401, 'Name, class code or PIN is wrong. First time here? Use the Sign up tab. 이름·반 코드·PIN이 맞지 않습니다. 처음이라면 Sign up 탭에서 가입하세요.', 'login_failed');
+    }
+    failures.delete(key);
+    return s;
+  };
+
   const findStudent = (id) => {
     const s = db().students.find((x) => x.id === id);
     if (!s) throw new HttpError(404, 'not found');
@@ -173,15 +213,29 @@ export function createCore(deps) {
   });
 
   route('POST', '/auth/student/login', 'public', async ({ body }) => {
-    const code = String(body.classCode || '').trim().toUpperCase();
-    const s = db().students.find((x) => x.name.toLowerCase() === String(body.name || '').trim().toLowerCase() && x.classCode === code);
-    if (!s || !(await deps.checkPin(body.pin, s.pinHash))) throw new HttpError(401, 'Name, class code or PIN is wrong. First time here? Use the Sign up tab. 이름·반 코드·PIN이 맞지 않습니다. 처음이라면 Sign up 탭에서 가입하세요.', 'login_failed');
+    const s = await verifyStudent(body);
     return { token: newSession('student', s.id), student: publicStudent(s) };
   });
 
   route('POST', '/auth/admin/login', 'public', ({ body }) => {
-    if ((body.password || '') !== deps.adminPassword()) throw new HttpError(401, '비밀번호가 올바르지 않습니다.');
+    checkLimit('admin');
+    if ((body.password || '') !== deps.adminPassword()) {
+      failed('admin');
+      throw new HttpError(401, '비밀번호가 올바르지 않습니다.');
+    }
+    failures.delete('admin');
     return { token: newSession('admin') };
+  });
+
+  // Account deletion (Google Play requires both): in the app while logged in, and from a web page with name + class + PIN
+  route('DELETE', '/me', 'student', ({ student }) => {
+    deleteStudentData(student.id);
+    return { ok: true };
+  });
+  route('POST', '/account/delete', 'public', async ({ body }) => {
+    const s = await verifyStudent(body);
+    deleteStudentData(s.id);
+    return { ok: true };
   });
 
   route('POST', '/auth/logout', 'public', ({ session }) => {
@@ -445,12 +499,7 @@ export function createCore(deps) {
   });
 
   route('DELETE', '/admin/students/:id', 'admin', ({ params }) => {
-    const sid = params.id;
-    const d = db();
-    d.students = d.students.filter((s) => s.id !== sid);
-    for (const k of ['progress', 'quizResults', 'pronunciation', 'chatLogs', 'evaluations', 'assignments']) d[k] = d[k].filter((x) => x.studentId !== sid);
-    d.sessions = d.sessions.filter((x) => x.studentId !== sid);
-    save();
+    deleteStudentData(params.id);
     return { ok: true };
   });
 

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BrandIcon, BrandName } from './Brand';
 import InstallApp from './InstallApp';
+import UpdateBanner from './UpdateBanner';
+import { APP_VERSION, pageUrl } from '../lib/appInfo';
 import { useAuth } from '../auth';
 import { LangSwitcher, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
@@ -120,11 +122,18 @@ export default function StudentLayout() {
             <button type="button" className="btn btn--ghost btn--block" onClick={doLogout} tabIndex={menu ? 0 : -1}>
               {t('nav.logout')}
             </button>
+            <div className="drawer__meta muted small">
+              {t('app.version')} {APP_VERSION} ·{' '}
+              <a href={pageUrl('privacy.html')} target="_blank" rel="noreferrer" tabIndex={menu ? 0 : -1}>
+                {t('app.privacy')}
+              </a>
+            </div>
           </div>
         </aside>
       </div>
 
       <main className="main">
+        <UpdateBanner />
         <Outlet />
       </main>
     </div>

@@ -4,7 +4,7 @@ import { BrowserRouter, HashRouter, MemoryRouter } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './auth';
-import { IS_DEMO } from './api';
+import { IS_APP, IS_DEMO } from './api';
 import { LangProvider } from './i18n';
 import { initNativeApp, registerServiceWorker } from './lib/native';
 import { loadRecordings } from './lib/recordings';
@@ -25,7 +25,7 @@ initNativeApp();
 // Demo build = one static page (GitHub Pages, Android app): routes live in the #hash so the back button works.
 // Inside a frame (embedded preview) they live in memory instead.
 registerServiceWorker(IS_DEMO ? 'sw.js' : '/sw.js');
-const Router = !IS_DEMO ? BrowserRouter : window.self !== window.top ? MemoryRouter : HashRouter;
+const Router = IS_APP ? HashRouter : !IS_DEMO ? BrowserRouter : window.self !== window.top ? MemoryRouter : HashRouter;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

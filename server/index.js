@@ -42,6 +42,27 @@ const core = createCore({
 });
 
 export const app = express();
+
+// The Android app runs on its own origin (https://localhost) and calls this server's API.
+// Allowed origins: CORS_ORIGINS (comma separated) — by default only the app's.
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || 'https://localhost,capacitor://localhost,http://localhost')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use('/api', (req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && CORS_ORIGINS.includes(origin)) {
+    res.set({
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Filename',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Max-Age': '86400',
+      Vary: 'Origin',
+    });
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(origin && CORS_ORIGINS.includes(origin) ? 204 : 403);
+  next();
+});
 // Media files for the transcriber arrive as base64 JSON (up to 60 MB → ~80 MB of text)
 app.use('/api/admin/transcribe', express.json({ limit: '90mb' }));
 app.use(express.json({ limit: '15mb' }));

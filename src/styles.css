@@ -4014,3 +4014,35 @@ label.inline select {
     height: 60px !important;
   }
 }
+
+/* app: update notice, version/privacy line, account deletion */
+.update-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+}
+.update-banner__actions {
+  display: flex;
+  gap: 6px;
+}
+.drawer__meta,
+.login__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+.drawer__meta {
+  justify-content: center;
+}
+.account-delete__btn {
+  color: var(--bad, #c62828);
+  border-color: currentColor;
+}

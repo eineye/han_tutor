@@ -10,7 +10,8 @@
     "start": "NODE_ENV=production node server/index.js",
     "typecheck": "tsc -b",
     "test": "node --test \"server/tests/*.test.js\"",
-    "build:demo": "tsc -b && VITE_DEMO=1 vite build && node scripts/inline-demo.mjs"
+    "build:demo": "tsc -b && VITE_DEMO=1 vite build && node scripts/inline-demo.mjs",
+    "build:app": "tsc -b && node scripts/build-app.mjs"
   },
   "dependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",

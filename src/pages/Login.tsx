@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { BrandIcon, BrandName } from '../components/Brand';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import InstallApp from '../components/InstallApp';
-import { api, ApiError, IS_DEMO } from '../api';
+import { api, ApiError, IS_APP, IS_DEMO } from '../api';
+import UpdateBanner from '../components/UpdateBanner';
+import { APP_VERSION, pageUrl } from '../lib/appInfo';
 import { useAuth } from '../auth';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
@@ -88,6 +90,7 @@ export default function Login() {
         <p className="muted small">{t('login.tapBori')} 👋</p>
       </div>
       <form className="card login__card" onSubmit={submit}>
+        <UpdateBanner />
         <div className="tabs">
           <button type="button" className={tab === 'login' ? 'is-active' : ''} onClick={() => (setTab('login'), setError(''))}>
             {t('login.tab.login')}
@@ -95,9 +98,12 @@ export default function Login() {
           <button type="button" className={tab === 'register' ? 'is-active' : ''} onClick={() => (setTab('register'), setError(''))}>
             {t('login.tab.register')}
           </button>
-          <button type="button" className={tab === 'teacher' ? 'is-active' : ''} onClick={() => (setTab('teacher'), setError(''))}>
-            {t('login.tab.teacher')}
-          </button>
+          {/* the app is for students; teachers use the class server in a browser */}
+          {!IS_APP && (
+            <button type="button" className={tab === 'teacher' ? 'is-active' : ''} onClick={() => (setTab('teacher'), setError(''))}>
+              {t('login.tab.teacher')}
+            </button>
+          )}
         </div>
 
         {tab === 'teacher' ? (
@@ -155,7 +161,7 @@ export default function Login() {
           {busy ? '…' : tab === 'register' ? t('login.create') : tab === 'teacher' ? '관리자 로그인' : t('login.submit')}
         </button>
         {tab === 'register' && <p className="muted small">{t('login.firstTime')}</p>}
-        {tab !== 'teacher' && (
+        {tab !== 'teacher' && IS_DEMO && (
           <p className="muted small">
             {t('login.demoClass')}: <b>DEMO</b>
           </p>
@@ -165,12 +171,36 @@ export default function Login() {
             데모 비밀번호: <b>admin1234</b>
           </p>
         )}
-        {IS_DEMO && <DemoNotice />}
+        {IS_DEMO && (IS_APP ? <AppNotice /> : <DemoNotice />)}
         <InstallApp />
-        <Link to="/sound-check" className="muted small">
-          🔊 {t('nav.soundCheck')}
-        </Link>
+        <div className="login__links muted small">
+          <Link to="/sound-check">🔊 {t('nav.soundCheck')}</Link>
+          <a href={pageUrl('privacy.html')} target="_blank" rel="noreferrer">
+            {t('app.privacy')}
+          </a>
+          {APP_VERSION && (
+            <span>
+              {t('app.version')} {APP_VERSION}
+            </span>
+          )}
+        </div>
       </form>
+    </div>
+  );
+}
+
+/** Trial Android app without a class server: data lives on the phone. */
+function AppNotice() {
+  const { t } = useI18n();
+  return (
+    <div className="alert alert--info small demo-notice">
+      <b>📱 {t('app.title')}</b>
+      <ul>
+        <li>{t('app.first')}</li>
+        <li>{t('app.storage')}</li>
+        <li>{t('app.ai')}</li>
+        <li>{t('app.mic')}</li>
+      </ul>
     </div>
   );
 }

@@ -33,7 +33,19 @@ export function Loading({ text }: { text?: string }) {
 
 export function ErrorBox({ error }: { error: unknown }) {
   if (!error) return null;
-  return <div className="alert alert--error">{error instanceof Error ? error.message : String(error)}</div>;
+  const offline = (error as { code?: string })?.code === 'offline';
+  return (
+    <div className="alert alert--error">
+      {error instanceof Error ? error.message : String(error)}
+      {offline && (
+        <div>
+          <button type="button" className="btn btn--small" onClick={() => window.location.reload()}>
+            ↻ Retry · 다시 시도
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; wide?: boolean }) {

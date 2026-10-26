@@ -1,7 +1,7 @@
 // Teacher video files: upload from the teacher's computer and resolve "media:<id>" sources.
 // Server: streamed to /api/admin/media and played from /api/media/<id> (seekable).
 // Browser demo: kept in this browser's IndexedDB and played from a blob URL.
-import { api, getToken, IS_DEMO } from '../api';
+import { api, apiUrl, getToken, IS_DEMO } from '../api';
 
 export interface MediaItem {
   id: string;
@@ -34,7 +34,7 @@ export async function uploadVideo(file: File, onProgress?: (p: number) => void):
   }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/admin/media');
+    xhr.open('POST', apiUrl('/admin/media'));
     xhr.setRequestHeader('Content-Type', mime);
     xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
     const token = getToken();
@@ -61,7 +61,7 @@ const demoUrls = new Map<string, Promise<string>>();
 export function resolveMediaSrc(src: string): Promise<string> {
   if (!isMediaSrc(src)) return Promise.resolve(src);
   const id = src.slice(MEDIA_PREFIX.length);
-  if (!IS_DEMO) return Promise.resolve(`/api/media/${encodeURIComponent(id)}`);
+  if (!IS_DEMO) return Promise.resolve(apiUrl(`/media/${encodeURIComponent(id)}`));
   let p = demoUrls.get(id);
   if (!p) {
     p = import('../demo/audioStore').then(async ({ idbMediaStore }) => {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { useAuth } from '../auth';
 import { ErrorBox, Loading, ScoreBadge, fmtDate } from '../components/ui';
 import Mascot from '../components/Mascot';
 import { useI18n } from '../i18n';
@@ -110,6 +112,41 @@ export default function MyProgress() {
           </ul>
         )}
       </section>
+
+      <DeleteAccount />
     </div>
+  );
+}
+
+/** Google Play requires that students can delete their account (and all records) inside the app. */
+function DeleteAccount() {
+  const { t } = useI18n();
+  const { logout } = useAuth();
+  const nav = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const remove = async () => {
+    if (!window.confirm(t('account.confirm'))) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api('/me', { method: 'DELETE' });
+      window.alert(t('account.done'));
+      logout();
+      nav('/login');
+    } catch (e) {
+      setError(e);
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="card account-delete">
+      <h3>🗑 {t('account.title')}</h3>
+      <p className="muted small">{t('account.desc')}</p>
+      <ErrorBox error={error} />
+      <button type="button" className="btn btn--ghost btn--small account-delete__btn" onClick={remove} disabled={busy}>
+        {busy ? '…' : t('account.button')}
+      </button>
+    </section>
   );
 }

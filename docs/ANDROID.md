@@ -35,13 +35,44 @@
 - 학생 설치 방법: 휴대폰에서 APK 내려받기 → 열기 → 「출처를 알 수 없는 앱 설치 허용」 → 설치.
 - 모든 APK는 같은 서명(`android/app/debug.keystore`, 공개용 키)으로 만들어집니다. 그래서 **새 버전을 덮어 설치해도 학습 기록이 유지**됩니다.
 
+### 앱은 학생 전용입니다
+- 앱(`npm run build:app` → `dist-app/`)에는 **교사 탭과 관리자 화면이 없습니다**. 교사는 수업 서버(또는 웹 데모)를 PC 브라우저로 열어 관리합니다.
+- 웹 데모(GitHub Pages)는 지금처럼 학생·교사 화면이 모두 있습니다.
+- 빌드할 때 구분하는 값:
+  - 앱: `VITE_APP=1`
+  - 서버 주소: `VITE_API_BASE`
+  - 업데이트 알림: `VITE_UPDATE_CHECK=apk`
+  - 관련 코드: `src/api.ts`(`IS_APP`, `API_BASE`), `src/lib/appInfo.ts`
+
 ### 두 가지 모드
-- **기본 (오프라인 단독 앱):** 데모 빌드(`dist-demo/site`)를 앱 안에 넣습니다.
-  - 인터넷 없이 레슨·한글·TOPIK을 공부할 수 있고, 기록은 휴대폰에 저장됩니다.
-  - AI 기능은 교사 설정에서 Gemini 키를 넣었을 때만 동작합니다.
-- **수업 서버 연결:** 서버를 배포한 뒤(`docs/DEPLOY.md`) 서버 주소를 넣고 빌드하면, 앱이 그 서버를 엽니다. 교사 관리·학생 기록 공유·AI가 모두 서버로 동작합니다.
-  - 한 번만: Actions › 「Android app (APK / AAB)」 › **Run workflow** › `server_url`에 `https://…` 입력.
-  - 항상: 저장소 Settings › Secrets and variables › Actions › **Variables**에 `HANTUTOR_SERVER_URL` 추가.
+- **시범 앱 (서버 없음, 지금 배포 중):**
+  - 서버 없이 혼자 동작하고, 기록은 휴대폰에 저장됩니다.
+  - 로그인 화면에 「📱 시범 앱」 안내가 나옵니다. 반 코드는 DEMO입니다.
+  - AI 대화는 예시 응답으로 동작합니다.
+- **수업 서버 연결:** 서버를 배포한 뒤(`docs/DEPLOY.md`) 주소를 넣고 빌드합니다.
+  - 앱 화면은 앱 안에 들어 있고, **API만 서버에 요청**합니다.
+  - 교사가 서버에서 고친 레슨·드라마·TOPIK·번역·녹음은 앱을 다시 내지 않아도 **바로 반영**됩니다.
+  - 학생 기록은 서버에 쌓입니다.
+  - 한 번만 설정: Actions › 「Android app (APK / AAB)」 › **Run workflow** › `server_url`에 `https://…` 입력
+  - 항상 설정: 저장소 Settings › Secrets and variables › Actions › **Variables**에 `HANTUTOR_SERVER_URL` 추가
+  - 서버의 CORS(다른 곳의 요청 허용): 앱의 출처 `https://localhost`는 기본으로 허용합니다. 다른 출처를 더 허용하려면 서버 환경 변수 `CORS_ORIGINS`(쉼표로 구분)에 넣으세요.
+  - 인터넷이 끊겨도 **한 번 열어 본 레슨·드라마·TOPIK은 저장된 사본**으로 보입니다. 처음 여는 화면은 「서버에 연결할 수 없어요 · 다시 시도」 안내가 나옵니다.
+
+### 버전과 업데이트 알림
+- ☰ 메뉴 아래와 로그인 화면에 **버전**(`1.0.빌드번호`)이 표시됩니다. 학생이 최신 APK를 쓰는지 확인할 때 보세요.
+- 직접 설치한 APK는 앱을 켤 때 `android-latest` 릴리스의 `version.json`을 확인합니다. 새 버전이 있으면 「🆕 새 버전이 나왔어요 · 내려받기」 안내가 나옵니다.
+  - 「나중에」를 누르면 그 버전 안내는 다시 나오지 않습니다.
+  - 받은 파일을 열어 덮어 설치하면 기록이 유지됩니다.
+- **Google Play용 AAB에는 이 알림이 없습니다.** Play 앱은 Play 스토어로만 업데이트해야 하기 때문입니다(Play 정책).
+
+### 계정 삭제·개인정보처리방침 (Google Play 필수)
+- **앱 안에서 삭제:** 나의 학습 › 🗑 계정 삭제. 서버의 `DELETE /api/me`가 계정과 모든 기록을 지웁니다.
+- **웹에서 삭제:** `https://서버주소/account-deletion.html`에서 이름·반 코드·PIN으로 삭제합니다(`POST /api/account/delete`). GitHub Pages 사본에서는 시범 앱 안내만 보여 줍니다.
+- **개인정보처리방침:** `public/privacy.html`
+  - 시범 앱: https://eineye.github.io/han_tutor/privacy.html
+  - 서버 연결 후: `https://서버주소/privacy.html`
+  - **출시 전에 운영자 이름과 문의 이메일(노란 표시 부분)을 채워야 합니다.**
+- PIN을 8번 틀리면 그 계정은 15분 동안 로그인이 막힙니다. 교사 비밀번호도 같은 규칙입니다.
 
 ### 휴대폰 음성 기능
 Android 앱 화면(WebView)에는 브라우저 음성 기능이 없어서, 휴대폰 자체의 음성 엔진을 씁니다(`src/lib/native.ts`, `src/lib/speech.ts`).
@@ -52,7 +83,7 @@ Android 앱 화면(WebView)에는 브라우저 음성 기능이 없어서, 휴�
 ### 직접 빌드하기 (Android Studio)
 ```bash
 npm ci
-npm run build:demo        # 또는 서버 모드: HANTUTOR_SERVER_URL=https://… 를 붙여 cap sync
+npm run build:app         # 서버 모드: HANTUTOR_SERVER_URL=https://… npm run build:app
 npx cap sync android
 npx cap open android      # Android Studio에서 ▶ 실행
 ```

@@ -58,5 +58,5 @@ ${out.slice(0, out.indexOf('<div id="root">'))}</head>
 );
 // Installable app (PWA) files next to the page: manifest, icons and the offline service worker.
 // vite copies public/ into dist-demo/; sw.js already has its build id from vite.config.ts.
-for (const f of ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'sw.js']) fs.copyFileSync(path.join(dir, f), path.join(site, f));
+for (const f of ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'sw.js', 'privacy.html', 'account-deletion.html']) fs.copyFileSync(path.join(dir, f), path.join(site, f));
 console.log('dist-demo/site/index.html (+ manifest, icons, sw.js)');
