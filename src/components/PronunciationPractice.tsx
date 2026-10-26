@@ -6,7 +6,7 @@ import type { PronItem } from '../types';
 import { pronunciationScore, romanize, syllableDiff, visemesFor, type Viseme } from '../lib/hangul';
 import { LANG_NAME, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
-import { listenKorean, recognitionSupported, type Recognizer } from '../lib/speech';
+import { listenKorean, micIsExclusive, recognitionErrorKey, recognitionSupported, type Recognizer } from '../lib/speech';
 import { MicRecorder, type Recording } from '../lib/recorder';
 import { api } from '../api';
 import { ScoreBadge } from './ui';
@@ -76,7 +76,8 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
 
   const target = item.text.replace(/\([^)]*\)/g, '').trim();
   const canRecognize = recognitionSupported();
-  const canRecord = MicRecorder.supported();
+  // On phones the mic serves one thing at a time: while speech recognition listens, don't also record
+  const canRecord = MicRecorder.supported() && (!canRecognize || !micIsExclusive());
 
   const listen = (rate = 0.85) => {
     setMood('neutral');
@@ -122,15 +123,13 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
       let finished = false;
       recRef.current = listenKorean({
         onInterim: setInterim,
-        onResult: (best) => {
+        onResult: (best, alts) => {
           if (finished) return;
           finished = true;
-          finish(best);
+          // the recognizer offers several guesses: score the closest one
+          finish([best, ...alts].reduce((a, b) => (b && pronunciationScore(target, b) > pronunciationScore(target, a) ? b : a), best));
         },
-        onError: (e) => {
-          if (e === 'not-allowed') setError(t('pron.micNeeded'));
-          else if (e === 'no-speech') setError(t('pron.noSpeech'));
-        },
+        onError: (e) => setError(t(recognitionErrorKey(e))),
       });
     }
   };

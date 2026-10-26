@@ -4,7 +4,7 @@ import { api } from '../api';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
 import { Toggle } from '../components/ui';
-import { listenKorean, recognitionSupported, type Recognizer } from '../lib/speech';
+import { listenKorean, recognitionErrorKey, recognitionSupported, type Recognizer } from '../lib/speech';
 import type { ChatReply, ChatScenario, Lesson } from '../types';
 import { LANG_NAME, subtitle, useI18n } from '../i18n';
 
@@ -108,6 +108,7 @@ export default function TalkPage() {
       return;
     }
     mascot.stop();
+    setError('');
     setListening(true);
     recRef.current = listenKorean({
       onInterim: setInput,
@@ -115,7 +116,10 @@ export default function TalkPage() {
         setListening(false);
         if (best) setInput(best);
       },
-      onError: () => setListening(false),
+      onError: (e) => {
+        setListening(false);
+        setError(t(recognitionErrorKey(e)));
+      },
     });
   };
 

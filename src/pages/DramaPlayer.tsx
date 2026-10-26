@@ -6,7 +6,7 @@ import QuizRunner from '../components/QuizRunner';
 import PronunciationPractice from '../components/PronunciationPractice';
 import VideoSurface, { type VideoHandle } from '../components/VideoSurface';
 import { ErrorBox, Loading, Modal, ScoreBadge, SpeakButton } from '../components/ui';
-import { speak, stopSpeaking, listenKorean, recognitionSupported } from '../lib/speech';
+import { speak, stopSpeaking, listenKorean, recognitionErrorKey, recognitionSupported } from '../lib/speech';
 import { pronunciationScore } from '../lib/hangul';
 import { assignCastVoices } from '../../server/ttsVoices.js';
 import type { CastMember, Line, Video } from '../types';
@@ -359,6 +359,7 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
   const [hideText, setHideText] = useState(false);
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState('');
+  const [recError, setRecError] = useState('');
   const [scores, setScores] = useState<Record<number, number>>({});
   const canListen = recognitionSupported();
   const active = useRef(false);
@@ -394,18 +395,24 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
 
   const myTurn = () => {
     if (!canListen) return;
+    setRecError('');
     setListening(true);
     listenKorean({
       onInterim: setHeard,
-      onResult: (best) => {
+      onResult: (first, alts) => {
         setListening(false);
-        setHeard(best);
         const l = video.lines[step];
+        // the recognizer offers several guesses: keep the closest one
+        const best = [first, ...alts].reduce((a, b) => (b && pronunciationScore(clean(l.ko), b) > pronunciationScore(clean(l.ko), a) ? b : a), first);
+        setHeard(best);
         const s = best ? pronunciationScore(clean(l.ko), best) : 0;
         setScores((x) => ({ ...x, [step]: s }));
         api('/pronunciation', { body: { target: clean(l.ko), heard: best, score: s, source: 'roleplay' } }).catch(() => {});
       },
-      onError: () => setListening(false),
+      onError: (e) => {
+        setListening(false);
+        setRecError(tr(recognitionErrorKey(e)));
+      },
     });
   };
 
@@ -467,6 +474,7 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
                   <p className="muted">{tr('drama.sayAloud')}</p>
                 )}
                 {heard && <p className="pron__interim">“{heard}”</p>}
+                {recError && <div className="alert alert--warn small">{recError}</div>}
                 {scores[step] != null && <ScoreBadge score={scores[step]} />}
                 {line.speaker === me && hideText && scores[step] != null && <p lang="ko">✅ {line.ko}</p>}
                 <button className="btn btn--ghost" onClick={() => goto(step + 1)}>

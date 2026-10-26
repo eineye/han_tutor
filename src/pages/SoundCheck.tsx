@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { isNativeApp, withTts } from '../lib/native';
-import { speak } from '../lib/speech';
+import { isNativeApp, withStt, withTts } from '../lib/native';
+import { listenKorean, speak } from '../lib/speech';
 
 // 소리 점검 · Sound check: finds out where sound stops on a phone (app audio, phone speech engine, Korean voice).
 // Students/teachers can screenshot the log and send it to the teacher.
@@ -110,6 +110,45 @@ export default function SoundCheck() {
     });
   };
 
+  const [listening, setListening] = useState(false);
+  const recognize = async () => {
+    if (listening) return;
+    setListening(true);
+    add('⑧ 음성 인식: 지금 「안녕하세요」라고 말해 보세요 / say 안녕하세요');
+    if (isNativeApp()) {
+      // raw answers from the phone's recognizer, so the exact error is visible
+      try {
+        await withStt(async (sr) => {
+          const avail = await sr.available().catch((e) => ({ available: `오류 ${errText(e)}` }));
+          const perm = await sr.checkPermissions().catch((e) => ({ speechRecognition: `오류 ${errText(e)}` }));
+          add(`⑧ 인식 서비스=${avail.available}, 마이크 권한=${perm.speechRecognition}`);
+          if (perm.speechRecognition !== 'granted') {
+            const p2 = await sr.requestPermissions();
+            add(`⑧ 권한 요청 결과=${p2.speechRecognition}`);
+            if (p2.speechRecognition !== 'granted') return;
+          }
+          const t0 = performance.now();
+          const r = await sr.start({ language: 'ko-KR', maxResults: 5, partialResults: false, popup: false });
+          add(`⑧ 결과 (${Math.round(performance.now() - t0)}ms): ${(r?.matches || []).join(' / ') || '(없음)'}`);
+        });
+      } catch (e) {
+        add(`⑧ 인식 실패: ${errText(e)}`);
+      } finally {
+        setListening(false);
+      }
+      return;
+    }
+    const rec = listenKorean({
+      onResult: (best, alts) => add(`⑧ 결과: ${[best, ...alts].filter(Boolean).join(' / ') || '(없음)'}`),
+      onError: (e) => add(`⑧ 인식 오류: ${e}`),
+      onEnd: () => setListening(false),
+    });
+    if (!rec) {
+      add('⑧ 이 브라우저는 음성 인식을 지원하지 않아요 (not supported)');
+      setListening(false);
+    }
+  };
+
   const openInstall = () =>
     withTts((t) => t.openInstall())
       .then(() => add('⑦ 음성 데이터 설치 화면 열기 요청'))
@@ -142,6 +181,9 @@ export default function SoundCheck() {
         </button>
         <button className="btn" onClick={appSpeak}>
           ⑥ 보리 목소리 (앱 설정대로)
+        </button>
+        <button className={`btn ${listening ? 'is-recording' : ''}`} onClick={recognize} disabled={listening}>
+          🎤 ⑧ 음성 인식 (말하기) {listening ? '…' : ''}
         </button>
         {isNativeApp() && (
           <button className="btn btn--ghost" onClick={openInstall}>

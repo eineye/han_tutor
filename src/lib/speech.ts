@@ -2,6 +2,7 @@ import { findRecording, recordingUrl } from './recordings';
 import { api, getToken } from '../api';
 import { DEFAULT_TTS, presetById, voiceGender } from '../../server/ttsVoices.js';
 import { isNativeApp, offerKoreanVoiceInstall, withStt, withTts } from './native';
+import type { UIKey } from '../i18n/ui';
 // Browser speech helpers: Korean text-to-speech and speech recognition.
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
@@ -505,6 +506,8 @@ export function listenKorean(handlers: {
   onError?: (err: string) => void;
   onEnd?: () => void;
 }): Recognizer | null {
+  // Bori must not talk while we listen (her voice would be heard, and the mic is busy)
+  stopSpeaking();
   // Android app: always the phone's recognizer (the WebView one does not work)
   if (isNativeApp()) return listenKoreanApp(handlers);
   const Ctor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -527,7 +530,7 @@ export function listenKorean(handlers: {
     }
     handlers.onInterim?.(finalText + interim);
   };
-  rec.onerror = (e: any) => handlers.onError?.(e.error || 'error');
+  rec.onerror = (e: any) => handlers.onError?.(recognitionErrorCode(e.error || 'error'));
   rec.onend = () => {
     handlers.onResult(finalText.trim(), alts);
     handlers.onEnd?.();
@@ -536,22 +539,60 @@ export function listenKorean(handlers: {
   return { stop: () => rec.stop(), abort: () => rec.abort() };
 }
 
+/**
+ * Error codes listenKorean() reports: 'not-allowed' (mic permission), 'no-speech' (nothing / not understood),
+ * 'busy' (the microphone is used by something else), 'network', 'unavailable' (no speech service on the phone).
+ */
+export type RecognitionError = 'not-allowed' | 'no-speech' | 'busy' | 'network' | 'unavailable';
+
+/** Maps the Android recognizer's messages (and browser error names) to RecognitionError. */
+export function recognitionErrorCode(msg: string): RecognitionError {
+  if (/permission|not-allowed|service-not-allowed/i.test(msg)) return 'not-allowed';
+  if (/busy|audio recording|audio-capture|client side/i.test(msg)) return 'busy';
+  if (/network|server/i.test(msg)) return 'network';
+  if (/not available|unavailable|not implemented/i.test(msg)) return 'unavailable';
+  return 'no-speech';
+}
+
+/** UI text key for a recognition error */
+const ERROR_KEYS: Record<string, UIKey> = { 'not-allowed': 'pron.micNeeded', busy: 'pron.recBusy', network: 'pron.recNetwork', unavailable: 'pron.recUnavailable' };
+export const recognitionErrorKey = (e: string): UIKey => ERROR_KEYS[e] || 'pron.noSpeech';
+
+/** Phones (Android app or Android browser): the microphone can be used by only one thing at a time. */
+export const micIsExclusive = () => isNativeApp() || /android/i.test(navigator.userAgent);
+
+let appListenSeq = 0;
 /** Android app: the device's speech recognizer (asks for the microphone permission the first time). */
 function listenKoreanApp(handlers: Parameters<typeof listenKorean>[0]): Recognizer {
+  const seq = ++appListenSeq;
   let alts: string[] = [];
+  let done = false;
+  // A recognizer that never answers (cancelled by a second tap, service crash) must not leave the UI "listening"
+  const timer = window.setTimeout(() => settle('no-speech'), 20000);
+  function settle(err?: RecognitionError) {
+    if (done) return;
+    done = true;
+    window.clearTimeout(timer);
+    if (err && seq === appListenSeq) handlers.onError?.(err);
+    handlers.onResult((alts[0] || '').trim(), alts);
+    handlers.onEnd?.();
+  }
   withStt(async (sr) => {
-    const perm = await sr.requestPermissions();
+    let perm = await sr.checkPermissions();
+    if (perm.speechRecognition !== 'granted') perm = await sr.requestPermissions();
     if (perm.speechRecognition !== 'granted') throw new Error('not-allowed');
-    const r = await sr.start({ language: 'ko-KR', maxResults: 3, partialResults: false, popup: false });
+    const r = await sr.start({ language: 'ko-KR', maxResults: 5, partialResults: false, popup: false });
     alts = (r?.matches || []).filter(Boolean);
-  })
-    .catch((e: { message?: string }) => handlers.onError?.(/permission|not-allowed/i.test(e?.message || '') ? 'not-allowed' : 'no-speech'))
-    .finally(() => {
-      handlers.onResult((alts[0] || '').trim(), alts);
-      handlers.onEnd?.();
-    });
+  }).then(
+    () => settle(alts.length ? undefined : 'no-speech'),
+    (e: { message?: string }) => settle(recognitionErrorCode(e?.message || String(e))),
+  );
   const stop = () => {
-    withStt((sr) => sr.stop()).catch(() => {});
+    // the plugin's stop() never answers; the result arrives through start()
+    withStt((sr) => {
+      sr.stop();
+      return Promise.resolve();
+    }).catch(() => {});
   };
   return { stop, abort: stop };
 }
