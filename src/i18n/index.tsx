@@ -1,29 +1,29 @@
-// Student-facing language selection: 한국어 / English / Монгол.
+// Student-facing language selection: 한국어 / English / नेपाली (Nepali).
 // - UI strings live in ./ui.ts (keyed, one entry per language)
 // - Lesson/drama content is authored in English in the seed; ./content.<lang>.json maps
 //   each English sentence to its translation. Missing entries fall back to English.
 // Teacher (admin) screens stay in Korean and do not use this module.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { UI, type UIKey } from './ui';
-import contentMn from './content.mn.json';
+import contentNe from './content.ne.json';
 import contentKo from './content.ko.json';
 import type { Lesson, Unit, Video, QuizItem } from '../types';
 import { api } from '../api';
 
-export type Lang = 'ko' | 'en' | 'mn';
+export type Lang = 'ko' | 'en' | 'ne';
 
 export const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: 'ko', label: '한국어', flag: '🇰🇷' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'mn', label: 'Монгол', flag: '🇲🇳' },
+  { code: 'ne', label: 'नेपाली', flag: '🇳🇵' },
 ];
 
 /** Name used when asking the AI to explain things in the student's language. */
-export const LANG_NAME: Record<Lang, string> = { ko: 'Korean', en: 'English', mn: 'Mongolian' };
+export const LANG_NAME: Record<Lang, string> = { ko: 'Korean', en: 'English', ne: 'Nepali' };
 
 /** Built-in translations shipped with the app (English sentence → translation). */
-export const BUILTIN_CONTENT: Record<'mn' | 'ko', Record<string, string>> = { mn: contentMn, ko: contentKo };
-export type Overrides = Partial<Record<'mn' | 'ko', Record<string, string>>>;
+export const BUILTIN_CONTENT: Record<'ne' | 'ko', Record<string, string>> = { ne: contentNe, ko: contentKo };
+export type Overrides = Partial<Record<'ne' | 'ko', Record<string, string>>>;
 const STORAGE_KEY = 'hantutor.lang';
 
 function initialLang(): Lang {
@@ -34,7 +34,7 @@ function initialLang(): Lang {
     /* storage unavailable */
   }
   const nav = (navigator.language || '').toLowerCase();
-  if (nav.startsWith('mn')) return 'mn';
+  if (nav.startsWith('ne')) return 'ne';
   if (nav.startsWith('ko')) return 'ko';
   return 'en';
 }

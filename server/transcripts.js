@@ -6,6 +6,7 @@ import { parseSubtitles, parseTime } from './subtitles.js';
 export const TRANSCRIPT_LANGS = [
   { code: 'ko', label: '한국어', name: 'Korean' },
   { code: 'en', label: 'English (영어)', name: 'English' },
+  { code: 'ne', label: 'नेपाली (네팔어)', name: 'Nepali (Devanagari script)' },
   { code: 'mn', label: 'Монгол (몽골어)', name: 'Mongolian (Cyrillic script)' },
   { code: 'ja', label: '日本語 (일본어)', name: 'Japanese' },
   { code: 'zh', label: '中文 简体 (중국어 간체)', name: 'Simplified Chinese' },

@@ -202,6 +202,7 @@ export interface TopikQuestion {
   answer: number;
   explanation_ko?: string;
   explanation_en?: string;
+  explanation_ne?: string;
 }
 
 export interface TopikSet {

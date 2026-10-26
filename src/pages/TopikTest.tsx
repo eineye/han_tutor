@@ -72,11 +72,11 @@ function Script({ q }: { q: TopikQuestion }) {
 
 function Explanation({ q }: { q: TopikQuestion }) {
   const { t, lang } = useI18n();
-  const text = lang === 'ko' ? q.explanation_ko || q.explanation_en : q.explanation_en || q.explanation_ko;
+  const text = lang === 'ko' ? q.explanation_ko || q.explanation_en : (lang === 'ne' && q.explanation_ne) || q.explanation_en || q.explanation_ko;
   if (!text) return null;
   return (
     <div className="topik-explain">
-      💡 <b>{t('topik.explain')}</b> {text}
+      💡 <b>{t('topik.explain')}</b> <span lang={lang === 'ne' && q.explanation_ne ? 'ne' : undefined}>{text}</span>
       {lang !== 'ko' && q.explanation_ko && <div className="muted small" lang="ko">{q.explanation_ko}</div>}
     </div>
   );

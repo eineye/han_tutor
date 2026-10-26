@@ -17,7 +17,7 @@ const out = `<title>한글온 · Hangeul On</title>
 <link rel="apple-touch-icon" href="${icon}">
 <meta name="theme-color" content="#ff7a59">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap">
 <style>${style}</style>
 <div id="root"></div>
 <script type="module">${script}</script>

@@ -27,6 +27,7 @@ function blankQuestion(section: 'listening' | 'reading'): TopikQuestion {
     answer: 0,
     explanation_ko: '',
     explanation_en: '',
+    explanation_ne: '',
   };
 }
 
@@ -344,8 +345,12 @@ export default function AdminTopikEditor() {
                 <textarea rows={2} value={q.explanation_ko || ''} lang="ko" onChange={(e) => setQ({ explanation_ko: e.target.value })} />
               </label>
               <label>
-                해설 (영어 — 한국어 외 화면에서 표시)
+                해설 (영어 — 영어 화면에서 표시)
                 <textarea rows={2} value={q.explanation_en || ''} onChange={(e) => setQ({ explanation_en: e.target.value })} />
+              </label>
+              <label>
+                해설 (네팔어 — 네팔어 화면에서 우선 표시, 비우면 영어 해설)
+                <textarea rows={2} value={q.explanation_ne || ''} lang="ne" onChange={(e) => setQ({ explanation_ne: e.target.value })} />
               </label>
             </div>
           ) : (

@@ -114,17 +114,17 @@ test('teacher translations: list, save, read publicly, delete', async () => {
   const after = (await call('/admin/i18n/strings', { token: admin })).data;
   assert.ok(after.some((r) => r.en === 'Say hello to a friend'));
 
-  assert.equal((await call('/admin/i18n/translations', { method: 'PUT', body: { lang: 'mn', items: { x: 'y' } } })).status, 403);
-  const saved = await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'mn', items: { 'Say hello to a friend': 'Найздаа сайн уу гэж хэлэх' } } });
+  assert.equal((await call('/admin/i18n/translations', { method: 'PUT', body: { lang: 'ne', items: { x: 'y' } } })).status, 403);
+  const saved = await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'ne', items: { 'Say hello to a friend': 'साथीलाई नमस्ते भन' } } });
   assert.equal(saved.status, 200);
   const pub = (await call('/i18n/overrides')).data;
-  assert.equal(pub.mn['Say hello to a friend'], 'Найздаа сайн уу гэж хэлэх');
+  assert.equal(pub.ne['Say hello to a friend'], 'साथीलाई नमस्ते भन');
 
-  await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'mn', items: { 'Say hello to a friend': '' } } });
-  assert.equal((await call('/i18n/overrides')).data.mn['Say hello to a friend'], undefined, 'empty text removes the override');
+  await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'ne', items: { 'Say hello to a friend': '' } } });
+  assert.equal((await call('/i18n/overrides')).data.ne['Say hello to a friend'], undefined, 'empty text removes the override');
 
   assert.equal((await call('/admin/i18n/translations', { token: admin, method: 'PUT', body: { lang: 'fr', items: {} } })).status, 400);
-  const noKey = await call('/admin/i18n/ai-translate', { token: admin, body: { lang: 'mn', texts: ['Hello'] } });
+  const noKey = await call('/admin/i18n/ai-translate', { token: admin, body: { lang: 'ne', texts: ['Hello'] } });
   assert.equal(noKey.status, 400, 'AI translation needs a Gemini key');
 });
 

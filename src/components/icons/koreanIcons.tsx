@@ -190,5 +190,5 @@ export const ICON_BY_WORD: Record<string, string> = {
   bibimbap: 'bibimbap',
   한식: 'bibimbap',
   비빔밥: 'bibimbap',
-  бибимбап: 'bibimbap',
+  बिबिम्बाप: 'bibimbap',
 };

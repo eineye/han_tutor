@@ -10,8 +10,8 @@ import type { UIKey } from '../i18n/ui';
 
 type Tab = 'login' | 'register' | 'teacher';
 
-const NATIVE_FOR: Record<Lang, string> = { ko: 'Korean', en: 'English', mn: 'Mongolian' };
-const NATIVE_LANGS = ['Mongolian', 'English', 'Korean', 'Russian', 'Chinese', 'Japanese', 'Vietnamese', 'Spanish', 'Other'];
+const NATIVE_FOR: Record<Lang, string> = { ko: 'Korean', en: 'English', ne: 'Nepali' };
+const NATIVE_LANGS = ['Nepali', 'English', 'Korean', 'Russian', 'Chinese', 'Japanese', 'Vietnamese', 'Spanish', 'Other'];
 const ERROR_KEYS: Record<string, UIKey> = {
   login_failed: 'err.login_failed',
   name_taken: 'err.name_taken',

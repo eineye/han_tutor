@@ -22,7 +22,7 @@ export const CHAT_SCHEMA = {
 };
 
 /** Languages the student UI offers for explanations. */
-export const EXPLAIN_LANGS = ['English', 'Korean', 'Mongolian'];
+export const EXPLAIN_LANGS = ['English', 'Korean', 'Nepali'];
 const explainLang = (l) => (EXPLAIN_LANGS.includes(l) ? l : 'English');
 
 export function chatSystemPrompt({ scenario, level, studentName, nativeLang, vocab = [], lang = 'English' }) {

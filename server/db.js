@@ -16,7 +16,7 @@ const EMPTY = () => ({
     geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   },
   units: [],
-  translations: { mn: {}, ko: {} }, // teacher-entered overrides: { lang: { english: translation } }
+  translations: { ne: {}, ko: {} }, // teacher-entered overrides: { lang: { english: translation } }
   lessons: [],
   videos: [],
   students: [],

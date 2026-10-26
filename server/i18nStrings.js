@@ -62,4 +62,4 @@ export function collectStudentStrings({ units = [], lessons = [], videos = [] },
   return map;
 }
 
-export const TRANSLATION_LANGS = ['mn', 'ko'];
+export const TRANSLATION_LANGS = ['ne', 'ko'];

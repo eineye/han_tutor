@@ -612,7 +612,7 @@ export function createCore(deps) {
     if (!Array.isArray(texts) || !texts.length) throw new HttpError(400, '번역할 문장이 없습니다.');
     if (!deps.hasKey()) throw new HttpError(400, 'Gemini API 키가 없어 AI 번역을 쓸 수 없습니다. (설정에서 키를 입력하세요)');
     const batch = texts.slice(0, 40).map((s) => String(s).slice(0, 2000));
-    const target = lang === 'mn' ? 'Mongolian (Cyrillic script, natural and friendly for teenagers)' : 'Korean (easy, friendly 해요체 for teenage learners)';
+    const target = lang === 'ne' ? 'Nepali (Devanagari script, natural and friendly for teenagers)' : 'Korean (easy, friendly 해요체 for teenage learners)';
     const result = await deps.generate({
       model: model(),
       temperature: 0.2,
@@ -626,7 +626,21 @@ export function createCore(deps) {
 
   // ---- TOPIK I practice tests (student: solve; teacher: edit) ----
   const cloneSeed = () => JSON.parse(JSON.stringify(seedTopikSets));
-  const topikSets = () => (db().topikSets ||= cloneSeed());
+  const topikSets = () => {
+    if (!db().topikSets) db().topikSets = cloneSeed();
+    else if (!db().topikNeFilled) {
+      // Sets saved before Nepali explanations existed: fill empty explanation_ne from the seed (once)
+      for (const set of db().topikSets) {
+        const seed = seedTopikSets.find((x) => x.id === set.id);
+        for (const q of (seed && set.questions) || []) {
+          const sq = seed.questions.find((x) => x.no === q.no);
+          if (!q.explanation_ne && sq?.explanation_ne) q.explanation_ne = sq.explanation_ne;
+        }
+      }
+      db().topikNeFilled = true;
+    }
+    return db().topikSets;
+  };
   const topikResults = () => (db().topikResults ||= []);
   const maxScore = (set) => (set.questions || []).reduce((a, q) => a + (Number(q.points) || 0), 0);
   const topikSummary = (set) => ({

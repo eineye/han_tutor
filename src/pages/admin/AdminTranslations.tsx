@@ -3,7 +3,7 @@ import { api } from '../../api';
 import { ErrorBox, Loading } from '../../components/ui';
 import { BUILTIN_CONTENT, useI18n, type Overrides } from '../../i18n';
 
-type TLang = 'mn' | 'ko';
+type TLang = 'ne' | 'ko';
 interface StringRow {
   en: string;
   where: { kind: 'unit' | 'lesson' | 'video'; id: string; label: string; draft?: boolean }[];
@@ -11,7 +11,7 @@ interface StringRow {
 type Status = 'custom' | 'builtin' | 'missing';
 type StatusFilter = 'all' | 'missing' | 'custom';
 
-const LANG_LABEL: Record<TLang, string> = { mn: '몽골어 (Монгол)', ko: '한국어' };
+const LANG_LABEL: Record<TLang, string> = { ne: '네팔어 (नेपाली)', ko: '한국어' };
 const PAGE = 40;
 
 /** 교사용 번역 관리: 학생에게 보이는 영어 문장의 몽골어·한국어 번역을 보고 고치는 화면 */
@@ -20,7 +20,7 @@ export default function AdminTranslations() {
   const [rows, setRows] = useState<StringRow[] | null>(null);
   const [overrides, setOverrides] = useState<Overrides>({});
   const [error, setError] = useState<unknown>(null);
-  const [lang, setLang] = useState<TLang>('mn');
+  const [lang, setLang] = useState<TLang>('ne');
   const [place, setPlace] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [q, setQ] = useState('');
@@ -145,7 +145,7 @@ export default function AdminTranslations() {
       </p>
 
       <div className="tabs">
-        {(['mn', 'ko'] as TLang[]).map((l) => (
+        {(['ne', 'ko'] as TLang[]).map((l) => (
           <button key={l} className={lang === l ? 'is-active' : ''} onClick={() => (dirtyCount && !confirm('저장하지 않은 번역이 있습니다. 언어를 바꿀까요?') ? null : setLang(l))}>
             {LANG_LABEL[l]}
           </button>
