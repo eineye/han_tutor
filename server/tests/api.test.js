@@ -268,3 +268,33 @@ test('CORS: the Android app origin may call the API, other sites may not', async
   assert.equal(evil.status, 403);
   assert.equal(evil.headers.get('access-control-allow-origin'), null);
 });
+
+test('daily study: review deck from opened lessons, answers, today plan, badges', async () => {
+  const r = await call('/auth/student/register', { body: { name: 'Daily Kid', classCode: 'DEMO', pin: '1357' } });
+  const token = r.data.token;
+  await call('/study/settings', { token, body: { tz: -345, weeklyGoal: 4 } });
+  let rev = await call('/review', { token });
+  assert.equal(rev.data.cards.length, 0, 'no words before opening a lesson');
+  await call('/progress', { token, body: { lessonId: 'L01', section: 'intro' } });
+  rev = await call('/review', { token });
+  assert.ok(rev.data.cards.length > 0 && rev.data.cards.length <= 10, 'today’s new words (max 10)');
+  assert.ok(rev.data.cards.every((c) => c.ko && c.en && c.box === 0));
+  const first = rev.data.cards[0];
+  const ans = await call('/review/answer', { token, body: { key: first.key, correct: true } });
+  assert.equal(ans.status, 200);
+  assert.equal(ans.data.card.box, 1);
+  assert.ok(ans.data.card.due > first.due, 'next review is after today');
+  assert.equal(ans.data.stats.reviewedToday, 1);
+  const wrong = await call('/review/answer', { token, body: { key: rev.data.cards[1].key, correct: false } });
+  assert.equal(wrong.data.card.box, 1);
+  const daily = await call('/daily', { token });
+  assert.equal(daily.status, 200);
+  assert.deepEqual(daily.data.tasks.map((t) => t.id), ['review', 'lesson', 'speak', 'talk']);
+  assert.equal(daily.data.tasks.find((t) => t.id === 'lesson').done, true, 'opened a lesson today');
+  assert.equal(daily.data.streak, 1);
+  assert.equal(daily.data.week.goal, 4);
+  assert.ok(daily.data.phrase?.ko);
+  assert.ok(daily.data.badges.length > 5);
+  // deleting the account removes the deck too
+  await call('/me', { token, method: 'DELETE' });
+});

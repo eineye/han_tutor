@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import DailyPlan from '../components/DailyPlan';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
 import { ErrorBox, Loading, ProgressBar, fmtDate } from '../components/ui';
@@ -45,6 +46,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      <DailyPlan />
       <section className="hero card">
         <button className="hero__mascot" onClick={() => mascot.say(`${student?.name} 씨, 안녕하세요! ${phrase.ko}`)} aria-label={t('home.talkToBori')}>
           <Mascot viseme={mascot.viseme} talking={mascot.speaking} mood="happy" size={150} />

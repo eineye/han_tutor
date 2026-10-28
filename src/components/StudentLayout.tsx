@@ -5,12 +5,14 @@ import InstallApp from './InstallApp';
 import UpdateBanner from './UpdateBanner';
 import { APP_VERSION, pageUrl } from '../lib/appInfo';
 import { useAuth } from '../auth';
+import { syncTimeZone } from '../lib/studyTz';
 import { LangSwitcher, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
 
 const NAV: { to: string; icon: string; key: UIKey }[] = [
   { to: '/home', icon: '🏠', key: 'nav.home' },
   { to: '/learn', icon: '📚', key: 'nav.lessons' },
+  { to: '/review', icon: '🔁', key: 'nav.review' },
   { to: '/hangeul', icon: '🔤', key: 'nav.hangeul' },
   { to: '/speak', icon: '🎤', key: 'nav.speak' },
   { to: '/talk', icon: '💬', key: 'nav.talk' },
@@ -21,7 +23,7 @@ const NAV: { to: string; icon: string; key: UIKey }[] = [
 
 /** Which menu a path belongs to (/lesson/… → Lessons, /drama/V1 → Drama, …) */
 const sectionOf = (path: string) => {
-  if (path.startsWith('/lesson/')) return NAV[1];
+  if (path.startsWith('/lesson/')) return NAV.find((n) => n.to === '/learn');
   return NAV.find((n) => path === n.to || path.startsWith(n.to + '/'));
 };
 
@@ -32,6 +34,11 @@ export default function StudentLayout() {
   const { pathname } = useLocation();
   const [menu, setMenu] = useState(false);
   const section = sectionOf(pathname);
+
+  // the student's time zone decides when a study day starts and ends (streak, today's plan)
+  useEffect(() => {
+    syncTimeZone();
+  }, []);
 
   // close the menu after moving to another screen; Escape closes it too
   useEffect(() => setMenu(false), [pathname]);

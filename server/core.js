@@ -20,6 +20,7 @@ import {
   TRANSLATE_SCHEMA,
   translatePrompt,
 } from './transcripts.js';
+import { BADGES, DAILY_REVIEW_TARGET, NEW_PER_DAY, addDays, awardBadges, cardKey, currentStreak, goalWeeks, localDay, recordStudyDay, schedule, weekDays } from './study.js';
 import { seedTopikSets } from './seed/topik.js';
 import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
@@ -83,13 +84,11 @@ export function createCore(deps) {
     return token;
   }
 
+  /** The student's calendar day (their phone's time zone, saved by /study/settings). */
+  const todayOf = (student) => localDay(now(), student.tzOffset || 0);
+
   function touchStudy(student, xp) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (student.lastStudyDay !== today) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      student.streak = student.lastStudyDay === yesterday ? (student.streak || 0) + 1 : 1;
-      student.lastStudyDay = today;
-    }
+    recordStudyDay(student, todayOf(student));
     student.xp = (student.xp || 0) + xp;
   }
 
@@ -133,7 +132,7 @@ export function createCore(deps) {
   const deleteStudentData = (sid) => {
     const d = db();
     d.students = d.students.filter((s) => s.id !== sid);
-    for (const k of ['progress', 'quizResults', 'pronunciation', 'chatLogs', 'evaluations', 'assignments', 'topikResults']) if (Array.isArray(d[k])) d[k] = d[k].filter((x) => x.studentId !== sid);
+    for (const k of ['progress', 'quizResults', 'pronunciation', 'chatLogs', 'evaluations', 'assignments', 'topikResults', 'reviews']) if (Array.isArray(d[k])) d[k] = d[k].filter((x) => x.studentId !== sid);
     d.sessions = d.sessions.filter((x) => x.studentId !== sid);
     save();
   };
@@ -291,6 +290,123 @@ export function createCore(deps) {
     const v = db().videos.find((x) => x.id === params.id && published(x));
     if (!v) throw new HttpError(404, 'Video not found');
     return v;
+  });
+
+  // ---- daily study: today's plan, spaced-repetition word review, streak, weekly goal, badges ----
+  const reviews = () => (db().reviews ||= []);
+  const startedLessons = (student) => {
+    const started = new Set(db().progress.filter((p) => p.studentId === student.id).map((p) => p.lessonId));
+    return db()
+      .lessons.filter((l) => published(l) && started.has(l.id))
+      .sort((a, b) => a.order - b.order);
+  };
+  /** Words from the lessons the student has opened that are not in the review deck yet. */
+  const unseenWords = (student) => {
+    const have = new Set(reviews().filter((c) => c.studentId === student.id).map((c) => c.key));
+    const out = [];
+    for (const l of startedLessons(student))
+      for (const v of l.vocab || []) {
+        const key = cardKey(l.id, v.ko);
+        if (!have.has(key) && v.ko && v.en) out.push({ key, lessonId: l.id, ko: v.ko, roman: v.roman || '', en: v.en, emoji: v.emoji || '' });
+      }
+    return out;
+  };
+  /** Adds today's share of new words (NEW_PER_DAY) to the deck. */
+  const introduceWords = (student, today) => {
+    const mine = reviews().filter((c) => c.studentId === student.id);
+    const room = NEW_PER_DAY - mine.filter((c) => c.addedOn === today).length;
+    if (room <= 0) return;
+    for (const w of unseenWords(student).slice(0, room)) reviews().push({ ...w, studentId: student.id, box: 0, due: today, addedOn: today, right: 0, wrong: 0 });
+  };
+  const deckStats = (student, today) => {
+    const mine = reviews().filter((c) => c.studentId === student.id);
+    return {
+      due: mine.filter((c) => c.due <= today).length,
+      dueTomorrow: mine.filter((c) => c.due <= addDays(today, 1)).length,
+      total: mine.length,
+      learned: mine.filter((c) => c.box >= 3).length,
+      waiting: unseenWords(student).length,
+      reviewedToday: (student.dailyReviews || {})[today] || 0,
+    };
+  };
+
+  route('POST', '/study/settings', 'student', ({ body, student }) => {
+    if (body.tz !== undefined && Number.isFinite(Number(body.tz)) && Math.abs(Number(body.tz)) <= 14 * 60) student.tzOffset = Number(body.tz);
+    if (body.weeklyGoal !== undefined) student.weeklyGoal = Math.min(7, Math.max(1, Math.round(Number(body.weeklyGoal)) || 5));
+    save();
+    return publicStudent(student);
+  });
+
+  route('GET', '/review', 'student', ({ student }) => {
+    const today = todayOf(student);
+    introduceWords(student, today);
+    save();
+    const cards = reviews()
+      .filter((c) => c.studentId === student.id && c.due <= today)
+      .sort((a, b) => (a.box === 0) - (b.box === 0) || a.due.localeCompare(b.due) || a.box - b.box)
+      .slice(0, 40)
+      .map(({ studentId: _s, ...c }) => c);
+    return { cards, stats: deckStats(student, today) };
+  });
+
+  route('POST', '/review/answer', 'student', ({ body, student }) => {
+    const today = todayOf(student);
+    const card = reviews().find((c) => c.studentId === student.id && c.key === body.key);
+    if (!card) throw new HttpError(404, 'card not found');
+    const correct = Boolean(body.correct);
+    Object.assign(card, schedule(card, correct, today), { lastAt: now() });
+    if (correct) card.right = (card.right || 0) + 1;
+    else card.wrong = (card.wrong || 0) + 1;
+    student.reviewCount = (student.reviewCount || 0) + 1;
+    const daily = (student.dailyReviews ||= {});
+    daily[today] = (daily[today] || 0) + 1;
+    for (const d of Object.keys(daily)) if (d < addDays(today, -60)) delete daily[d];
+    touchStudy(student, 1);
+    save();
+    return { card: { ...card, studentId: undefined }, stats: deckStats(student, today), student: publicStudent(student) };
+  });
+
+  route('GET', '/daily', 'student', ({ student }) => {
+    const today = todayOf(student);
+    const tz = student.tzOffset || 0;
+    const isToday = (t) => Boolean(t) && localDay(t, tz) === today;
+    introduceWords(student, today);
+    const stats = deckStats(student, today);
+    const lessons = db().lessons.filter(published).sort((a, b) => a.order - b.order);
+    const prog = db().progress.filter((p) => p.studentId === student.id);
+    const next = lessons.find((l) => !prog.find((p) => p.lessonId === l.id)?.completedAt) || null;
+    const chats = db().chatLogs.filter((c) => c.studentId === student.id);
+    const tasks = [
+      { id: 'review', done: stats.total > 0 && (stats.due === 0 || stats.reviewedToday >= DAILY_REVIEW_TARGET), count: stats.due, reviewed: stats.reviewedToday, target: DAILY_REVIEW_TARGET },
+      { id: 'lesson', done: prog.some((p) => isToday(p.updatedAt)), lessonId: next?.id || null, title: next?.title || null },
+      { id: 'speak', done: db().pronunciation.some((p) => p.studentId === student.id && isToday(p.at)) },
+      { id: 'talk', done: chats.some((c) => isToday(c.updatedAt)) },
+    ];
+    // one dialogue line a day, the same for the whole class
+    const lines = lessons.flatMap((l) => (l.dialogue?.lines || []).filter((x) => x.ko && x.en && x.ko.length <= 30).map((x) => ({ ko: x.ko, roman: x.roman || '', en: x.en, lessonId: l.id })));
+    const phrase = lines.length ? lines[Math.floor(Date.parse(today) / 86400000) % lines.length] : null;
+    const values = {
+      streak: Math.max(student.bestStreak || 0, student.streak || 0),
+      reviews: student.reviewCount || 0,
+      learned: stats.learned,
+      lessons: prog.filter((p) => p.completedAt).length,
+      weeks: goalWeeks(student, today),
+    };
+    const newBadges = awardBadges(student, values, today);
+    save();
+    return {
+      today,
+      tasks,
+      phrase,
+      review: stats,
+      streak: currentStreak(student, today),
+      bestStreak: student.bestStreak || 0,
+      freezes: student.streakFreezes || 0,
+      studiedToday: (student.studyDays || []).includes(today),
+      week: { goal: student.weeklyGoal || 5, days: weekDays(student, today) },
+      badges: BADGES.map((b) => ({ ...b, earned: student.badges?.[b.id] || null, value: values[b.kind] || 0 })),
+      newBadges,
+    };
   });
 
   // progress

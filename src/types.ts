@@ -237,3 +237,49 @@ export interface TopikResult {
   seconds: number;
   at: string;
 }
+
+// ---- daily study (server/study.js) ----
+export interface ReviewCard {
+  key: string;
+  lessonId: string;
+  ko: string;
+  roman: string;
+  en: string;
+  emoji: string;
+  box: number;
+  due: string;
+}
+export interface ReviewStats {
+  due: number;
+  dueTomorrow: number;
+  total: number;
+  learned: number;
+  waiting: number;
+  reviewedToday: number;
+}
+export type DailyTask =
+  | { id: 'review'; done: boolean; count: number; reviewed: number; target: number }
+  | { id: 'lesson'; done: boolean; lessonId: string | null; title: { ko: string; en: string } | null }
+  | { id: 'speak'; done: boolean }
+  | { id: 'talk'; done: boolean };
+export interface Badge {
+  id: string;
+  icon: string;
+  kind: 'streak' | 'reviews' | 'learned' | 'lessons' | 'weeks';
+  goal: number;
+  earned: string | null;
+  value: number;
+}
+export interface DailyPlan {
+  today: string;
+  tasks: DailyTask[];
+  phrase: { ko: string; roman: string; en: string; lessonId: string } | null;
+  review: ReviewStats;
+  streak: number;
+  bestStreak: number;
+  freezes: number;
+  studiedToday: boolean;
+  week: { goal: number; days: { day: string; studied: boolean; frozen: boolean; future: boolean }[] };
+  badges: Badge[];
+  newBadges: string[];
+}

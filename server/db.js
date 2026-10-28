@@ -28,6 +28,7 @@ const EMPTY = () => ({
   evaluations: [], // {id, studentId, category, score, comment, at}
   assignments: [], // {id, studentId, lessonId|videoId, title, due, note, done, at}
   transcripts: [], // media transcriber results {id, title, mode, source, summary, keyPoints, summaries, segments[]}
+  reviews: [], // word review deck {studentId, key, lessonId, ko, roman, en, emoji, box, due, addedOn, right, wrong}
   recordings: [], // teacher audio {id, key, text, mime, size, updatedAt}; files in DATA_DIR/audio
 });
 

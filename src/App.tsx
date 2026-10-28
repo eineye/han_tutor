@@ -27,6 +27,7 @@ import AdminTranslations from './pages/admin/AdminTranslations';
 import AdminRecordings from './pages/admin/AdminRecordings';
 import TopikHome from './pages/TopikHome';
 import SoundCheck from './pages/SoundCheck';
+import Review from './pages/Review';
 import TopikTest from './pages/TopikTest';
 import AdminTopik from './pages/admin/AdminTopik';
 import AdminTopikEditor from './pages/admin/AdminTopikEditor';
@@ -56,6 +57,7 @@ export default function App() {
       >
         <Route path="/home" element={<Home />} />
         <Route path="/learn" element={<Learn />} />
+        <Route path="/review" element={<Review />} />
         <Route path="/lesson/:id" element={<LessonPage />} />
         <Route path="/hangeul" element={<HangeulLab />} />
         <Route path="/speak" element={<SpeakPage />} />

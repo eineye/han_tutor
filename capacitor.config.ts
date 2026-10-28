@@ -11,6 +11,10 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    // daily study reminder (src/lib/reminders.ts); white "ㅎ" status-bar icon in res/drawable-*/
+    LocalNotifications: { smallIcon: 'ic_stat_hangeul', iconColor: '#FF7A59' },
+  },
 };
 
 export default config;

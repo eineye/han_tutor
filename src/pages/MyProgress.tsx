@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorBox, Loading, ScoreBadge, fmtDate } from '../components/ui';
 import Mascot from '../components/Mascot';
+import StudyHabits from '../components/StudyHabits';
 import { useI18n } from '../i18n';
 import type { Assignment, Evaluation, Progress, PronRecord, QuizResult, Student } from '../types';
 
@@ -57,6 +58,8 @@ export default function MyProgress() {
           <small>{t('me.chat')}</small>
         </div>
       </div>
+
+      <StudyHabits />
 
       {s.evaluations.length > 0 && (
         <section className="card">

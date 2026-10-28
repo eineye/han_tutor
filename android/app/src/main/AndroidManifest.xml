@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -41,6 +42,9 @@
     <!-- 발음 녹음·채점, 음성 입력 (처음 사용할 때 학생에게 허용을 묻습니다) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- 학습 알림은 정확한 시각이 필요 없으므로 정확한 알람 권한은 쓰지 않음 (Google Play 정책) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
 
     <!-- 휴대폰 음성 엔진·한국어 음성 데이터 설치 화면을 찾을 수 있도록 (Android 11+) -->
     <queries>
