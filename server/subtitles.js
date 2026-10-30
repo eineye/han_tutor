@@ -55,6 +55,29 @@ function cueFromLines(start, end, rawLines, voice) {
   return cue;
 }
 
+/**
+ * LRC song lyrics: "[01:02.50] 가사" (several time tags may share one line; metadata like [ar:가수] is skipped).
+ * Each line ends where the next one starts (the last one lasts 4 s).
+ */
+function parseLrc(text) {
+  const rows = [];
+  for (const raw of text.replace(/\r/g, '').split('\n')) {
+    const tags = [...raw.matchAll(/\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]/g)];
+    if (!tags.length) continue;
+    const words = raw.replace(/\[[^\]]*\]/g, '').replace(/<\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?>/g, '').trim(); // drop word-level <mm:ss.xx> tags
+    for (const t of tags) rows.push({ start: Number(t[1]) * 60 + Number(t[2].replace(':', '.')), words });
+  }
+  rows.sort((a, b) => a.start - b.start);
+  const cues = [];
+  rows.forEach((r, i) => {
+    if (!r.words) return; // an empty timed line marks a pause
+    const end = i + 1 < rows.length ? rows[i + 1].start : r.start + 4;
+    const cue = cueFromLines(r.start, end, [r.words]);
+    if (cue) cues.push(cue);
+  });
+  return cues;
+}
+
 function parseSrtVtt(text) {
   const cues = [];
   const blocks = text.replace(/\r/g, '').split(/\n\s*\n/);
@@ -185,7 +208,11 @@ export function parseSubtitles(text, filename = '') {
   const trimmed = body.replace(/^﻿/, '').trimStart();
   let format = ext;
   let cues;
-  if (ext === 'json' || /^[[{]/.test(trimmed)) {
+  // LRC lines start with a time tag "[00:12.34]" or a metadata tag "[ar:가수]" (JSON starts with [{ or [" instead)
+  if (ext === 'lrc' || (!/-->/.test(body) && /^\[(\d{1,3}:\d{1,2}|[a-z]{2,6}:)/i.test(trimmed))) {
+    format = 'lrc';
+    cues = parseLrc(body);
+  } else if (ext === 'json' || /^[[{]/.test(trimmed)) {
     format = 'json';
     cues = parseJson(trimmed);
   } else if (ext === 'srt' || ext === 'vtt' || /-->/.test(body)) {

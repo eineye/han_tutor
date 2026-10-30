@@ -93,9 +93,15 @@ export interface CastMember {
   voice?: { pitch?: number; rate?: number };
 }
 
+/** 'drama' (scene with characters, default), 'video' (any learning clip), 'song' (lyrics, sing along) */
+export type VideoKind = 'drama' | 'video' | 'song';
+
 export interface Video {
   id: string;
   order: number;
+  kind?: VideoKind;
+  /** singer / band (songs) */
+  artist?: string;
   title: Bilingual;
   genre: string;
   level: string;

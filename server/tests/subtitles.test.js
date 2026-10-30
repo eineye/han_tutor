@@ -68,3 +68,19 @@ test('alignment: split / merged cues, spacing differences and extra cues', () =>
   const none = alignCuesToLines([{ ko: '전혀 다른 문장' }], cues);
   assert.equal(none[0].start, null, 'no match leaves the line untimed');
 });
+
+test('LRC song lyrics: timed lines, shared time tags, metadata and pauses', () => {
+  const lrc = '[ar:한글온]\n[ti:안녕 노래]\n[00:01.00]안녕 안녕 안녕하세요\n[00:05.50][00:20.00]반가워요 반가워\n[00:09.20]\n[00:12.00]Hello, nice to meet you';
+  const { format, cues } = parseSubtitles(lrc, 'song.lrc');
+  assert.equal(format, 'lrc');
+  assert.deepEqual(
+    cues.map((c) => [c.start, c.end, c.ko]),
+    [
+      [1, 5.5, '안녕 안녕 안녕하세요'],
+      [5.5, 9.2, '반가워요 반가워'],
+      [12, 20, 'Hello, nice to meet you'],
+      [20, 24, '반가워요 반가워'],
+    ],
+  );
+  assert.equal(parseSubtitles('[00:03.5]가나다', 'x.txt').format, 'lrc', 'detected without the .lrc name');
+});

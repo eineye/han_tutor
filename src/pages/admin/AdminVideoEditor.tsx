@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../../api';
 import { ErrorBox, Loading } from '../../components/ui';
 import VideoSurface, { parseYouTubeId, type VideoHandle } from '../../components/VideoSurface';
-import type { Line, Video } from '../../types';
+import type { Line, Video, VideoKind } from '../../types';
 import { JsonEditor, QuizEditor, RowsEditor } from './editors';
 import SubtitleImport from './SubtitleImport';
 import VideoFilePicker from './VideoFilePicker';
@@ -50,13 +50,14 @@ export default function AdminVideoEditor() {
     }
   };
 
+  const isSong = v.kind === 'song';
   const hasPlayer = v.source.type === 'youtube' ? !!v.source.youtubeId : v.source.type === 'file' && !!v.source.url;
   const setLineTime = (i: number, key: 'start' | 'end') => up({ lines: v.lines.map((l, j) => (j === i ? { ...l, [key]: Math.round(now * 10) / 10 } : l)) });
 
   return (
     <div className="editor">
       <Link to="/admin/videos" className="muted small">
-        ← 드라마 영상
+        ← 드라마·영상·노래
       </Link>
       <div className="page-head sticky-head">
         <h1>
@@ -79,8 +80,8 @@ export default function AdminVideoEditor() {
           [
             ['basic', '기본 정보'],
             ['source', '영상 소스'],
-            ['cast', '등장인물'],
-            ['lines', '대본·자막 타이밍'],
+            ['cast', isSong ? '부르는 사람·파트' : '등장인물'],
+            ['lines', isSong ? '가사·타이밍' : '대본·자막 타이밍'],
             ['expr', '핵심 표현'],
             ['quiz', '퀴즈'],
             ['json', 'JSON'],
@@ -97,6 +98,22 @@ export default function AdminVideoEditor() {
           <>
             <div className="grid2">
               <label>
+                종류
+                <select value={v.kind || 'drama'} onChange={(e) => up({ kind: e.target.value as VideoKind })}>
+                  <option value="drama">🎬 드라마 (등장인물·대본·역할극)</option>
+                  <option value="video">📹 영상 (일반 학습 영상·자막)</option>
+                  <option value="song">🎵 노래 (가사·따라 부르기)</option>
+                </select>
+              </label>
+              {isSong && (
+                <label>
+                  가수·부른 사람
+                  <input value={v.artist || ''} onChange={(e) => up({ artist: e.target.value })} placeholder="예: 한글온 합창단" />
+                </label>
+              )}
+            </div>
+            <div className="grid2">
+              <label>
                 제목 (한국어)
                 <input value={v.title.ko} onChange={(e) => up({ title: { ...v.title, ko: e.target.value } })} />
               </label>
@@ -107,7 +124,7 @@ export default function AdminVideoEditor() {
             </div>
             <div className="grid3">
               <label>
-                장르
+                {isSong ? '장르 (예: 동요, K-pop, 발라드)' : '장르'}
                 <input value={v.genre} onChange={(e) => up({ genre: e.target.value })} />
               </label>
               <label>
@@ -134,7 +151,7 @@ export default function AdminVideoEditor() {
               </label>
             </div>
             <label>
-              줄거리/설명 (영어)
+              {isSong ? '노래 소개 (영어)' : '줄거리/설명 (영어)'}
               <textarea rows={3} value={v.description_en} onChange={(e) => up({ description_en: e.target.value })} />
             </label>
           </>

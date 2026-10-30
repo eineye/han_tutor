@@ -4279,3 +4279,53 @@ label.inline select {
     padding: 3px 7px;
   }
 }
+
+/* ───────── Songs (드라마·영상·노래) ───────── */
+.media-filter {
+  max-width: 560px;
+}
+.media-filter small {
+  font-weight: 500;
+  opacity: 0.7;
+}
+.drama-card--song .drama-card__thumb {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+}
+.stage--song {
+  background: radial-gradient(circle at 30% 20%, #7c3aed, #3b0764 70%);
+  justify-content: flex-start;
+  padding-top: 6%;
+}
+/* the lyric / hint sits under the song title instead of over it */
+.stage--song .stage__hint,
+.stage--song .subtitle {
+  position: static;
+  margin-top: auto;
+  margin-bottom: 10px;
+  padding: 0 12px;
+  text-align: center;
+}
+.stage__song {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: #fff;
+  text-align: center;
+}
+.stage__note {
+  font-size: clamp(1.8rem, 9vw, 3rem);
+  animation: song-bob 2.4s ease-in-out infinite;
+}
+.stage__song small {
+  opacity: 0.85;
+}
+@keyframes song-bob {
+  50% {
+    transform: translateY(-6px) rotate(-4deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage__note {
+    animation: none;
+  }
+}

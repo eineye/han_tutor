@@ -11,6 +11,7 @@ import { pronunciationScore } from '../lib/hangul';
 import { assignCastVoices } from '../../server/ttsVoices.js';
 import type { CastMember, Line, Video } from '../types';
 import { localizeVideo, subtitle as subTitle, useI18n } from '../i18n';
+import { kindOf } from './DramaList';
 
 type SubMode = 'ko' | 'ko+roman' | 'all' | 'none';
 type Tab = 'script' | 'expressions' | 'roleplay' | 'quiz';
@@ -55,6 +56,9 @@ export default function DramaPlayer() {
   // each character gets its own AI voice (male / female / young by the cast pitch)
   const castVoices = useMemo(() => assignCastVoices((video?.cast || []).map((c) => ({ name: c.name, pitch: c.voice?.pitch }))), [video]);
 
+  const isSong = Boolean(video && kindOf(video) === 'song');
+  // one singer (or none named): no speaker names next to each lyric line
+  const soloSong = isSong && new Set(video!.lines.map((l) => l.speaker)).size <= 1;
   const hasVideo = video && video.source.type !== 'none' && (video.source.type === 'youtube' ? !!video.source.youtubeId : !!video.source.url);
   const timed = hasVideo && video!.lines.some((l) => l.start != null);
 
@@ -210,6 +214,17 @@ export default function DramaPlayer() {
             <VideoSurface ref={player} type={video.source.type as 'youtube' | 'file'} src={video.source.type === 'youtube' ? video.source.youtubeId : video.source.url} onTime={timed ? onTime : undefined} />
             {timed && subtitle(cur)}
           </>
+        ) : isSong ? (
+          <div className="stage stage--song">
+            <div className="stage__song">
+              <span className="stage__note" aria-hidden>
+                {video.thumbnail || '🎵'}
+              </span>
+              <b lang="ko">{video.title.ko}</b>
+              {video.artist && <small>🎤 {video.artist}</small>}
+            </div>
+            {subtitle(cur) || <div className="stage__hint">🎵 {tr('song.audioHint')}</div>}
+          </div>
         ) : (
           <div className="stage">
             <div className="stage__cast">
@@ -231,7 +246,7 @@ export default function DramaPlayer() {
       <div className="drama__bar">
         {!hasVideo && (
           <button className="btn" onClick={playAll}>
-            {playingAll.current ? `⏹ ${tr('common.stop')}` : `▶ ${tr('drama.play')}`}
+            {playingAll.current ? `⏹ ${tr('common.stop')}` : `▶ ${isSong ? tr('song.play') : tr('drama.play')}`}
           </button>
         )}
         <label className="inline">
@@ -273,7 +288,17 @@ export default function DramaPlayer() {
       <div className="tabs tabs--wide">
         {(['script', 'expressions', 'roleplay', 'quiz'] as Tab[]).map((t) => (
           <button key={t} className={tab === t ? 'is-active' : ''} onClick={() => setTab(t)}>
-            {t === 'script' ? `📜 ${tr('drama.tab.script')}` : t === 'expressions' ? `⭐ ${tr('drama.tab.expr')}` : t === 'roleplay' ? `🎭 ${tr('drama.tab.roleplay')}` : `✏️ ${tr('sec.quiz')}`}
+            {t === 'script'
+              ? isSong
+                ? `📝 ${tr('song.lyrics')}`
+                : `📜 ${tr('drama.tab.script')}`
+              : t === 'expressions'
+                ? `⭐ ${tr('drama.tab.expr')}`
+                : t === 'roleplay'
+                  ? isSong
+                    ? `🎤 ${tr('song.singAlong')}`
+                    : `🎭 ${tr('drama.tab.roleplay')}`
+                  : `✏️ ${tr('sec.quiz')}`}
           </button>
         ))}
       </div>
@@ -284,10 +309,10 @@ export default function DramaPlayer() {
             {video.lines.map((l, i) => (
               <li key={i} className={`script__line ${current === i ? 'is-current' : ''}`} onClick={() => playLine(i)}>
                 <span className="avatar" style={{ background: castOf(l.speaker).color }}>
-                  {l.speaker.slice(0, 1)}
+                  {soloSong ? '♪' : l.speaker.slice(0, 1)}
                 </span>
                 <div className="script__text">
-                  <b>{l.speaker}</b>
+                  {!soloSong && <b>{l.speaker}</b>}
                   <div lang="ko" className="ko-mid">
                     {l.ko}
                   </div>
@@ -327,7 +352,7 @@ export default function DramaPlayer() {
           </ul>
         )}
 
-        {tab === 'roleplay' && <RolePlay video={video} castOf={castOf} />}
+        {tab === 'roleplay' && <RolePlay video={video} castOf={castOf} song={isSong} />}
 
         {tab === 'quiz' && (
           <QuizRunner
@@ -351,7 +376,8 @@ export default function DramaPlayer() {
   );
 }
 
-function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => CastMember }) {
+/** Role-play (drama: you say your character's lines) or sing-along (song: every line is yours, listen first). */
+function RolePlay({ video, castOf, song = false }: { video: Video; castOf: (n: string) => CastMember; song?: boolean }) {
   const castVoices = useMemo(() => assignCastVoices(video.cast.map((c) => ({ name: c.name, pitch: c.voice?.pitch }))), [video]);
   const { t: tr } = useI18n();
   const [me, setMe] = useState(video.cast[video.cast.length - 1]?.name || '');
@@ -381,7 +407,11 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
     }
     setStep(i);
     const l = video.lines[i];
-    if (l.speaker !== me) {
+    if (song) {
+      // sing-along: hear the line first, then it is the student's turn
+      const c = castOf(l.speaker);
+      speak(clean(l.ko), { pitch: c.voice?.pitch ?? 1, voiceHint: l.speaker, aiVoice: castVoices[l.speaker], rate: 0.85 });
+    } else if (l.speaker !== me) {
       const c = castOf(l.speaker);
       speak(clean(l.ko), { pitch: c.voice?.pitch ?? 1, voiceHint: l.speaker, aiVoice: castVoices[l.speaker], rate: (c.voice?.rate ?? 1) * 0.92, onEnd: () => active.current && window.setTimeout(() => active.current && goto(i + 1), 400) });
     }
@@ -418,6 +448,7 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
 
   const line = step >= 0 && step < video.lines.length ? video.lines[step] : null;
   const myScores = Object.values(scores);
+  const isMine = (l: Line) => song || l.speaker === me;
 
   return (
     <div className="roleplay">
@@ -425,27 +456,33 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
         <div className="roleplay__setup">
           {step >= video.lines.length && (
             <div className="roleplay__done">
-              🎬 {tr('drama.wrap')} {myScores.length > 0 && <>{tr('drama.avgScore')}: <ScoreBadge score={Math.round(myScores.reduce((a, b) => a + b, 0) / myScores.length)} /></>}
+              {song ? tr('song.wrap') : `🎬 ${tr('drama.wrap')}`} {myScores.length > 0 && <>{tr('drama.avgScore')}: <ScoreBadge score={Math.round(myScores.reduce((a, b) => a + b, 0) / myScores.length)} /></>}
             </div>
           )}
-          <p>{tr('drama.chooseRole')}</p>
-          <div className="chips">
-            {video.cast.map((c) => (
-              <button key={c.name} className={`chip ${me === c.name ? 'chip--solid' : ''}`} onClick={() => setMe(c.name)}>
-                <span className="avatar avatar--sm" style={{ background: c.color }}>
-                  {c.name.slice(0, 1)}
-                </span>{' '}
-                {c.name} <small>({c.role})</small>
-              </button>
-            ))}
-          </div>
+          {song ? (
+            <p>{tr('song.intro')}</p>
+          ) : (
+            <>
+              <p>{tr('drama.chooseRole')}</p>
+              <div className="chips">
+                {video.cast.map((c) => (
+                  <button key={c.name} className={`chip ${me === c.name ? 'chip--solid' : ''}`} onClick={() => setMe(c.name)}>
+                    <span className="avatar avatar--sm" style={{ background: c.color }}>
+                      {c.name.slice(0, 1)}
+                    </span>{' '}
+                    {c.name} <small>({c.role})</small>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
           <label className="toggle">
             <input type="checkbox" checked={hideText} onChange={(e) => setHideText(e.target.checked)} />
             <span className="toggle__track" />
-            <span>{tr('drama.hideMine')}</span>
+            <span>{song ? tr('song.hideLyrics') : tr('drama.hideMine')}</span>
           </label>
-          <button className="btn" onClick={start} disabled={!me}>
-            🎭 {tr('drama.startRole')}
+          <button className="btn" onClick={start} disabled={!song && !me}>
+            {song ? `🎤 ${tr('song.start')}` : `🎭 ${tr('drama.startRole')}`}
           </button>
         </div>
       ) : (
@@ -454,21 +491,22 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
             <div className="small muted">
               {tr('drama.line', { n: step + 1, total: video.lines.length })}
             </div>
-            <div className={`roleplay__line ${line.speaker === me ? 'is-mine' : ''}`}>
+            <div className={`roleplay__line ${isMine(line) ? 'is-mine' : ''}`}>
               <span className="avatar avatar--lg" style={{ background: castOf(line.speaker).color }}>
-                {line.speaker.slice(0, 1)}
+                {song ? '♪' : line.speaker.slice(0, 1)}
               </span>
               <div>
-                <b>{line.speaker === me ? `${tr('drama.you')} (${me})` : line.speaker}</b>
-                {line.speaker === me && hideText ? <div className="en">{line.en}</div> : <div className="ko-mid" lang="ko">{line.ko}</div>}
-                {line.speaker === me && !hideText && <div className="roman">{line.roman}</div>}
+                {!song && <b>{line.speaker === me ? `${tr('drama.you')} (${me})` : line.speaker}</b>}
+                {isMine(line) && hideText ? <div className="en">{line.en}</div> : <div className="ko-mid" lang="ko">{line.ko}</div>}
+                {isMine(line) && !hideText && <div className="roman">{line.roman}</div>}
+                {song && <SpeakButton text={clean(line.ko)} rate={0.85} label={tr('song.listenFirst')} />}
               </div>
             </div>
-            {line.speaker === me && (
+            {isMine(line) && (
               <div className="roleplay__mine">
                 {canListen ? (
                   <button className={`btn btn--rec btn--round ${listening ? 'is-recording' : ''}`} onClick={myTurn} disabled={listening}>
-                    {listening ? `👂 ${tr('drama.listening')}` : `🎤 ${tr('drama.sayLine')}`}
+                    {listening ? `👂 ${tr('drama.listening')}` : `🎤 ${song ? tr('song.sayLine') : tr('drama.sayLine')}`}
                   </button>
                 ) : (
                   <p className="muted">{tr('drama.sayAloud')}</p>
@@ -476,7 +514,7 @@ function RolePlay({ video, castOf }: { video: Video; castOf: (n: string) => Cast
                 {heard && <p className="pron__interim">“{heard}”</p>}
                 {recError && <div className="alert alert--warn small">{recError}</div>}
                 {scores[step] != null && <ScoreBadge score={scores[step]} />}
-                {line.speaker === me && hideText && scores[step] != null && <p lang="ko">✅ {line.ko}</p>}
+                {isMine(line) && hideText && scores[step] != null && <p lang="ko">✅ {line.ko}</p>}
                 <button className="btn btn--ghost" onClick={() => goto(step + 1)}>
                   {tr('common.next')} →
                 </button>

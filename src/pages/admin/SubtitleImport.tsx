@@ -91,7 +91,7 @@ export default function SubtitleImport({ lines, cast, onApply }: { lines: Line[]
       <div className="row subimport__head">
         <div>
           <b>📄 자막 파일로 자동 맞추기</b>
-          <div className="muted small">SRT · VTT · CSV/TSV · JSON (YouTube·Whisper 형식 포함). 한 자막에 한국어와 영어가 함께 있으면 나눠서 넣고, 「민수: 안녕」처럼 화자가 있으면 화자로 인식합니다.</div>
+          <div className="muted small">SRT · VTT · LRC(노래 가사) · CSV/TSV · JSON (YouTube·Whisper 형식 포함). 한 자막에 한국어와 영어가 함께 있으면 나눠서 넣고, 「민수: 안녕」처럼 화자가 있으면 화자로 인식합니다.</div>
         </div>
         <button className="btn btn--ghost" onClick={() => input.current?.click()}>
           📂 자막 파일 선택
@@ -99,7 +99,7 @@ export default function SubtitleImport({ lines, cast, onApply }: { lines: Line[]
         <input
           ref={input}
           type="file"
-          accept=".srt,.vtt,.csv,.tsv,.txt,.json,text/plain,application/json,text/csv"
+          accept=".srt,.vtt,.lrc,.csv,.tsv,.txt,.json,text/plain,application/json,text/csv"
           hidden
           onChange={(e) => {
             const f = e.target.files?.[0];

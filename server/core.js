@@ -22,6 +22,7 @@ import {
 } from './transcripts.js';
 import { BADGES, DAILY_REVIEW_TARGET, NEW_PER_DAY, addDays, awardBadges, cardKey, currentStreak, goalWeeks, localDay, recordStudyDay, schedule, weekDays } from './study.js';
 import { seedTopikSets } from './seed/topik.js';
+import { seedVideos } from './seed/videos.js';
 import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
@@ -69,6 +70,17 @@ export function createCore(deps) {
   const now = deps.now;
   const model = () => db().settings.geminiModel || deps.defaultModel?.() || 'gemini-2.5-flash';
   const published = (x) => x.status !== 'draft';
+
+  // Sample songs (added 2026-10): put them into databases created before songs existed — once,
+  // so a teacher who deletes them does not get them back.
+  const addSeedSongs = () => {
+    const d = db();
+    if (!d || d.seedSongsAdded) return;
+    d.videos ||= [];
+    for (const v of seedVideos.filter((x) => x.kind === 'song')) if (!d.videos.some((x) => x.id === v.id)) d.videos.push(JSON.parse(JSON.stringify(v)));
+    d.seedSongsAdded = true;
+    save();
+  };
 
   function publicStudent(s) {
     if (!s) return null;
@@ -1306,6 +1318,7 @@ export function createCore(deps) {
    */
   async function handle(method, path, { token, body } = {}) {
     try {
+      addSeedSongs();
       const session = token ? db().sessions.find((x) => x.token === token) || null : null;
       const student = session?.role === 'student' ? db().students.find((s) => s.id === session.studentId) || null : null;
       if (student) student.lastActive = now();
