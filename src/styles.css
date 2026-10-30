@@ -4329,3 +4329,9 @@ label.inline select {
     animation: none;
   }
 }
+/* song with a music file: player under the song card */
+.drama__screen .audio-surface {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}

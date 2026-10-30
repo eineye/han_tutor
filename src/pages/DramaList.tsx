@@ -61,7 +61,7 @@ export default function DramaList() {
                 <div className="drama-card__thumb">
                   {v.source.type === 'youtube' && v.source.youtubeId ? <img src={`https://i.ytimg.com/vi/${v.source.youtubeId}/hqdefault.jpg`} alt="" /> : <span>{v.thumbnail || KIND_ICON[kind]}</span>}
                   <span className="drama-card__type">
-                    {KIND_ICON[kind]} {t(`media.${kind}`)} · {v.source.type === 'none' ? (kind === 'song' ? `📝 ${t('song.lyrics')}` : `🎧 ${t('drama.audio')}`) : `▶ ${t('drama.video')}`}
+                    {KIND_ICON[kind]} {t(`media.${kind}`)} · {v.source.type === 'none' ? (kind === 'song' ? `📝 ${t('song.lyrics')}` : `🎧 ${t('drama.audio')}`) : v.source.type === 'audio' ? `🎧 ${t('song.music')}` : `▶ ${t('drama.video')}`}
                   </span>
                 </div>
                 <div className="drama-card__body">

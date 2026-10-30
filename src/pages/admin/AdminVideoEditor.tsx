@@ -51,7 +51,8 @@ export default function AdminVideoEditor() {
   };
 
   const isSong = v.kind === 'song';
-  const hasPlayer = v.source.type === 'youtube' ? !!v.source.youtubeId : v.source.type === 'file' && !!v.source.url;
+  const hasPlayer = v.source.type === 'youtube' ? !!v.source.youtubeId : (v.source.type === 'file' || v.source.type === 'audio') && !!v.source.url;
+  const surfaceType = v.source.type as 'youtube' | 'file' | 'audio';
   const setLineTime = (i: number, key: 'start' | 'end') => up({ lines: v.lines.map((l, j) => (j === i ? { ...l, [key]: Math.round(now * 10) / 10 } : l)) });
 
   return (
@@ -79,7 +80,7 @@ export default function AdminVideoEditor() {
         {(
           [
             ['basic', '기본 정보'],
-            ['source', '영상 소스'],
+            ['source', isSong ? '노래 소스' : '영상 소스'],
             ['cast', isSong ? '부르는 사람·파트' : '등장인물'],
             ['lines', isSong ? '가사·타이밍' : '대본·자막 타이밍'],
             ['expr', '핵심 표현'],
@@ -160,13 +161,30 @@ export default function AdminVideoEditor() {
         {tab === 'source' && (
           <>
             <label>
-              재생 방식
+              {isSong ? '노래 소스' : '재생 방식'}
               <select value={v.source.type} onChange={(e) => up({ source: { ...v.source, type: e.target.value as Video['source']['type'] } })}>
-                <option value="none">오디오 드라마 (영상 없음, TTS 음성)</option>
-                <option value="youtube">YouTube 임베드</option>
-                <option value="file">영상 파일 (직접 만든 영상 올리기 · URL)</option>
+                {isSong ? (
+                  <>
+                    <option value="youtube">YouTube (공식 뮤직비디오 · 노래 영상)</option>
+                    <option value="audio">음악 파일 (mp3 · m4a · wav 등 올리기 · URL)</option>
+                    <option value="none">음원 없음 (가사만, TTS로 가사 읽기)</option>
+                    {v.source.type === 'file' && <option value="file">영상 파일 (이전 설정)</option>}
+                  </>
+                ) : (
+                  <>
+                    <option value="none">오디오 드라마 (영상 없음, TTS 음성)</option>
+                    <option value="youtube">YouTube 임베드</option>
+                    <option value="file">영상 파일 (직접 만든 영상 올리기 · URL)</option>
+                    {v.source.type === 'audio' && <option value="audio">음악·소리 파일</option>}
+                  </>
+                )}
               </select>
             </label>
+            {isSong && (
+              <p className="muted small">
+                음원·가사는 저작물입니다. YouTube는 가수·기획사 공식 채널 영상을 쓰고, 음악 파일은 직접 만들었거나 사용 허락을 받은 파일만 올리세요. 가사 타이밍은 「가사·타이밍」 탭에서 맞춥니다.
+              </p>
+            )}
             {v.source.type === 'youtube' && (
               <label>
                 YouTube URL 또는 영상 ID
@@ -181,8 +199,10 @@ export default function AdminVideoEditor() {
                 <small className="muted">인식된 ID: {v.source.youtubeId || '–'}</small>
               </label>
             )}
-            {v.source.type === 'file' && <VideoFilePicker url={v.source.url} onChange={(url) => up({ source: { ...v.source, url } })} />}
-            {hasPlayer && <VideoSurface type={v.source.type as 'youtube' | 'file'} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} />}
+            {(v.source.type === 'file' || v.source.type === 'audio') && (
+              <VideoFilePicker key={v.source.type} kind={v.source.type === 'audio' ? 'audio' : 'video'} url={v.source.url} onChange={(url) => up({ source: { ...v.source, url } })} />
+            )}
+            {hasPlayer && <VideoSurface key={`${v.source.type}:${v.source.url || v.source.youtubeId}`} type={surfaceType} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} />}
           </>
         )}
 
@@ -217,9 +237,9 @@ export default function AdminVideoEditor() {
             />
             {hasPlayer ? (
               <div className="timing">
-                <VideoSurface ref={player} type={v.source.type as 'youtube' | 'file'} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} onTime={setNow} />
+                <VideoSurface ref={player} type={surfaceType} src={v.source.type === 'youtube' ? v.source.youtubeId : v.source.url} onTime={setNow} />
                 <p>
-                  현재 시간: <b>{now.toFixed(1)}s</b> — 영상을 재생하다가 각 대사의 [시작]/[끝] 버튼을 눌러 자막 타이밍을 기록하세요.
+                  현재 시간: <b>{now.toFixed(1)}s</b> — {isSong ? '노래를 재생하다가 각 가사 줄의' : '영상을 재생하다가 각 대사의'} [시작]/[끝] 버튼을 눌러 {isSong ? '가사' : '자막'} 타이밍을 기록하세요.
                 </p>
                 <ol className="timing__lines">
                   {v.lines.map((l: Line, i) => (

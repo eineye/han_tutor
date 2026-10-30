@@ -15,15 +15,19 @@ export const MEDIA_PREFIX = 'media:';
 export const isMediaSrc = (src: string) => src.startsWith(MEDIA_PREFIX);
 
 const VIDEO_EXT: Record<string, string> = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', ogv: 'video/ogg', mkv: 'video/x-matroska' };
+/** Music files for songs */
+const AUDIO_EXT: Record<string, string> = { mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', flac: 'audio/flac', weba: 'audio/webm' };
+export const AUDIO_ACCEPT = 'audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.flac';
 export function videoMime(file: File) {
   if (file.type.startsWith('video/') || file.type.startsWith('audio/')) return file.type;
-  return VIDEO_EXT[file.name.split('.').pop()?.toLowerCase() || ''] || '';
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return VIDEO_EXT[ext] || AUDIO_EXT[ext] || '';
 }
 
 /** Upload a video; onProgress gets 0–1. */
 export async function uploadVideo(file: File, onProgress?: (p: number) => void): Promise<MediaItem> {
   const mime = videoMime(file);
-  if (!mime) throw new Error('영상 파일(mp4, webm, mov)을 골라 주세요.');
+  if (!mime) throw new Error('영상 파일(mp4, webm, mov) 또는 음악 파일(mp3, m4a, wav 등)을 골라 주세요.');
   if (IS_DEMO) {
     const { idbMediaStore } = await import('../demo/audioStore');
     const id = `md_${Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('')}`;

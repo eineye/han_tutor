@@ -391,6 +391,7 @@ export const UI = {
   'song.start': e('Start singing along', '따라 부르기 시작', 'सँगै गाउन सुरु गर्नुहोस्'),
   'song.listenFirst': e('Listen first', '먼저 듣기', 'पहिले सुन्नुहोस्'),
   'song.sayLine': e('Sing / say this line', '이 줄 불러 보기', 'यो लाइन गाउनुहोस् / भन्नुहोस्'),
+  'song.music': e('Music', '음원', 'संगीत'),
   'song.wrap': e('Great singing! 🎶', '노래 끝! 잘했어요 🎶', 'राम्रो गायो! 🎶'),
   'song.hideLyrics': e('Hide the lyrics (show the meaning only)', '가사 숨기기 (뜻만 보기)', 'गीतका शब्द लुकाउनुहोस् (अर्थ मात्र)'),
   'drama.audio': e('Audio drama', '오디오 드라마', 'अडियो ड्रामा'),

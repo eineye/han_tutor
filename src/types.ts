@@ -108,7 +108,8 @@ export interface Video {
   relatedLessons: string[];
   thumbnail: string;
   description_en: string;
-  source: { type: 'none' | 'youtube' | 'file'; url: string; youtubeId: string };
+  /** none = TTS reads the script/lyrics, youtube, file = video file, audio = music/sound file (songs) */
+  source: { type: 'none' | 'youtube' | 'file' | 'audio'; url: string; youtubeId: string };
   cast: CastMember[];
   lines: Line[];
   expressions: { ko: string; en: string; note_en: string }[];

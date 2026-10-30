@@ -40,7 +40,7 @@ export default function AdminVideos() {
         relatedLessons: [],
         thumbnail: KIND[kind].icon,
         description_en: '',
-        source: { type: 'none', url: '', youtubeId: '' },
+        source: { type: kind === 'song' ? 'youtube' : 'none', url: '', youtubeId: '' },
         // a song gets one singer so the lyrics can be voiced and sung along right away
         cast: kind === 'song' ? [{ name: '가수', role: 'Singer', color: '#a855f7', voice: { pitch: 1.1, rate: 0.9 } }] : [],
         lines: [],
@@ -119,7 +119,7 @@ export default function AdminVideos() {
                   <span className="muted small">{v.title.en}</span>
                   {v.artist && <span className="muted small"> · 🎤 {v.artist}</span>}
                 </td>
-                <td>{v.source.type === 'youtube' ? 'YouTube' : v.source.type === 'file' ? '영상 파일' : kindOf(v) === 'song' ? '가사만 (TTS)' : '오디오 드라마'}</td>
+                <td>{v.source.type === 'youtube' ? 'YouTube' : v.source.type === 'file' ? '영상 파일' : v.source.type === 'audio' ? '음악 파일' : kindOf(v) === 'song' ? '가사만 (TTS)' : '오디오 드라마'}</td>
                 <td>{v.lines.length}</td>
                 <td>{v.relatedLessons.join(', ')}</td>
                 <td>

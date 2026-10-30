@@ -209,7 +209,22 @@ export default function DramaPlayer() {
       <div className={`drama__layout ${pinned ? 'is-pinned' : ''}`}>
       <div className="drama__left" ref={leftRef}>
       <div className="drama__screen">
-        {hasVideo ? (
+        {hasVideo && video.source.type === 'audio' ? (
+          <>
+            {/* music file: the song card shows the current lyric, the player sits underneath */}
+            <div className="stage stage--song stage--audio">
+              <div className="stage__song">
+                <span className="stage__note" aria-hidden>
+                  {video.thumbnail || '🎵'}
+                </span>
+                <b lang="ko">{video.title.ko}</b>
+                {video.artist && <small>🎤 {video.artist}</small>}
+              </div>
+              {(timed && subtitle(cur)) || <div className="stage__hint">🎵 ▶</div>}
+            </div>
+            <VideoSurface ref={player} type="audio" src={video.source.url} onTime={timed ? onTime : undefined} />
+          </>
+        ) : hasVideo ? (
           <>
             <VideoSurface ref={player} type={video.source.type as 'youtube' | 'file'} src={video.source.type === 'youtube' ? video.source.youtubeId : video.source.url} onTime={timed ? onTime : undefined} />
             {timed && subtitle(cur)}
