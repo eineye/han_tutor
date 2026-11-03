@@ -23,6 +23,8 @@ import {
 import { BADGES, DAILY_REVIEW_TARGET, NEW_PER_DAY, addDays, awardBadges, cardKey, currentStreak, goalWeeks, localDay, recordStudyDay, schedule, weekDays } from './study.js';
 import { seedTopikSets } from './seed/topik.js';
 import { seedVideos } from './seed/videos.js';
+import { SIGN_CATEGORIES, seedSigns } from './seed/signs.js';
+import { base64ToBytes, imageInfo } from './imageInfo.js';
 import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
@@ -61,6 +63,7 @@ export function lessonSections(lesson) {
  * @param {() => string} deps.adminPassword
  * @param {() => string} [deps.defaultModel]
  * @param {{put(id: string, base64: string): Promise<void>, get(id: string): Promise<string|null>, remove(id: string): Promise<void>}} [deps.audio]  recording file storage
+ * @param {{put(id: string, base64: string): Promise<void>, get(id: string): Promise<string|null>, remove(id: string): Promise<void>}} [deps.images]  sign photo storage
  * @param {{remove(id: string): Promise<void>}} [deps.media]  teacher video files (deleted with their list entry)
  * @param {(opts: {bytes: Uint8Array, mimeType: string, name?: string}) => Promise<{uri: string, mimeType: string}|null>} [deps.uploadFile]  Gemini File API upload for large media
  */
@@ -708,42 +711,101 @@ export function createCore(deps) {
   });
 
   // content CRUD
+  // sign photos (한글 › 간판 읽기): created from the seed the first time they are needed
+  const signs = () => (db().signs ||= JSON.parse(JSON.stringify(seedSigns)));
+
   for (const [name, prefix] of [
     ['units', 'U'],
     ['lessons', 'L'],
     ['videos', 'V'],
+    ['signs', 'SG'],
   ]) {
-    route('GET', `/admin/${name}`, 'admin', () => db()[name]);
+    const list = () => (name === 'signs' ? signs() : db()[name]);
+    route('GET', `/admin/${name}`, 'admin', () => list());
     route('POST', `/admin/${name}`, 'admin', ({ body }) => {
       const item = { ...body, id: body?.id?.trim() || deps.id(prefix) };
-      if (db()[name].some((x) => x.id === item.id)) throw new HttpError(409, '이미 존재하는 ID입니다.');
+      if (list().some((x) => x.id === item.id)) throw new HttpError(409, '이미 존재하는 ID입니다.');
       item.updatedAt = now();
-      db()[name].push(item);
+      list().push(item);
       save();
       return item;
     });
-    route('PUT', `/admin/${name}/:id`, 'admin', ({ params, body }) => {
-      const i = db()[name].findIndex((x) => x.id === params.id);
+    route('PUT', `/admin/${name}/:id`, 'admin', async ({ params, body }) => {
+      const i = list().findIndex((x) => x.id === params.id);
       if (i < 0) throw new HttpError(404, 'not found');
-      db()[name][i] = { ...body, id: params.id, updatedAt: now() };
+      const before = list()[i];
+      list()[i] = { ...body, id: params.id, updatedAt: now() };
+      // a replaced sign photo is deleted when nothing else uses it
+      if (name === 'signs' && before.image !== list()[i].image) await removeUnusedImage(before.image);
       save();
-      return db()[name][i];
+      return list()[i];
     });
-    route('DELETE', `/admin/${name}/:id`, 'admin', ({ params }) => {
-      db()[name] = db()[name].filter((x) => x.id !== params.id);
+    route('DELETE', `/admin/${name}/:id`, 'admin', async ({ params }) => {
+      const gone = list().find((x) => x.id === params.id);
+      db()[name] = list().filter((x) => x.id !== params.id);
+      if (name === 'signs' && gone) await removeUnusedImage(gone.image);
       save();
       return { ok: true };
     });
   }
 
+  route('GET', '/signs', 'student', () =>
+    signs()
+      .filter(published)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+  );
+
+  // ---- sign photos: the teacher's browser crops and shrinks them first; the server only checks and stores ----
+  const IMAGE_PREFIX = 'image:';
+  const MAX_IMAGE_BYTES = 600 * 1024;
+  const MAX_IMAGE_SIDE = 1600;
+  const images = () => (db().images ||= []);
+  const imageStore = () => {
+    if (!deps.images) throw new HttpError(501, '사진 저장소가 설정되지 않았습니다');
+    return deps.images;
+  };
+  async function removeUnusedImage(ref) {
+    if (typeof ref !== 'string' || !ref.startsWith(IMAGE_PREFIX)) return;
+    const id = ref.slice(IMAGE_PREFIX.length);
+    if (signs().some((x) => x.image === ref)) return;
+    db().images = images().filter((x) => x.id !== id);
+    await deps.images?.remove(id);
+  }
+
+  route('POST', '/admin/images', 'admin', async ({ body }) => {
+    const data = String(body.data || '').replace(/^data:[^,]*,/, '');
+    if (!/^[A-Za-z0-9+/]+=*$/.test(data)) throw new HttpError(400, '사진 내용을 읽을 수 없습니다');
+    if (base64Bytes(data) > MAX_IMAGE_BYTES) throw new HttpError(413, `사진이 너무 큽니다 (최대 ${MAX_IMAGE_BYTES / 1024}KB). 편집 화면에서 재단·축소해 주세요.`);
+    const info = imageInfo(base64ToBytes(data));
+    if (!info) throw new HttpError(400, 'JPG·PNG·WebP 사진만 올릴 수 있습니다');
+    if (info.width > MAX_IMAGE_SIDE || info.height > MAX_IMAGE_SIDE) throw new HttpError(400, `사진이 너무 큽니다 (가로·세로 최대 ${MAX_IMAGE_SIDE}px)`);
+    if (info.width < 200 || info.height < 150) throw new HttpError(400, '사진이 너무 작습니다 (최소 200×150px)');
+    const item = { id: deps.id('im_'), mime: info.mime, width: info.width, height: info.height, size: base64Bytes(data), at: now() };
+    await imageStore().put(item.id, data);
+    images().push(item);
+    save();
+    return { ...item, ref: IMAGE_PREFIX + item.id };
+  });
+
+  // the browser demo shows photos from here; the Express server sends the file itself (server/index.js)
+  route('GET', '/images/:id', 'public', async ({ params }) => {
+    const item = images().find((x) => x.id === params.id);
+    const data = item && (await imageStore().get(item.id));
+    if (!data) throw new HttpError(404, '사진을 찾을 수 없습니다');
+    return { mime: item.mime, data };
+  });
+
+  route('GET', '/sign-categories', 'public', () => SIGN_CATEGORIES);
+
   route('POST', '/admin/content/reset', 'admin', () => {
     deps.resetContent();
+    db().signs = JSON.parse(JSON.stringify(seedSigns));
     return { ok: true };
   });
 
   route('GET', '/admin/content/export', 'admin', () => {
     const { units, lessons, videos } = db();
-    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos, topikSets: topikSets(), translations: translations() } };
+    return { $headers: { 'Content-Disposition': 'attachment; filename="han-tutor-content.json"' }, $body: { units, lessons, videos, signs: signs(), topikSets: topikSets(), translations: translations() } };
   });
 
   route('POST', '/admin/content/import', 'admin', ({ body }) => {
@@ -751,6 +813,7 @@ export function createCore(deps) {
     if (!Array.isArray(units) || !Array.isArray(lessons) || !Array.isArray(videos)) throw new HttpError(400, 'units, lessons, videos 배열이 필요합니다.');
     Object.assign(db(), { units, lessons, videos });
     if (Array.isArray(body.topikSets)) db().topikSets = body.topikSets;
+    if (Array.isArray(body.signs)) db().signs = body.signs;
     if (body.translations && typeof body.translations === 'object') {
       for (const lang of TRANSLATION_LANGS) Object.assign(translations()[lang], body.translations[lang] || {});
     }
@@ -763,7 +826,7 @@ export function createCore(deps) {
   route('GET', '/i18n/overrides', 'public', () => translations());
 
   route('GET', '/admin/i18n/strings', 'admin', () => {
-    const map = collectStudentStrings(db());
+    const map = collectStudentStrings({ ...db(), signs: signs() });
     return [...map.entries()].map(([en, where]) => ({ en, where }));
   });
 

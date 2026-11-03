@@ -6,10 +6,11 @@ import fs from 'node:fs';
 import { seedLessons, seedUnits } from '../seed/curriculum.js';
 import { seedVideos } from '../seed/videos.js';
 import { bonusLessons } from '../seed/bonus.js';
+import { seedSigns } from '../seed/signs.js';
 import { demoChatReply } from '../demo.js';
 import { collectStudentStrings } from '../i18nStrings.js';
 
-const studentStrings = () => [...collectStudentStrings({ units: seedUnits, lessons: seedLessons, videos: seedVideos }, { includeDrafts: false }).keys()];
+const studentStrings = () => [...collectStudentStrings({ units: seedUnits, lessons: seedLessons, videos: seedVideos, signs: seedSigns }, { includeDrafts: false }).keys()];
 
 for (const lang of ['ne', 'ko']) {
   test(`content translations are complete: ${lang}`, () => {
@@ -22,7 +23,7 @@ for (const lang of ['ne', 'ko']) {
 // Nepali is the priority language: draft lessons are translated too, so publishing one needs no extra work
 test('Nepali covers draft lessons (incl. vocabulary meanings) and has real translations', () => {
   const dict = JSON.parse(fs.readFileSync(new URL('../../src/i18n/content.ne.json', import.meta.url), 'utf8'));
-  const all = [...collectStudentStrings({ units: seedUnits, lessons: [...seedLessons, ...bonusLessons], videos: seedVideos }, { includeDrafts: true }).keys()];
+  const all = [...collectStudentStrings({ units: seedUnits, lessons: [...seedLessons, ...bonusLessons], videos: seedVideos, signs: seedSigns }, { includeDrafts: true }).keys()];
   const missing = all.filter((s) => !dict[s]);
   assert.deepEqual(missing.slice(0, 10), [], `${missing.length} untranslated sentence(s) for ne`);
   const vocab = [...seedLessons, ...bonusLessons].flatMap((l) => l.vocab || []);

@@ -115,6 +115,7 @@ const core = createCore({
   uploadFile: (opts: any) => uploadGeminiFile({ ...opts, apiKey: getBrowserGeminiKey() }),
   adminPassword: () => DEMO_ADMIN_PASSWORD,
   audio: idbAudioStore,
+  images: idbAudioStore, // sign photos (base64) share the demo's IndexedDB file store
   media: idbMediaStore,
 });
 

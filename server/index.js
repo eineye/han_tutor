@@ -4,7 +4,7 @@ import express from 'express';
 import * as store from './db.js';
 import { generate, hasKey, uploadFile } from './gemini.js';
 import { createCore } from './core.js';
-import { fileAudioStore } from './audioStore.js';
+import { fileAudioStore, fileImageStore } from './audioStore.js';
 import { fileMediaStore, MEDIA_MAX_BYTES, mediaPath, newMediaId, saveUpload } from './mediaStore.js';
 
 export { lessonSections } from './core.js';
@@ -38,6 +38,7 @@ const core = createCore({
   adminPassword: () => process.env.ADMIN_PASSWORD || 'admin1234',
   defaultModel: () => process.env.GEMINI_MODEL,
   audio: fileAudioStore,
+  images: fileImageStore,
   media: fileMediaStore,
 });
 
@@ -97,6 +98,14 @@ app.get('/api/media/:id', (req, res) => {
   const file = item && mediaPath(item.id);
   if (!file || !fs.existsSync(file)) return res.status(404).json({ error: 'Not found' });
   res.sendFile(file, { headers: { 'Content-Type': item.mime, 'Cache-Control': 'private, max-age=86400' }, acceptRanges: true });
+});
+
+// Sign photos as plain files (an <img> cannot send a login token; ids are unguessable and never reused)
+app.get('/api/images/:id', (req, res) => {
+  const item = (store.get().images || []).find((m) => m.id === req.params.id);
+  const file = item && fileImageStore.file(item.id);
+  if (!file || !fs.existsSync(file)) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(file, { headers: { 'Content-Type': item.mime, 'Cache-Control': 'public, max-age=31536000, immutable' } });
 });
 
 // All API logic lives in core.js; this is a thin HTTP adapter.

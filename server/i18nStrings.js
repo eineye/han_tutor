@@ -5,11 +5,11 @@
 const hasLatin = (s) => typeof s === 'string' && s.trim() !== '' && /[A-Za-z]/.test(s);
 
 /**
- * @param {{units?: any[], lessons?: any[], videos?: any[]}} content
+ * @param {{units?: any[], lessons?: any[], videos?: any[], signs?: any[]}} content
  * @param {{includeDrafts?: boolean}} [opts]
- * @returns {Map<string, {kind: 'unit'|'lesson'|'video', id: string, label: string, draft?: boolean}[]>}
+ * @returns {Map<string, {kind: 'unit'|'lesson'|'video'|'sign', id: string, label: string, draft?: boolean}[]>}
  */
-export function collectStudentStrings({ units = [], lessons = [], videos = [] }, { includeDrafts = true } = {}) {
+export function collectStudentStrings({ units = [], lessons = [], videos = [], signs = [] }, { includeDrafts = true } = {}) {
   const map = new Map();
   let where = null;
   const add = (s) => {
@@ -58,6 +58,13 @@ export function collectStudentStrings({ units = [], lessons = [], videos = [] },
     (v.lines || []).forEach((x) => add(x.en));
     (v.expressions || []).forEach((e) => (add(e.en), add(e.note_en)));
     (v.quiz || []).forEach(addQuiz);
+  }
+  for (const g of signs) {
+    if (!includeDrafts && g.status === 'draft') continue;
+    where = { kind: 'sign', id: g.id, label: `${g.id} ${g.text || ''}${g.status === 'draft' ? ' (초안)' : ''}`.trim(), draft: g.status === 'draft' };
+    add(g.en);
+    add(g.note_en);
+    (g.words || []).forEach((w) => add(w.en));
   }
   return map;
 }

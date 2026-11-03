@@ -22,6 +22,8 @@ import AdminContent from './pages/admin/AdminContent';
 import AdminLessonEditor from './pages/admin/AdminLessonEditor';
 import AdminVideos from './pages/admin/AdminVideos';
 import AdminVideoEditor from './pages/admin/AdminVideoEditor';
+import AdminSigns from './pages/admin/AdminSigns';
+import AdminSignEditor from './pages/admin/AdminSignEditor';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminTranslations from './pages/admin/AdminTranslations';
 import AdminRecordings from './pages/admin/AdminRecordings';
@@ -85,6 +87,8 @@ export default function App() {
           <Route path="lessons/:id" element={<AdminLessonEditor />} />
           <Route path="videos" element={<AdminVideos />} />
           <Route path="videos/:id" element={<AdminVideoEditor />} />
+          <Route path="signs" element={<AdminSigns />} />
+          <Route path="signs/:id" element={<AdminSignEditor />} />
           <Route path="translations" element={<AdminTranslations />} />
           <Route path="recordings" element={<AdminRecordings />} />
           <Route path="topik" element={<AdminTopik />} />

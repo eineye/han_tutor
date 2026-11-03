@@ -298,3 +298,39 @@ test('daily study: review deck from opened lessons, answers, today plan, badges'
   // deleting the account removes the deck too
   await call('/me', { token, method: 'DELETE' });
 });
+
+// a PNG header is enough for the server check (it reads type and size, never decodes the picture)
+const fakePng = (w, h, extra = 0) => {
+  const b = Buffer.alloc(33 + extra);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]).copy(b, 0);
+  b.write('IHDR', 12);
+  b.writeUInt32BE(w, 16);
+  b.writeUInt32BE(h, 20);
+  return b.toString('base64');
+};
+
+test('sign reading: sample signs, photo upload limits, edit, file serving and cleanup', async () => {
+  const kid = await call('/auth/student/register', { body: { name: 'Sign Kid', classCode: 'DEMO', pin: '2468' } });
+  const list = await call('/signs', { token: kid.data.token });
+  assert.equal(list.status, 200);
+  assert.ok(list.data.length >= 8 && list.data.every((g) => g.text && g.en && g.image));
+
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  assert.equal((await call('/admin/images', { token: admin, body: { data: fakePng(2400, 1800) } })).status, 400, 'too many pixels');
+  assert.equal((await call('/admin/images', { token: admin, body: { data: fakePng(1200, 900, 700 * 1024) } })).status, 413, 'file too large');
+  assert.equal((await call('/admin/images', { token: admin, body: { data: Buffer.from('not an image at all, sorry!!!!').toString('base64') } })).status, 400, 'not an image');
+  const up = await call('/admin/images', { token: admin, body: { data: 'data:image/png;base64,' + fakePng(1200, 900) } });
+  assert.equal(up.status, 200);
+  assert.match(up.data.ref, /^image:im_/);
+  assert.equal(up.data.width, 1200);
+
+  const made = await call('/admin/signs', { token: admin, body: { text: '은행', roman: 'eunhaeng', en: 'bank', category: 'public', image: up.data.ref, words: [], status: 'published' } });
+  assert.equal(made.status, 200);
+  const file = await fetch(base + '/images/' + up.data.id);
+  assert.equal(file.status, 200);
+  assert.equal(file.headers.get('content-type'), 'image/png');
+  assert.ok((await call('/signs', { token: kid.data.token })).data.some((g) => g.text === '은행'));
+
+  await call('/admin/signs/' + made.data.id, { token: admin, method: 'DELETE' });
+  assert.equal((await fetch(base + '/images/' + up.data.id)).status, 404, 'photo removed with its sign');
+});

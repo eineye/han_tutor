@@ -6,7 +6,7 @@ import { BUILTIN_CONTENT, useI18n, type Overrides } from '../../i18n';
 type TLang = 'ne' | 'ko';
 interface StringRow {
   en: string;
-  where: { kind: 'unit' | 'lesson' | 'video'; id: string; label: string; draft?: boolean }[];
+  where: { kind: 'unit' | 'lesson' | 'video' | 'sign'; id: string; label: string; draft?: boolean }[];
 }
 type Status = 'custom' | 'builtin' | 'missing';
 type StatusFilter = 'all' | 'missing' | 'custom';
@@ -176,7 +176,7 @@ export default function AdminTranslations() {
           <option value="">전체 위치</option>
           {places.map(([k, label]) => (
             <option key={k} value={k}>
-              {k.startsWith('video') ? '🎬 ' : k.startsWith('unit') ? '📁 ' : '📘 '}
+              {k.startsWith('video') ? '🎬 ' : k.startsWith('sign') ? '📷 ' : k.startsWith('unit') ? '📁 ' : '📘 '}
               {label}
             </option>
           ))}

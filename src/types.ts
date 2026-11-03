@@ -290,3 +290,19 @@ export interface DailyPlan {
   badges: Badge[];
   newBadges: string[];
 }
+
+// ---- sign reading (한글 › 간판 읽기) ----
+export type SignCategory = 'shop' | 'food' | 'transport' | 'health' | 'public' | 'other';
+export interface Sign {
+  id: string;
+  order: number;
+  category: SignCategory;
+  /** "image:<id>" (teacher photo), or a data:/https: URL */
+  image: string;
+  text: string;
+  roman: string;
+  en: string;
+  note_en?: string;
+  words: { ko: string; roman?: string; en: string }[];
+  status?: 'draft' | 'published';
+}
