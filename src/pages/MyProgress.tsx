@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { ErrorBox, Loading, ScoreBadge, fmtDate } from '../components/ui';
 import Mascot from '../components/Mascot';
 import StudyHabits from '../components/StudyHabits';
 import { useI18n } from '../i18n';
-import type { Assignment, Evaluation, Progress, PronRecord, QuizResult, Student } from '../types';
+import type { Assignment, Evaluation, Progress, PronRecord, QuizResult, SignStats, Student } from '../types';
 
 interface Summary {
   student: Student;
@@ -16,6 +16,7 @@ interface Summary {
   assignments: Assignment[];
   evaluations: Evaluation[];
   chatCount: number;
+  signs?: SignStats;
 }
 
 export default function MyProgress() {
@@ -60,6 +61,28 @@ export default function MyProgress() {
       </div>
 
       <StudyHabits />
+
+      <section className="card me-signs">
+        <h3>📷 {t('me.signs')}</h3>
+        {!s.signs || (s.signs.quizCount === 0 && s.signs.sayCount === 0) ? (
+          <p className="muted">{t('me.signNone')}</p>
+        ) : (
+          <>
+            {s.signs.quizCount > 0 && <p>✏️ {t('me.signQuiz', { n: s.signs.quizCount, best: s.signs.quizBest ?? 0, avg: s.signs.quizAvg ?? 0 })}</p>}
+            {s.signs.sayCount > 0 && <p>🎤 {t('me.signSay', { n: s.signs.signsSaid, avg: s.signs.sayAvg ?? 0 })}</p>}
+            {s.signs.recent.length > 0 && (
+              <div className="spark" aria-label={t('me.signs')}>
+                {s.signs.recent.map((q) => (
+                  <div key={q.id} className="spark__bar" style={{ height: `${Math.max(4, Math.round((q.score / q.total) * 100))}%` }} title={`${q.score}/${q.total} · ${fmtDate(q.at)}`} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        <Link to="/hangeul?tab=signs" className="btn btn--ghost btn--small">
+          📷 {t('me.signStart')}
+        </Link>
+      </section>
 
       {s.evaluations.length > 0 && (
         <section className="card">

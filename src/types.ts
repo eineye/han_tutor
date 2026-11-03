@@ -179,6 +179,8 @@ export interface QuizResult {
   id: string;
   lessonId: string | null;
   videoId: string | null;
+  /** 'signs' = sign reading quiz (한글 › 간판 읽기) */
+  kind?: 'signs';
   score: number;
   total: number;
   at: string;
@@ -305,4 +307,15 @@ export interface Sign {
   note_en?: string;
   words: { ko: string; roman?: string; en: string }[];
   status?: 'draft' | 'published';
+}
+
+/** 간판 읽기 results (GET /my/summary, teacher student detail) */
+export interface SignStats {
+  quizCount: number;
+  quizBest: number | null;
+  quizAvg: number | null;
+  recent: { id: string; score: number; total: number; at: string }[];
+  sayCount: number;
+  sayAvg: number | null;
+  signsSaid: number;
 }

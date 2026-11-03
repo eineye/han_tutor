@@ -334,3 +334,24 @@ test('sign reading: sample signs, photo upload limits, edit, file serving and cl
   await call('/admin/signs/' + made.data.id, { token: admin, method: 'DELETE' });
   assert.equal((await fetch(base + '/images/' + up.data.id)).status, 404, 'photo removed with its sign');
 });
+
+test('sign reading results reach My Progress and the teacher', async () => {
+  const kid = (await call('/auth/student/register', { body: { name: 'Sign Quizzer', classCode: 'DEMO', pin: '1122' } })).data;
+  let sum = (await call('/my/summary', { token: kid.token })).data;
+  assert.equal(sum.signs.quizCount, 0);
+  const r = await call('/quiz-results', { token: kid.token, body: { kind: 'signs', score: 6, total: 8, answers: [] } });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.result.kind, 'signs');
+  assert.ok(r.data.student.xp > 0, 'earns XP');
+  await call('/quiz-results', { token: kid.token, body: { kind: 'signs', score: 8, total: 8, answers: [] } });
+  await call('/pronunciation', { token: kid.token, body: { target: '약국', heard: '약국', score: 90, source: 'sign' } });
+  sum = (await call('/my/summary', { token: kid.token })).data;
+  assert.equal(sum.signs.quizCount, 2);
+  assert.equal(sum.signs.quizBest, 100);
+  assert.equal(sum.signs.quizAvg, 88);
+  assert.equal(sum.signs.signsSaid, 1);
+  assert.equal(sum.signs.sayAvg, 90);
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  const detail = (await call('/admin/students/' + kid.student.id, { token: admin })).data;
+  assert.equal(detail.signs.quizCount, 2);
+});

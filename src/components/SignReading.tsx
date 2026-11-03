@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
+import { useAuth } from '../auth';
 import { useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
 import { pronunciationScore, romanize } from '../lib/hangul';
@@ -182,6 +183,7 @@ function SignStudy({ sign, pos, total, onMove, onBack }: { sign: Sign; pos: numb
 /** Reading quiz: the sign picture + four readings (the right one and three other signs). */
 function SignQuiz({ signs, onExit }: { signs: Sign[]; onExit: () => void }) {
   const { t } = useI18n();
+  const { setStudent } = useAuth();
   const make = () =>
     [...signs]
       .sort(() => Math.random() - 0.5)
@@ -194,13 +196,37 @@ function SignQuiz({ signs, onExit }: { signs: Sign[]; onExit: () => void }) {
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [right, setRight] = useState(0);
+  const [answers, setAnswers] = useState<{ i: number; correct: boolean }[]>([]);
+  const [saved, setSaved] = useState(false);
+
+  // the finished quiz goes to My Progress (quiz average, 간판 읽기 card) and earns XP
+  const next = () => {
+    setPicked(null);
+    if (i + 1 >= items.length)
+      api<{ student: Parameters<typeof setStudent>[0] }>('/quiz-results', { body: { kind: 'signs', score: right, total: items.length, answers } })
+        .then((r) => {
+          setStudent(r.student);
+          setSaved(true);
+        })
+        .catch(() => {});
+    setI(i + 1);
+  };
+  const restart = () => {
+    setItems(make());
+    setI(0);
+    setRight(0);
+    setPicked(null);
+    setAnswers([]);
+    setSaved(false);
+  };
 
   if (i >= items.length)
     return (
       <div className="card sign-quiz__done">
         <h3>🎉 {t('sign.quizDone', { n: right, total: items.length })}</h3>
+        {saved && <p className="muted small">✅ {t('sign.saved')}</p>}
         <div className="row">
-          <button className="btn" onClick={() => (setItems(make()), setI(0), setRight(0), setPicked(null))}>
+          <button className="btn" onClick={restart}>
             ↻ {t('sign.again')}
           </button>
           <button className="btn btn--ghost" onClick={onExit}>
@@ -215,6 +241,7 @@ function SignQuiz({ signs, onExit }: { signs: Sign[]; onExit: () => void }) {
     if (picked) return;
     setPicked(o);
     if (o === q.sign.text) setRight((n) => n + 1);
+    setAnswers((a) => [...a, { i, correct: o === q.sign.text }]);
     speak(q.sign.text, { rate: 0.8 });
   };
   return (
@@ -238,7 +265,7 @@ function SignQuiz({ signs, onExit }: { signs: Sign[]; onExit: () => void }) {
           ))}
         </div>
         {picked && (
-          <button className="btn btn--block" onClick={() => (setI(i + 1), setPicked(null))}>
+          <button className="btn btn--block" onClick={next}>
             {t('common.next')} →
           </button>
         )}

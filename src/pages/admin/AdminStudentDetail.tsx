@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api';
 import { ErrorBox, Loading, ScoreBadge, fmtDate, fmtDateTime } from '../../components/ui';
 import { AssignModal } from './AdminStudents';
-import type { Assignment, Evaluation, Lesson, Progress, PronRecord, QuizResult, Student, StudentStats, TopikResult } from '../../types';
+import type { Assignment, Evaluation, Lesson, Progress, PronRecord, QuizResult, Student, StudentStats, TopikResult, SignStats } from '../../types';
 
 interface Detail {
   student: Student;
@@ -15,6 +15,7 @@ interface Detail {
   evaluations: Evaluation[];
   assignments: Assignment[];
   topikResults?: TopikResult[];
+  signs?: SignStats;
 }
 
 interface Report {
@@ -26,7 +27,7 @@ interface Report {
   demo?: boolean;
 }
 
-type Tab = 'progress' | 'pron' | 'chat' | 'eval' | 'assign' | 'topik';
+type Tab = 'progress' | 'pron' | 'chat' | 'eval' | 'assign' | 'topik' | 'signs';
 
 const CATEGORIES = ['종합', '말하기', '듣기', '읽기', '쓰기', '발음', '태도/참여'];
 
@@ -235,6 +236,7 @@ export default function AdminStudentDetail() {
                 ['eval', '평가'],
                 ['assign', '과제'],
                 ['topik', 'TOPIK'],
+                ['signs', '간판 읽기'],
               ] as [Tab, string][]
             ).map(([k, l]) => (
               <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>
@@ -243,6 +245,41 @@ export default function AdminStudentDetail() {
             ))}
           </div>
 
+          {tab === 'signs' &&
+            (d.signs && (d.signs.quizCount > 0 || d.signs.sayCount > 0) ? (
+              <div>
+                <p>
+                  ✏️ 읽기 퀴즈 <b>{d.signs.quizCount}</b>회 · 최고 <b>{d.signs.quizBest ?? '–'}</b>점 · 평균 <b>{d.signs.quizAvg ?? '–'}</b>점
+                </p>
+                <p>
+                  🎤 소리 내어 읽은 간판 <b>{d.signs.signsSaid}</b>개 ({d.signs.sayCount}회) · 발음 평균 <b>{d.signs.sayAvg ?? '–'}</b>점 <span className="muted small">(자세한 내용은 「발음 기록」)</span>
+                </p>
+                {d.signs.recent.length > 0 && (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>날짜</th>
+                        <th>정답</th>
+                        <th>점수</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...d.signs.recent].reverse().map((q) => (
+                        <tr key={q.id}>
+                          <td>{fmtDateTime(q.at)}</td>
+                          <td>
+                            {q.score} / {q.total}
+                          </td>
+                          <td>{Math.round((q.score / q.total) * 100)}점</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            ) : (
+              <p className="muted">아직 간판 읽기 기록이 없습니다.</p>
+            ))}
           {tab === 'topik' &&
             (d.topikResults?.length ? (
               <table className="table">

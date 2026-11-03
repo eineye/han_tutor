@@ -1,5 +1,6 @@
 import SignReading from '../components/SignReading';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Mascot from '../components/Mascot';
 import { useMascotSpeech } from '../components/useMascotSpeech';
 import { CHO, JONG, JUNG, compose, romanize, visemesFor } from '../lib/hangul';
@@ -12,7 +13,9 @@ type Tab = 'vowels' | 'consonants' | 'builder' | 'signs';
 export default function HangeulLab() {
   const { t, lang } = useI18n();
   const ko = (s: string) => (lang === 'ko' ? '' : ` ${s}`);
-  const [tab, setTab] = useState<Tab>('vowels');
+  // ?tab=signs opens 간판 읽기 directly (link from My Progress)
+  const { search } = useLocation();
+  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(search).get('tab') === 'signs' ? 'signs' : 'vowels'));
   const mascot = useMascotSpeech();
   const [focus, setFocus] = useState<string>('ㅏ');
   const [cho, setCho] = useState('ㅎ');

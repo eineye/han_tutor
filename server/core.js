@@ -451,6 +451,8 @@ export function createCore(deps) {
       studentId: student.id,
       lessonId: lessonId || null,
       videoId: videoId || null,
+      // quizzes that are not part of a lesson or video (한글 › 간판 읽기)
+      ...(body.kind === 'signs' ? { kind: 'signs' } : {}),
       score: Number(score) || 0,
       total: Number(total) || 0,
       answers: Array.isArray(answers) ? answers.slice(0, 50) : [],
@@ -468,6 +470,23 @@ export function createCore(deps) {
     return { ok: true, result: r, student: publicStudent(student) };
   });
 
+  /** 간판 읽기: reading-quiz results and "say it" pronunciation for My Progress and the teacher. */
+  const signStats = (sid) => {
+    const quizzes = db().quizResults.filter((q) => q.studentId === sid && q.kind === 'signs' && q.total);
+    const said = db().pronunciation.filter((p) => p.studentId === sid && p.source === 'sign');
+    const pct = (q) => Math.round((q.score / q.total) * 100);
+    const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
+    return {
+      quizCount: quizzes.length,
+      quizBest: quizzes.length ? Math.max(...quizzes.map(pct)) : null,
+      quizAvg: avg(quizzes.map(pct)),
+      recent: quizzes.slice(-10).map(({ id, score, total, at }) => ({ id, score, total, at })),
+      sayCount: said.length,
+      sayAvg: avg(said.map((p) => p.score)),
+      signsSaid: new Set(said.map((p) => p.target)).size,
+    };
+  };
+
   route('GET', '/my/summary', 'student', ({ student }) => {
     const sid = student.id;
     return {
@@ -475,6 +494,7 @@ export function createCore(deps) {
       progress: db().progress.filter((p) => p.studentId === sid),
       quizResults: db().quizResults.filter((q) => q.studentId === sid).slice(-30),
       pronunciation: db().pronunciation.filter((p) => p.studentId === sid).slice(-30),
+      signs: signStats(sid),
       assignments: db().assignments.filter((a) => a.studentId === sid),
       evaluations: db().evaluations.filter((e) => e.studentId === sid && e.shared),
       chatCount: db().chatLogs.filter((c) => c.studentId === sid).reduce((n, c) => n + c.messages.length, 0),
@@ -611,6 +631,7 @@ export function createCore(deps) {
       evaluations: mine('evaluations'),
       assignments: mine('assignments'),
       topikResults: (db().topikResults || []).filter((x) => x.studentId === s.id),
+      signs: signStats(s.id),
     };
   });
 
