@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LockTag } from '../components/Membership';
 import { api } from '../api';
 import { ErrorBox, Loading } from '../components/ui';
 import type { Lesson, Progress, Unit } from '../types';
 import { lessonLabel } from '../lib/lessonLabel';
 import { localizeUnit, subtitle, useI18n } from '../i18n';
 
-type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null };
+type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null; locked?: boolean };
 
 export default function Learn() {
   const { t, tc, lang } = useI18n();
@@ -46,11 +47,12 @@ export default function Learn() {
               {lessons.map((l) => {
                 const status = l.progress?.completedAt ? 'done' : l.progress ? 'started' : 'new';
                 return (
-                  <Link key={l.id} to={`/lesson/${l.id}`} className={`lesson-card lesson-card--${status}`}>
-                    <span className="lesson-card__status">{status === 'done' ? '✅' : status === 'started' ? '⏳' : '✨'}</span>
+                  <Link key={l.id} to={`/lesson/${l.id}`} className={`lesson-card lesson-card--${status} ${l.locked ? 'is-locked' : ''}`}>
+                    <span className="lesson-card__status">{l.locked ? '🔒' : status === 'done' ? '✅' : status === 'started' ? '⏳' : '✨'}</span>
                     {lessonLabel(l.id) && <small className="lesson-card__label">{lessonLabel(l.id)}</small>}
                     <h3 lang="ko">{l.title.ko}</h3>
                     <p>{subtitle({ ko: l.title.ko, en: tc(l.title.en) }, lang)}</p>
+                    {l.locked && <LockTag />}
                     {l.progress?.quizBest != null && <small className="muted">{t('learn.quizBest', { n: l.progress.quizBest })}</small>}
                   </Link>
                 );

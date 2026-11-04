@@ -1,3 +1,4 @@
+import { isMembersOnly, MembersOnly } from '../components/Membership';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
@@ -117,6 +118,7 @@ export default function DramaPlayer() {
     li?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [current, tab]);
 
+  if (isMembersOnly(error)) return <MembersOnly back={{ to: '/drama', label: tr('nav.drama') }} />;
   if (error) return <ErrorBox error={error} />;
   if (!video) return <Loading />;
 

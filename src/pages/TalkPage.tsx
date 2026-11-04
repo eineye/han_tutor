@@ -1,3 +1,4 @@
+import { isMembersOnly, RedeemCode } from '../components/Membership';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -32,6 +33,7 @@ export default function TalkPage() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [limited, setLimited] = useState(false); // free trial: daily AI messages used up
   const [showRoman, setShowRoman] = useState(true);
   const [showEn, setShowEn] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -92,6 +94,7 @@ export default function TalkPage() {
       if (autoSpeak) mascot.say(reply.ko);
     } catch (e) {
       setError((e as Error).message);
+      setLimited(isMembersOnly(e));
     } finally {
       setBusy(false);
     }
@@ -211,7 +214,8 @@ export default function TalkPage() {
         </div>
 
         {last?.demo && <div className="alert alert--info small">{t('talk.demo')}</div>}
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && <div className={`alert ${limited ? 'alert--info' : 'alert--error'}`}>{limited && '🔒 '}{error}</div>}
+        {limited && <RedeemCode compact />}
 
         {(last?.suggestions_ko?.length || last?.hint_en) && (
           <div className="suggest">

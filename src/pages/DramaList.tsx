@@ -1,3 +1,4 @@
+import { LockTag } from '../components/Membership';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
@@ -57,7 +58,7 @@ export default function DramaList() {
           .map((v) => {
             const kind = kindOf(v);
             return (
-              <Link key={v.id} to={`/drama/${v.id}`} className={`drama-card drama-card--${kind}`}>
+              <Link key={v.id} to={`/drama/${v.id}`} className={`drama-card drama-card--${kind} ${v.locked ? 'is-locked' : ''}`}>
                 <div className="drama-card__thumb">
                   {v.source.type === 'youtube' && v.source.youtubeId ? <img src={`https://i.ytimg.com/vi/${v.source.youtubeId}/hqdefault.jpg`} alt="" /> : <span>{v.thumbnail || KIND_ICON[kind]}</span>}
                   <span className="drama-card__type">
@@ -65,7 +66,9 @@ export default function DramaList() {
                   </span>
                 </div>
                 <div className="drama-card__body">
-                  <h3 lang="ko">{v.title.ko}</h3>
+                  <h3 lang="ko">
+                    {v.title.ko} {v.locked && <LockTag />}
+                  </h3>
                   <p>{subtitle(v.title, lang)}</p>
                   <small className="muted">
                     {kind === 'song' && v.artist ? `🎤 ${v.artist} · ` : ''}

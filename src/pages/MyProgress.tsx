@@ -1,3 +1,4 @@
+import { MembershipCard } from '../components/Membership';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -37,6 +38,7 @@ export default function MyProgress() {
   return (
     <div className="me">
       <h1>{t('me.title')}{lang !== 'ko' && ' 나의 학습'}</h1>
+      <MembershipCard />
       <div className="stat-grid">
         <div className="stat card">
           <span>📚</span>

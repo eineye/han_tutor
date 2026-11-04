@@ -361,6 +361,10 @@ label.inline select {
 .alert--warn {
   background: var(--ok-soft);
 }
+.alert--success {
+  background: var(--ok-soft);
+  color: var(--ok, inherit);
+}
 .alert--info {
   background: var(--surface-2);
 }
@@ -4558,4 +4562,177 @@ label.inline select {
   .sign-syl b {
     font-size: 1.6rem;
   }
+}
+
+/* ---- 맛보기 / 정회원 ---- */
+.lock-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted, #666);
+  white-space: nowrap;
+}
+.is-locked {
+  opacity: 0.62;
+  filter: grayscale(0.5);
+}
+.members-only {
+  text-align: center;
+  max-width: 460px;
+  margin: 16px auto;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.members-only__icon {
+  font-size: 2.6rem;
+}
+.redeem {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+.redeem label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+.redeem__row {
+  display: flex;
+  gap: 8px;
+}
+.redeem__row input {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.membership.is-member {
+  border-left: 4px solid var(--brand, #e0384a);
+}
+.membership h3 {
+  margin: 0 0 6px;
+}
+.plan-banner {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 12px;
+}
+.plan-banner--soon {
+  background: var(--ok-soft);
+}
+.plan-chip {
+  font-size: 0.72rem;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 700;
+}
+.plan-chip--member {
+  background: var(--brand, #e0384a);
+  color: #fff;
+}
+.sign-card.is-locked {
+  cursor: default;
+}
+.sign-card .sign-img--locked {
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  background: var(--surface-2);
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+}
+/* 관리자 › 회원·구독 관리 */
+.members-admin__bar {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.members-admin__bar input {
+  max-width: 180px;
+}
+.status-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.status-pill--ok {
+  background: var(--brand, #e0384a);
+  color: #fff;
+}
+.status-pill--warn {
+  background: var(--ok-soft);
+}
+.status-pill--bad {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--brand, inherit);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+.form-grid label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+label.check {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.code-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.code-list code,
+.members-admin code {
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+.members-admin .chips label.chip {
+  cursor: pointer;
+}
+.redeem__row input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.form-grid label.check {
+  display: flex;
+  align-self: end;
+  padding-bottom: 10px;
 }

@@ -1,3 +1,4 @@
+import { PlanBanner } from '../components/Membership';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
@@ -10,7 +11,7 @@ import { subtitle, useI18n } from '../i18n';
 import type { UIKey } from '../i18n/ui';
 import type { Assignment, Lesson, Progress, Unit } from '../types';
 
-type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null };
+type LessonSummary = Pick<Lesson, 'id' | 'unitId' | 'order' | 'kind' | 'title' | 'objectives'> & { progress: Progress | null; locked?: boolean };
 
 const PHRASES: { ko: string; key: UIKey }[] = [
   { ko: '오늘도 화이팅!', key: 'home.phrase1' },
@@ -38,7 +39,7 @@ export default function Home() {
   if (error) return <ErrorBox error={error} />;
   if (!data) return <Loading />;
 
-  const next = data.lessons.find((l) => !l.progress?.completedAt) || data.lessons[data.lessons.length - 1];
+  const next = data.lessons.find((l) => !l.locked && !l.progress?.completedAt) || data.lessons.filter((l) => !l.locked).at(-1) || data.lessons[0];
   const done = data.lessons.filter((l) => l.progress?.completedAt).length;
   const lessonTitle = (id: string | null) => data.lessons.find((l) => l.id === id)?.title;
   const openAssignments = assignments.filter((a) => !a.done);
@@ -46,6 +47,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      <PlanBanner />
       <DailyPlan />
       <section className="hero card">
         <button className="hero__mascot" onClick={() => mascot.say(`${student?.name} 씨, 안녕하세요! ${phrase.ko}`)} aria-label={t('home.talkToBori')}>

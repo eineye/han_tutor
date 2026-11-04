@@ -1,3 +1,4 @@
+import { isMembersOnly, MembersOnly } from '../components/Membership';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -102,7 +103,6 @@ const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(
 export default function TopikTest() {
   const { id = '' } = useParams();
   const [params] = useSearchParams();
-  const mode = params.get('mode') === 'exam' ? 'exam' : 'practice';
   const { t } = useI18n();
   const { setStudent } = useAuth();
   const [set, setSet] = useState<TopikSet | null>(null);
@@ -118,6 +118,8 @@ export default function TopikTest() {
   const [notice, setNotice] = useState('');
   const started = useRef(Date.now());
   const player = useScriptPlayer();
+  // free trial: the server sends a short practice set, so exam mode is not offered
+  const mode = params.get('mode') === 'exam' && !set?.preview ? 'exam' : 'practice';
 
   useEffect(() => {
     api<TopikSet>(`/topik/${id}`)
@@ -169,6 +171,7 @@ export default function TopikTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
+  if (isMembersOnly(error)) return <MembersOnly back={{ to: '/topik', label: t('topik.back') }} />;
   if (error) return <ErrorBox error={error} />;
   if (!set) return <Loading />;
   const q = set.questions[idx];
@@ -293,6 +296,7 @@ export default function TopikTest() {
         )}
       </div>
 
+      {set.preview && <div className="alert alert--info small">🌱 {t('lock.topik', { n: set.questions.length })} — 🔒 {t('lock.title')}</div>}
       <div className="topik-nav" aria-label="questions">
         {set.questions.map((qq, i) => (
           <button

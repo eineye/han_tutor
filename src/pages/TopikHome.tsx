@@ -1,3 +1,4 @@
+import { LockTag } from '../components/Membership';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
@@ -51,14 +52,15 @@ export default function TopikHome() {
               </span>
             </div>
             <h3 lang="ko">{s.title}</h3>
+            {s.preview != null && (s.preview > 0 ? <p className="small">🌱 {t('lock.topik', { n: Math.min(s.preview, s.questionCount) })}</p> : <LockTag />)}
             <p className="small">{s.best != null ? `⭐ ${t('topik.best', { n: s.best, max: s.maxScore })}` : <span className="muted">{t('topik.notYet')}</span>}</p>
             <div className="topik-card__modes">
-              <Link to={`/topik/${s.id}?mode=practice`} className="btn btn--ghost">
+              <Link to={`/topik/${s.id}?mode=practice`} className={`btn btn--ghost ${s.preview === 0 ? 'is-locked' : ''}`}>
                 ✏️ {t('topik.practice')}
                 <small>{t('topik.practiceDesc')}</small>
               </Link>
-              <Link to={`/topik/${s.id}?mode=exam`} className="btn">
-                ⏱️ {t('topik.exam')}
+              <Link to={`/topik/${s.id}?mode=exam`} className={`btn ${s.preview != null ? 'is-locked' : ''}`}>
+                ⏱️ {t('topik.exam')} {s.preview != null && '🔒'}
                 <small>{t('topik.examDesc')}</small>
               </Link>
             </div>

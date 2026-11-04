@@ -1,3 +1,4 @@
+import { isMembersOnly } from './Membership';
 import { useEffect, useRef, useState } from 'react';
 import Mascot, { type Mood } from './Mascot';
 import LipsView from './LipsView';
@@ -156,7 +157,7 @@ export default function PronunciationPractice({ items, lessonId, compact, onAllD
         }
       }
     } catch (e) {
-      setError((e as Error).message);
+      setError((isMembersOnly(e) ? '🔒 ' : '') + (e as Error).message);
     } finally {
       setAiLoading(false);
     }

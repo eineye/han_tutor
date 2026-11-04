@@ -25,6 +25,7 @@ import { seedTopikSets } from './seed/topik.js';
 import { seedVideos } from './seed/videos.js';
 import { SIGN_CATEGORIES, seedSigns } from './seed/signs.js';
 import { base64ToBytes, imageInfo } from './imageInfo.js';
+import { DEFAULT_MONTHS, MEMBERSHIP_MONTHS, accessInfo, extendMembership, freeRules, isMember, makeCode, normalizeCode } from './access.js';
 import { cleanTts, DEFAULT_TTS, geminiVoiceFor, pcmToWavBase64, ttsCacheKey } from './ttsVoices.js';
 import { base64Bytes, MAX_RECORDING_BYTES, MAX_RECORDING_TEXT, RECORDING_TYPES, recordingKey } from './recordings.js';
 
@@ -88,8 +89,15 @@ export function createCore(deps) {
   function publicStudent(s) {
     if (!s) return null;
     const { pinHash: _pinHash, ...rest } = s;
-    return rest;
+    return { ...rest, access: accessInfo(s, db().settings, Date.parse(now())) };
   }
+
+  // ---- 맛보기 (free trial) / 정회원 (membership) ----
+  const member = (student) => isMember(student, Date.parse(now()));
+  const free = () => freeRules(db().settings);
+  const MEMBERS_ONLY = 'This part is for full members. Enter the access code from your teacher. 정회원 전용이에요. 선생님께 받은 인증 코드를 입력하세요.';
+  const lessonOpen = (student, l) => member(student) || free().units.includes(l.unitId);
+  const videoOpen = (student, v) => member(student) || free().videos.includes(v.id);
 
   function newSession(role, studentId) {
     const token = deps.id('t_') + deps.id();
@@ -149,6 +157,8 @@ export function createCore(deps) {
     d.students = d.students.filter((s) => s.id !== sid);
     for (const k of ['progress', 'quizResults', 'pronunciation', 'chatLogs', 'evaluations', 'assignments', 'topikResults', 'reviews']) if (Array.isArray(d[k])) d[k] = d[k].filter((x) => x.studentId !== sid);
     d.sessions = d.sessions.filter((x) => x.studentId !== sid);
+    // payment records stay for the teacher's accounts, without the link to the deleted account
+    for (const p of d.payments || []) if (p.studentId === sid) Object.assign(p, { studentId: null, studentName: `${p.studentName || ''} (삭제된 계정)`.trim() });
     save();
   };
 
@@ -284,6 +294,7 @@ export function createCore(deps) {
           title: l.title,
           objectives: l.objectives,
           progress: prog.find((p) => p.lessonId === l.id) || null,
+          locked: !lessonOpen(student, l),
         })),
     };
   });
@@ -291,19 +302,21 @@ export function createCore(deps) {
   route('GET', '/lessons/:id', 'student', ({ params, student }) => {
     const lesson = db().lessons.find((l) => l.id === params.id && published(l));
     if (!lesson) throw new HttpError(404, 'Lesson not found');
+    if (!lessonOpen(student, lesson)) throw new HttpError(403, MEMBERS_ONLY, 'members_only');
     const progress = db().progress.find((p) => p.studentId === student.id && p.lessonId === lesson.id) || null;
     return { lesson, progress };
   });
 
-  route('GET', '/videos', 'student', () =>
+  route('GET', '/videos', 'student', ({ student }) =>
     db()
       .videos.filter(published)
-      .map(({ lines, quiz: _quiz, ...v }) => ({ ...v, lineCount: lines?.length || 0 })),
+      .map(({ lines, quiz: _quiz, ...v }) => ({ ...v, lineCount: lines?.length || 0, locked: !videoOpen(student, v) })),
   );
 
-  route('GET', '/videos/:id', 'student', ({ params }) => {
+  route('GET', '/videos/:id', 'student', ({ params, student }) => {
     const v = db().videos.find((x) => x.id === params.id && published(x));
     if (!v) throw new HttpError(404, 'Video not found');
+    if (!videoOpen(student, v)) throw new HttpError(403, MEMBERS_ONLY, 'members_only');
     return v;
   });
 
@@ -389,7 +402,7 @@ export function createCore(deps) {
     const stats = deckStats(student, today);
     const lessons = db().lessons.filter(published).sort((a, b) => a.order - b.order);
     const prog = db().progress.filter((p) => p.studentId === student.id);
-    const next = lessons.find((l) => !prog.find((p) => p.lessonId === l.id)?.completedAt) || null;
+    const next = lessons.find((l) => lessonOpen(student, l) && !prog.find((p) => p.lessonId === l.id)?.completedAt) || null;
     const chats = db().chatLogs.filter((c) => c.studentId === student.id);
     const tasks = [
       { id: 'review', done: stats.total > 0 && (stats.due === 0 || stats.reviewedToday >= DAILY_REVIEW_TARGET), count: stats.due, reviewed: stats.reviewedToday, target: DAILY_REVIEW_TARGET },
@@ -521,7 +534,8 @@ export function createCore(deps) {
     return { ok: true, record: r };
   });
 
-  route('POST', '/ai/pronunciation', 'student', async ({ body }) => {
+  route('POST', '/ai/pronunciation', 'student', async ({ body, student }) => {
+    if (!member(student)) throw new HttpError(403, MEMBERS_ONLY, 'members_only');
     const { target, roman, audioBase64, mimeType = 'audio/wav', lang } = body;
     if (!target || !audioBase64) throw new HttpError(400, 'target and audio required');
     if (!deps.hasKey()) return { demo: true, ...demoPronunciation(target, lang) };
@@ -536,6 +550,15 @@ export function createCore(deps) {
   // AI conversation
   route('POST', '/ai/chat', 'student', async ({ body, student }) => {
     const { scenarioKey, scenario, vocab, messages = [], lang } = body;
+    if (!member(student)) {
+      // free trial: a few AI messages a day (the AI has a running cost)
+      const today = todayOf(student);
+      const sent = db()
+        .chatLogs.filter((c) => c.studentId === student.id)
+        .reduce((n, c) => n + c.messages.filter((m) => m.role === 'user' && localDay(m.at, student.tzOffset || 0) === today).length, 0);
+      if (sent >= free().aiPerDay)
+        throw new HttpError(403, `Free trial: ${free().aiPerDay} AI messages a day. Full members can talk without limit. 맛보기는 하루 ${free().aiPerDay}번까지 AI와 대화할 수 있어요. 정회원은 제한 없이 대화해요.`, 'members_only');
+    }
     const history = messages.slice(-20).map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: String(m.text || '').slice(0, 800) }],
@@ -573,6 +596,109 @@ export function createCore(deps) {
     if (lastUser) touchStudy(student, 3);
     save();
     return reply;
+  });
+
+  // ---- membership: access codes, approvals and payment records (관리자 › 회원·구독 관리) ----
+  const codes = () => (db().accessCodes ||= []);
+  const payments = () => (db().payments ||= []);
+  const randomUnit = () => (globalThis.crypto?.getRandomValues ? globalThis.crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 : Math.random());
+  const cleanPayment = (b = {}) => ({
+    amount: Number.isFinite(Number(b.amount)) ? Math.max(0, Number(b.amount)) : 0,
+    currency: String(b.currency || db().settings.currency || 'NPR').slice(0, 8),
+    method: ['cash', 'transfer', 'other'].includes(b.method) ? b.method : 'cash',
+    paid: b.paid !== false,
+    note: String(b.note || '').slice(0, 200),
+  });
+  const monthsOf = (m) => (MEMBERSHIP_MONTHS.includes(Number(m)) ? Number(m) : DEFAULT_MONTHS);
+  const memberRow = (s) => {
+    const pays = payments().filter((p) => p.studentId === s.id);
+    return { ...publicStudent(s), payments: pays.length, lastPayment: pays.at(-1) || null, unpaid: pays.filter((p) => !p.paid).length };
+  };
+
+  route('GET', '/access', 'student', ({ student }) => accessInfo(student, db().settings, Date.parse(now())));
+
+  // the student types the code the teacher gave them
+  route('POST', '/access/redeem', 'student', ({ body, student }) => {
+    const key = `code:${student.id}`;
+    checkLimit(key);
+    const code = normalizeCode(body.code);
+    const c = codes().find((x) => x.code === code);
+    if (!c || c.revoked || c.usedBy) {
+      failed(key);
+      throw new HttpError(400, c?.usedBy ? 'This code has already been used. 이미 사용된 코드예요.' : 'The code is not valid. Check it with your teacher. 코드가 올바르지 않아요. 선생님께 확인해 주세요.', c?.usedBy ? 'code_used' : 'bad_code');
+    }
+    failures.delete(key);
+    extendMembership(student, c.months, now());
+    Object.assign(c, { usedBy: student.id, usedByName: student.name, usedAt: now() });
+    payments().push({ id: deps.id('pay_'), studentId: student.id, studentName: student.name, months: c.months, ...cleanPayment(c), code: c.code, by: 'code', at: now() });
+    save();
+    return { access: accessInfo(student, db().settings, Date.parse(now())), student: publicStudent(student) };
+  });
+
+  route('GET', '/admin/members', 'admin', () => ({
+    students: db().students.map(memberRow),
+    free: free(),
+    currency: db().settings.currency || 'NPR',
+  }));
+
+  // teacher approves / extends directly (e.g. paid in cash at school)
+  route('POST', '/admin/members/:id/grant', 'admin', ({ params, body }) => {
+    const s = findStudent(params.id);
+    const months = monthsOf(body.months);
+    extendMembership(s, months, now());
+    payments().push({ id: deps.id('pay_'), studentId: s.id, studentName: s.name, months, ...cleanPayment(body), code: null, by: 'admin', at: now() });
+    save();
+    return memberRow(s);
+  });
+  route('POST', '/admin/members/:id/end', 'admin', ({ params }) => {
+    const s = findStudent(params.id);
+    if (s.membership) s.membership = { ...s.membership, expiresAt: now(), endedAt: now() };
+    save();
+    return memberRow(s);
+  });
+  route('GET', '/admin/payments', 'admin', () => [...payments()].reverse());
+  route('GET', '/admin/members/:id/payments', 'admin', ({ params }) => payments().filter((p) => p.studentId === params.id));
+  route('PUT', '/admin/payments/:id', 'admin', ({ params, body }) => {
+    const p = payments().find((x) => x.id === params.id);
+    if (!p) throw new HttpError(404, 'not found');
+    Object.assign(p, cleanPayment({ ...p, ...body }), { updatedAt: now() });
+    save();
+    return p;
+  });
+
+  route('GET', '/admin/codes', 'admin', () => [...codes()].reverse());
+  route('POST', '/admin/codes', 'admin', ({ body }) => {
+    const count = Math.max(1, Math.min(100, Math.round(Number(body.count) || 1)));
+    const made = [];
+    for (let i = 0; i < count; i++) {
+      let code;
+      do code = makeCode(randomUnit);
+      while (codes().some((x) => x.code === code));
+      const c = { code, months: monthsOf(body.months), ...cleanPayment(body), createdAt: now(), usedBy: null, usedAt: null, revoked: false };
+      codes().push(c);
+      made.push(c);
+    }
+    save();
+    return made;
+  });
+  route('PUT', '/admin/codes/:code', 'admin', ({ params, body }) => {
+    const c = codes().find((x) => x.code === normalizeCode(params.code));
+    if (!c) throw new HttpError(404, 'not found');
+    if (body.revoked !== undefined) {
+      if (c.usedBy && body.revoked) throw new HttpError(400, '이미 사용된 코드는 취소할 수 없습니다. 회원 목록에서 정회원을 해제하세요.');
+      c.revoked = Boolean(body.revoked);
+    }
+    Object.assign(c, cleanPayment({ ...c, ...body }));
+    save();
+    return c;
+  });
+
+  // trial scope + currency
+  route('PUT', '/admin/free-access', 'admin', ({ body }) => {
+    db().settings.freeAccess = freeRules({ freeAccess: body });
+    if (body.currency !== undefined) db().settings.currency = String(body.currency || 'NPR').slice(0, 8);
+    save();
+    return { free: free(), currency: db().settings.currency || 'NPR' };
   });
 
   // ---- admin ----
@@ -770,11 +896,15 @@ export function createCore(deps) {
     });
   }
 
-  route('GET', '/signs', 'student', () =>
-    signs()
+  route('GET', '/signs', 'student', ({ student }) => {
+    const list = signs()
       .filter(published)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
-  );
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if (member(student)) return list;
+    // free trial: the first few signs; the rest only show that they exist
+    const n = free().signs;
+    return list.map((g, i) => (i < n ? g : { id: g.id, order: g.order, category: g.category, image: '', text: '', roman: '', en: '', words: [], locked: true }));
+  });
 
   // ---- sign photos: the teacher's browser crops and shrinks them first; the server only checks and stores ----
   const IMAGE_PREFIX = 'image:';
@@ -924,20 +1054,28 @@ export function createCore(deps) {
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((set) => {
         const rs = mine.filter((r) => r.setId === set.id);
-        return { ...topikSummary(set), attempts: rs.length, best: rs.length ? Math.max(...rs.map((r) => r.score)) : null, last: rs.at(-1) || null };
+        return { ...topikSummary(set), attempts: rs.length, best: rs.length ? Math.max(...rs.map((r) => r.score)) : null, last: rs.at(-1) || null, ...(member(student) ? {} : { preview: free().topikQuestions }) };
       });
   });
 
-  route('GET', '/topik/:id', 'student', ({ params }) => {
+  /** Free trial: the first questions of a set, practice only. */
+  const topikFor = (student, set) => {
+    if (member(student)) return set;
+    const n = free().topikQuestions;
+    return { ...set, questions: set.questions.slice(0, n), preview: true, fullCount: set.questions.length };
+  };
+  route('GET', '/topik/:id', 'student', ({ params, student }) => {
     const set = topikSets().find((x) => x.id === params.id && published(x));
     if (!set) throw new HttpError(404, 'not found');
-    return set;
+    if (!member(student) && free().topikQuestions === 0) throw new HttpError(403, MEMBERS_ONLY, 'members_only');
+    return topikFor(student, set);
   });
 
   // Scored on the server from the stored answer key
   route('POST', '/topik/results', 'student', ({ body, student }) => {
-    const set = topikSets().find((x) => x.id === body.setId && published(x));
-    if (!set) throw new HttpError(404, 'not found');
+    const full = topikSets().find((x) => x.id === body.setId && published(x));
+    if (!full) throw new HttpError(404, 'not found');
+    const set = topikFor(student, full); // free trial: scored on the preview questions only
     const answers = Array.isArray(body.answers) ? body.answers : [];
     let score = 0;
     let correct = 0;
@@ -947,7 +1085,7 @@ export function createCore(deps) {
       if (ok) (score += Number(q.points) || 0), correct++;
       return a;
     });
-    const result = { id: deps.id('tp_'), studentId: student.id, setId: set.id, section: set.section, mode: body.mode === 'exam' ? 'exam' : 'practice', score, maxScore: maxScore(set), correct, total: set.questions.length, answers: detail, seconds: Math.max(0, Math.round(Number(body.seconds) || 0)), at: now() };
+    const result = { id: deps.id('tp_'), studentId: student.id, setId: set.id, section: set.section, mode: body.mode === 'exam' && !set.preview ? 'exam' : 'practice', ...(set.preview ? { preview: true } : {}), score, maxScore: maxScore(set), correct, total: set.questions.length, answers: detail, seconds: Math.max(0, Math.round(Number(body.seconds) || 0)), at: now() };
     topikResults().push(result);
     touchStudy(student, 10 + correct);
     save();

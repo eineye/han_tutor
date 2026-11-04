@@ -1,3 +1,4 @@
+import { isMembersOnly, MembersOnly } from '../components/Membership';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
@@ -71,6 +72,7 @@ export default function LessonPage() {
     return s;
   }, [lesson]);
 
+  if (isMembersOnly(error)) return <MembersOnly back={{ to: '/learn', label: t('nav.lessons') }} />;
   if (error) return <ErrorBox error={error} />;
   if (!lesson) return <Loading />;
 

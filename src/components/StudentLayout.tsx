@@ -100,6 +100,11 @@ export default function StudentLayout() {
               <div className="muted small">
                 ⭐ {student?.xp ?? 0} XP · 🔥 {student?.streak ?? 0}
               </div>
+              {student?.access && (
+                <span className={`plan-chip ${student.access.member ? 'plan-chip--member' : ''}`}>
+                  {student.access.member ? `⭐ ${t('plan.member')}` : `🌱 ${t('plan.free')}`}
+                </span>
+              )}
             </div>
             <button type="button" className="drawer__close" onClick={() => setMenu(false)} aria-label={t('common.close')}>
               ✕

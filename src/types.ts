@@ -116,6 +116,7 @@ export interface Video {
   quiz: QuizItem[];
   status?: 'draft' | 'published';
   lineCount?: number;
+  locked?: boolean;
 }
 
 export interface Student {
@@ -130,6 +131,17 @@ export interface Student {
   teacherNote?: string;
   createdAt: string;
   lastActive: string;
+  membership?: { plan: 'full'; since: string; expiresAt: string; endedAt?: string };
+  access?: Access;
+}
+
+/** 맛보기 (free trial) / 정회원 (membership), server/access.js */
+export interface Access {
+  member: boolean;
+  expiresAt: string | null;
+  daysLeft: number;
+  expired: boolean;
+  free: { units: string[]; videos: string[]; signs: number; topikQuestions: number; aiPerDay: number };
 }
 
 export interface StudentStats {
@@ -224,13 +236,18 @@ export interface TopikSet {
   timeLimitMin: number;
   status?: 'draft' | 'published';
   questions: TopikQuestion[];
+  /** free trial: only the first questions are sent */
+  preview?: boolean;
+  fullCount?: number;
 }
 
-export interface TopikSummary extends Omit<TopikSet, 'questions'> {
+export interface TopikSummary extends Omit<TopikSet, 'questions' | 'preview'> {
   questionCount: number;
   maxScore: number;
   attempts: number;
   best: number | null;
+  /** free trial: number of questions that can be tried */
+  preview?: number;
 }
 
 export interface TopikResult {
@@ -307,6 +324,8 @@ export interface Sign {
   note_en?: string;
   words: { ko: string; roman?: string; en: string }[];
   status?: 'draft' | 'published';
+  /** free trial: only that the sign exists */
+  locked?: boolean;
 }
 
 /** 간판 읽기 results (GET /my/summary, teacher student detail) */

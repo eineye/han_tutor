@@ -7,6 +7,7 @@ import { pronunciationScore, romanize } from '../lib/hangul';
 import { useImageSrc } from '../lib/images';
 import { listenKorean, recognitionErrorKey, recognitionSupported, speak } from '../lib/speech';
 import type { Sign, SignCategory } from '../types';
+import { LockTag } from './Membership';
 import { ErrorBox, Loading, ScoreBadge, SpeakButton } from './ui';
 
 // 한글 › 간판 읽기: read real-life signs. Look → try to read → reveal (syllables, meaning, words) → listen → say it.
@@ -31,12 +32,14 @@ export default function SignReading() {
     api<Sign[]>('/signs').then(setSigns).catch(setError);
   }, []);
 
-  const shown = useMemo(() => (signs || []).filter((g) => cat === 'all' || g.category === cat), [signs, cat]);
+  const shown = useMemo(() => (signs || []).filter((g) => !g.locked && (cat === 'all' || g.category === cat)), [signs, cat]);
+  const open_ = useMemo(() => (signs || []).filter((g) => !g.locked), [signs]);
+  const locked = useMemo(() => (signs || []).filter((g) => g.locked && (cat === 'all' || g.category === cat)), [signs, cat]);
   if (error) return <ErrorBox error={error} />;
   if (!signs) return <Loading />;
   if (!signs.length) return <p className="muted card">{t('sign.empty')}</p>;
 
-  if (quiz) return <SignQuiz signs={signs} onExit={() => setQuiz(false)} />;
+  if (quiz) return <SignQuiz signs={open_} onExit={() => setQuiz(false)} />;
   if (open != null && shown[open]) return <SignStudy key={shown[open].id} sign={shown[open]} pos={open} total={shown.length} onMove={setOpen} onBack={() => setOpen(null)} />;
 
   return (
@@ -52,7 +55,7 @@ export default function SignReading() {
               </button>
             ))}
         </div>
-        {signs.length >= 4 && (
+        {open_.length >= 4 && (
           <button className="btn btn--small" onClick={() => setQuiz(true)}>
             ✏️ {t('sign.quiz')}
           </button>
@@ -64,6 +67,13 @@ export default function SignReading() {
             <SignImage sign={g} />
             <small className="muted">{t(`sign.cat.${g.category}` as UIKey)}</small>
           </button>
+        ))}
+        {/* free trial: the other signs are shown as locked tiles (no picture or text is sent) */}
+        {locked.map((g) => (
+          <div key={g.id} className="sign-card is-locked" aria-label={t('lock.title')}>
+            <div className="sign-img sign-img--locked">🔒</div>
+            <LockTag />
+          </div>
         ))}
       </div>
     </div>

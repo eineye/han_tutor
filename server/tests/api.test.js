@@ -313,9 +313,13 @@ test('sign reading: sample signs, photo upload limits, edit, file serving and cl
   const kid = await call('/auth/student/register', { body: { name: 'Sign Kid', classCode: 'DEMO', pin: '2468' } });
   const list = await call('/signs', { token: kid.data.token });
   assert.equal(list.status, 200);
-  assert.ok(list.data.length >= 8 && list.data.every((g) => g.text && g.en && g.image));
+  assert.ok(list.data.length >= 8);
+  assert.ok(list.data.slice(0, 3).every((g) => g.text && g.en && g.image), 'free trial: first 3 signs');
+  assert.ok(list.data.slice(3).every((g) => g.locked && !g.text && !g.image), 'the rest are locked without the answer');
 
   const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  await call(`/admin/members/${kid.data.student.id}/grant`, { token: admin, body: { months: 3 } });
+  assert.ok((await call('/signs', { token: kid.data.token })).data.every((g) => g.text && g.image), 'members see every sign');
   assert.equal((await call('/admin/images', { token: admin, body: { data: fakePng(2400, 1800) } })).status, 400, 'too many pixels');
   assert.equal((await call('/admin/images', { token: admin, body: { data: fakePng(1200, 900, 700 * 1024) } })).status, 413, 'file too large');
   assert.equal((await call('/admin/images', { token: admin, body: { data: Buffer.from('not an image at all, sorry!!!!').toString('base64') } })).status, 400, 'not an image');
@@ -354,4 +358,73 @@ test('sign reading results reach My Progress and the teacher', async () => {
   const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
   const detail = (await call('/admin/students/' + kid.student.id, { token: admin })).data;
   assert.equal(detail.signs.quizCount, 2);
+});
+
+test('free trial and membership: locked content, access codes, teacher approval, payments', async () => {
+  const kid = (await call('/auth/student/register', { body: { name: 'Trial Kid', classCode: 'DEMO', pin: '3579' } })).data;
+  const token = kid.token;
+  assert.equal(kid.student.access.member, false);
+  // lessons: 예비편 + unit 1 open, the rest locked
+  const cur = (await call('/curriculum', { token })).data;
+  assert.equal(cur.lessons.find((l) => l.id === 'L01').locked, false);
+  assert.equal(cur.lessons.find((l) => l.id === 'L05').locked, true);
+  const locked = await call('/lessons/L05', { token });
+  assert.equal(locked.status, 403);
+  assert.equal(locked.data.code, 'members_only');
+  assert.equal((await call('/lessons/L01', { token })).status, 200);
+  // videos: V1 and S1 open
+  const vids = (await call('/videos', { token })).data;
+  assert.deepEqual(vids.filter((v) => !v.locked).map((v) => v.id).sort(), ['S1', 'V1']);
+  assert.equal((await call('/videos/V2', { token })).status, 403);
+  // TOPIK: the first 10 questions, practice only
+  const t = (await call('/topik/T1L', { token })).data;
+  assert.equal(t.preview, true);
+  assert.equal(t.questions.length, 10);
+  const res = (await call('/topik/results', { token, body: { setId: 'T1L', mode: 'exam', answers: t.questions.map((q) => q.answer) } })).data.result;
+  assert.equal(res.correct, 10);
+  assert.equal(res.mode, 'practice');
+  assert.equal(res.preview, true);
+  // AI: 3 messages a day
+  for (let i = 0; i < 3; i++) assert.equal((await call('/ai/chat', { token, body: { messages: [{ role: 'user', text: '안녕하세요' }] } })).status, 200);
+  const fourth = await call('/ai/chat', { token, body: { messages: [{ role: 'user', text: '안녕하세요' }] } });
+  assert.equal(fourth.status, 403);
+  assert.equal((await call('/ai/pronunciation', { token, body: { target: '가', audioBase64: 'AAAA' } })).status, 403);
+
+  // teacher makes codes; the student redeems one
+  const admin = (await call('/auth/admin/login', { body: { password: 'test-admin' } })).data.token;
+  const made = (await call('/admin/codes', { token: admin, body: { count: 2, months: 3, amount: 1500, method: 'cash', paid: true, note: '11월분' } })).data;
+  assert.equal(made.length, 2);
+  assert.match(made[0].code, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  assert.equal((await call('/access/redeem', { token, body: { code: 'ZZZZ-ZZZZ' } })).status, 400);
+  const ok = (await call('/access/redeem', { token, body: { code: made[0].code.toLowerCase().replace('-', ' ') } })).data;
+  assert.equal(ok.access.member, true);
+  assert.ok(ok.access.daysLeft >= 89 && ok.access.daysLeft <= 92);
+  assert.equal((await call('/access/redeem', { token, body: { code: made[0].code } })).data.code, 'code_used');
+  assert.equal((await call('/lessons/L05', { token })).status, 200, 'members open everything');
+  assert.equal((await call('/topik/T1L', { token })).data.questions.length, 30);
+  assert.equal((await call('/ai/chat', { token, body: { messages: [{ role: 'user', text: '안녕' }] } })).status, 200, 'no daily limit');
+
+  // a second code (or teacher approval) extends from the current expiry
+  const before = ok.access.expiresAt;
+  const ext = (await call('/access/redeem', { token, body: { code: made[1].code } })).data;
+  assert.ok(Date.parse(ext.access.expiresAt) > Date.parse(before) + 80 * 86400000);
+  const members = (await call('/admin/members', { token: admin })).data;
+  const row = members.students.find((x) => x.id === kid.student.id);
+  assert.equal(row.payments, 2);
+  assert.equal(row.lastPayment.amount, 1500);
+  const pays = (await call(`/admin/members/${kid.student.id}/payments`, { token: admin })).data;
+  const fix = (await call('/admin/payments/' + pays[0].id, { token: admin, method: 'PUT', body: { paid: false } })).data;
+  assert.equal(fix.paid, false);
+  const all = (await call('/admin/payments', { token: admin })).data;
+  assert.ok(all.some((p) => p.id === fix.id && p.paid === false));
+  assert.equal((await call('/admin/payments', { token })).status, 403);
+  // used codes cannot be revoked; ending the membership locks content again
+  assert.equal((await call('/admin/codes/' + made[0].code, { token: admin, method: 'PUT', body: { revoked: true } })).status, 400);
+  await call(`/admin/members/${kid.student.id}/end`, { token: admin, body: {} });
+  assert.equal((await call('/lessons/L05', { token })).status, 403);
+  // the teacher can widen the free part
+  await call('/admin/free-access', { token: admin, method: 'PUT', body: { units: ['U0', 'U1', 'U2', 'U3'], videos: ['V1'], signs: 5, topikQuestions: 0, aiPerDay: 0 } });
+  assert.equal((await call('/lessons/L05', { token })).status, 200);
+  assert.equal((await call('/topik/T1L', { token })).status, 403, 'TOPIK closed when the free questions are 0');
+  await call('/admin/free-access', { token: admin, method: 'PUT', body: {} }); // back to defaults
 });

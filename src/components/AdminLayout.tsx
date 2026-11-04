@@ -6,6 +6,7 @@ import { useAuth } from '../auth';
 const NAV = [
   { to: '/admin', icon: '📊', label: '대시보드', end: true },
   { to: '/admin/students', icon: '🧑‍🎓', label: '학생 관리' },
+  { to: '/admin/members', icon: '💳', label: '회원·구독 관리' },
   { to: '/admin/content', icon: '📚', label: '학습 콘텐츠' },
   { to: '/admin/videos', icon: '🎬', label: '드라마·영상·노래' },
   { to: '/admin/signs', icon: '📷', label: '간판 사진' },
